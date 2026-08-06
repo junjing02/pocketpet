@@ -3,14 +3,27 @@ import * as db from "./supabase.js";
 
 const HOUR = 3600000;
 const STAGE_ORDER = ["egg", "baby", "child", "teen", "adult"];
-const AGE_THRESHOLD_MS = { baby: HOUR, child: HOUR * 24, teen: HOUR * 24 * 3, adult: HOUR * 24 * 7 };
+
+// --- DEMO SPEED — revert both before public launch ---
+// TIME_SCALE speeds up stat decay; AGE_THRESHOLD_MS below is hand-tuned for a
+// few-minutes demo instead of the real egg(1h)/baby(1d)/child(3d)/teen(7d) pacing.
+const TIME_SCALE = 60;
+const AGE_THRESHOLD_MS = { baby: 60 * 1000, child: 3 * 60 * 1000, teen: 6 * 60 * 1000, adult: 10 * 60 * 1000 };
+
 const EVOLVE_HEALTH_MIN = 50;
 const DECAY_PER_HOUR = { hunger: 4, happiness: 3, energy: 2.5, hygiene: 3.5 };
 const HEALTH_DECAY_PER_HOUR_NEGLECTED = 5;
 const SLEEP_ENERGY_GAIN_PER_HOUR = 10;
 const SLEEP_DECAY_MULTIPLIER = 0.5;
 
-const clamp = (v) => Math.max(0, Math.min(100, v));
+const FOOD_PRICE = 5;
+const STARTING_COINS = 20;
+const STARTING_FOOD = 3;
+const GAME_ROUNDS = 5;
+const GAME_TARGET_MS = 700;
+const COINS_PER_HIT = 4;
+
+const clamp = (v) => Math.round(Math.max(0, Math.min(100, v)));
 
 export function createInitialPet(name) {
   const now = new Date().toISOString();
@@ -24,6 +37,8 @@ export function createInitialPet(name) {
     hygiene: 100,
     is_sick: false,
     is_sleeping: false,
+    coins: STARTING_COINS,
+    food_count: STARTING_FOOD,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -41,7 +56,7 @@ function updateLifeStage(pet, nowMs) {
 
 // Simulates elapsed real time since last_updated — see design doc §6.
 export function applyDecay(pet, nowMs = Date.now()) {
-  const elapsedHours = (nowMs - new Date(pet.last_updated).getTime()) / HOUR;
+  const elapsedHours = ((nowMs - new Date(pet.last_updated).getTime()) / HOUR) * TIME_SCALE;
   if (elapsedHours <= 0.001) return { pet, recap: [] };
 
   const before = { ...pet };
@@ -73,10 +88,18 @@ export function applyDecay(pet, nowMs = Date.now()) {
 }
 
 export function feed(pet) {
-  if (pet.is_sleeping) return pet;
+  if (pet.is_sleeping || pet.food_count <= 0) return pet;
+  pet.food_count -= 1;
   pet.hunger = clamp(pet.hunger + 30);
   pet.happiness = clamp(pet.happiness + 5);
   pet.hygiene = clamp(pet.hygiene - 5);
+  return pet;
+}
+
+export function buyFood(pet) {
+  if (pet.coins < FOOD_PRICE) return pet;
+  pet.coins -= FOOD_PRICE;
+  pet.food_count += 1;
   return pet;
 }
 
@@ -114,9 +137,26 @@ const $ = (id) => document.getElementById(id);
 let currentPet = null;
 let currentUserId = null;
 let blinkOn = true;
+let gameActive = false;
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
+}
+
+function centerPetScreen(host) {
+  const device = host.parentElement;
+  host.style.left = `${Math.max(0, (device.clientWidth - host.offsetWidth) / 2)}px`;
+  host.style.top = `${Math.max(0, (device.clientHeight - host.offsetHeight) / 2)}px`;
+}
+
+function wanderPet() {
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+  const host = $("pet-screen");
+  const device = host.parentElement;
+  const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
+  const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
+  host.style.left = `${Math.random() * maxX}px`;
+  host.style.top = `${Math.random() * maxY}px`;
 }
 
 function renderPetDots(pet, eyesOpen) {
@@ -131,6 +171,7 @@ function renderPetDots(pet, eyesOpen) {
   }
   host.innerHTML = html;
   host.classList.toggle("pet--sleeping", pet.is_sleeping);
+  if (pet.life_stage === "egg") centerPetScreen(host);
 
   const status = $("pet-status");
   if (pet.is_sick) {
@@ -157,6 +198,33 @@ function renderStats(pet) {
   $("pet-stage").textContent = pet.life_stage;
   $("btn-medicine").hidden = !pet.is_sick;
   $("btn-sleep").textContent = pet.is_sleeping ? "Wake" : "Sleep";
+  $("pet-progress").textContent = stageProgressText(pet);
+
+  $("val-coins").textContent = pet.coins;
+  $("val-food").textContent = pet.food_count;
+  $("btn-feed").disabled = pet.food_count <= 0 || pet.is_sleeping;
+  $("btn-buy-food").disabled = pet.coins < FOOD_PRICE;
+}
+
+function formatDuration(ms) {
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+function stageProgressText(pet) {
+  const idx = STAGE_ORDER.indexOf(pet.life_stage);
+  const next = STAGE_ORDER[idx + 1];
+  if (!next) return "Fully grown";
+  const ageMs = Date.now() - new Date(pet.birth_timestamp).getTime();
+  const remaining = AGE_THRESHOLD_MS[next] - ageMs;
+  if (remaining > 0) return `Evolves into ${next} in ${formatDuration(remaining)}`;
+  if (pet.health < EVOLVE_HEALTH_MIN) return `Ready to evolve — raise Health above ${EVOLVE_HEALTH_MIN} first`;
+  return "Evolving soon…";
 }
 
 function showRecap(recap) {
@@ -181,73 +249,272 @@ function render() {
   renderStats(currentPet);
 }
 
-async function runAction(fn) {
+function bouncePet() {
+  const host = $("pet-screen");
+  host.classList.remove("pet--bounce");
+  void host.offsetWidth; // restart the animation if it's still running
+  host.classList.add("pet--bounce");
+}
+
+async function runAction(fn, { bounce = true } = {}) {
   fn(currentPet);
   render();
+  if (bounce && !currentPet.is_sleeping) bouncePet();
   try {
     await persist();
   } catch (err) {
-    $("error").textContent = err.message;
+    showMessage(err.message, true);
+  }
+}
+
+function playRound(overlay) {
+  return new Promise((resolve) => {
+    const target = document.createElement("button");
+    target.type = "button";
+    target.className = "game-target";
+    const size = 22;
+    const maxX = Math.max(0, overlay.clientWidth - size);
+    const maxY = Math.max(0, overlay.clientHeight - size);
+    target.style.left = `${Math.random() * maxX}px`;
+    target.style.top = `${Math.random() * maxY}px`;
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      target.remove();
+      resolve(hit);
+    };
+    target.addEventListener("click", () => finish(true));
+    overlay.appendChild(target);
+    setTimeout(() => finish(false), GAME_TARGET_MS);
+  });
+}
+
+async function runPlayGame() {
+  const overlay = $("game-overlay");
+  const btn = $("btn-play");
+  btn.disabled = true;
+  gameActive = true;
+  overlay.hidden = false;
+  overlay.innerHTML = "";
+
+  let hits = 0;
+  for (let i = 0; i < GAME_ROUNDS; i++) {
+    await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
+    if (await playRound(overlay)) hits++;
+  }
+
+  overlay.hidden = true;
+  gameActive = false;
+
+  play(currentPet); // usual happiness/energy/hunger effect — no-ops if sleeping or too tired
+  const coinsEarned = hits * COINS_PER_HIT;
+  currentPet.coins += coinsEarned;
+  render();
+  if (!currentPet.is_sleeping) bouncePet();
+  btn.disabled = false;
+  showMessage(`Play: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
+  try {
+    await persist();
+  } catch (err) {
+    showMessage(err.message, true);
   }
 }
 
 function wireActions() {
+  $("btn-buy-food").textContent = `Buy Food (${FOOD_PRICE})`;
   $("btn-feed").addEventListener("click", () => runAction(feed));
-  $("btn-play").addEventListener("click", () => runAction(play));
+  $("btn-play").addEventListener("click", () => runPlayGame());
   $("btn-clean").addEventListener("click", () => runAction(clean));
-  $("btn-sleep").addEventListener("click", () => runAction(toggleSleep));
+  $("btn-sleep").addEventListener("click", () => runAction(toggleSleep, { bounce: false }));
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine));
+  $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false }));
+
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
     currentPet = null;
     currentUserId = null;
+    resetAuthForm();
     screen("auth");
+  });
+
+  $("btn-help").addEventListener("click", () => {
+    $("help-panel").hidden = !$("help-panel").hidden;
+  });
+
+  $("btn-settings").addEventListener("click", () => screen("settings"));
+  $("btn-settings-back").addEventListener("click", () => {
+    screen("pet");
+    render();
+  });
+
+  $("change-password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const password = $("settings-new-password").value;
+    await withBusy(e.submitter, "Updating…", async () => {
+      await db.updatePassword(password);
+      $("change-password-form").reset();
+      showMessage("Password updated.");
+    });
+  });
+
+  $("btn-reset-pet").addEventListener("click", async () => {
+    if (!confirm("Reset your pet back to a fresh egg? This cannot be undone.")) return;
+    const fresh = createInitialPet(currentPet.name);
+    fresh.id = currentPet.id;
+    try {
+      currentPet = await db.savePet(fresh);
+      screen("pet");
+      render();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
   });
 
   setInterval(() => {
     if (!currentPet) return;
     blinkOn = !blinkOn;
     renderPetDots(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
+    $("pet-progress").textContent = stageProgressText(currentPet);
   }, 2500);
+
+  setInterval(wanderPet, 3000);
 }
 
 async function loadPetForUser(userId) {
   currentUserId = userId;
-  let pet = await db.fetchPet(userId);
-  if (!pet) {
-    screen("name-pet");
-    return;
+  try {
+    let pet = await db.fetchPet(userId);
+    if (!pet) {
+      screen("name-pet");
+      return;
+    }
+    const { pet: decayed, recap } = applyDecay(pet, Date.now());
+    currentPet = await db.savePet(decayed);
+    screen("pet");
+    render();
+    showRecap(recap);
+  } catch (err) {
+    currentUserId = null;
+    showMessage(err.message, true);
   }
-  const { pet: decayed, recap } = applyDecay(pet, Date.now());
-  currentPet = await db.savePet(decayed);
-  screen("pet");
-  render();
-  showRecap(recap);
+}
+
+function showMessage(text, isError = false) {
+  const el = $("error");
+  el.textContent = text;
+  el.classList.toggle("error--bad", isError);
+}
+
+// Supabase intentionally returns the same generic error for "wrong password"
+// and "no such account" — distinguishing them would let an attacker enumerate
+// registered emails, so we don't try to unmask that here.
+function friendlyAuthError(err) {
+  const msg = err.message || String(err);
+  if (/invalid login credentials/i.test(msg)) return "Incorrect email or password.";
+  if (/email not confirmed/i.test(msg)) return "Please confirm your email first — check your inbox.";
+  return msg;
+}
+
+async function withBusy(button, busyText, fn) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = busyText;
+  showMessage("");
+  try {
+    await fn();
+  } catch (err) {
+    showMessage(friendlyAuthError(err), true);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function wirePasswordToggles() {
+  document.querySelectorAll(".toggle-pw").forEach((btn) => {
+    const target = $(btn.dataset.target);
+    const show = () => { target.type = "text"; };
+    const hide = () => { target.type = "password"; };
+    btn.addEventListener("pointerdown", show);
+    btn.addEventListener("pointerup", hide);
+    btn.addEventListener("pointerleave", hide);
+    btn.addEventListener("pointercancel", hide);
+  });
+}
+
+let authMode = "signin";
+
+function setAuthMode(mode) {
+  authMode = mode;
+  $("btn-auth-primary").textContent = mode === "signin" ? "Sign In" : "Create Account";
+  $("btn-toggle-mode").textContent = mode === "signin" ? "Create account" : "Back to sign in";
+  $("btn-forgot").hidden = mode !== "signin";
+  $("confirm-password-wrap").hidden = mode !== "signup";
+  showMessage("");
+}
+
+function resetAuthForm() {
+  $("auth-form").reset();
+  $("reset-password-form").reset();
+  setAuthMode("signin");
 }
 
 function wireAuth() {
+  setAuthMode("signin");
+  wirePasswordToggles();
+
+  $("btn-toggle-mode").addEventListener("click", () => {
+    setAuthMode(authMode === "signin" ? "signup" : "signin");
+  });
+
   $("auth-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = $("auth-email").value.trim();
     const password = $("auth-password").value;
-    $("error").textContent = "";
-    try {
-      await db.signIn(email, password);
-    } catch (err) {
-      $("error").textContent = err.message;
+    const wasSignIn = authMode === "signin";
+
+    if (!wasSignIn && password !== $("auth-password-confirm").value) {
+      showMessage("Passwords do not match.", true);
+      return;
+    }
+
+    let signedUp = false;
+    await withBusy($("btn-auth-primary"), wasSignIn ? "Signing in…" : "Creating account…", async () => {
+      if (wasSignIn) {
+        await db.signIn(email, password);
+      } else {
+        await db.signUp(email, password);
+        signedUp = true;
+      }
+    });
+    if (signedUp) {
+      setAuthMode("signin");
+      showMessage("Check your email to confirm, then sign in.");
     }
   });
 
-  $("btn-signup").addEventListener("click", async () => {
+  $("btn-forgot").addEventListener("click", async () => {
     const email = $("auth-email").value.trim();
-    const password = $("auth-password").value;
-    $("error").textContent = "";
-    try {
-      await db.signUp(email, password);
-      $("error").textContent = "Check your email to confirm, then sign in.";
-    } catch (err) {
-      $("error").textContent = err.message;
+    if (!email) {
+      showMessage("Enter your email above first.", true);
+      return;
     }
+    await withBusy($("btn-forgot"), "Sending…", async () => {
+      await db.resetPasswordForEmail(email);
+      showMessage("Password reset email sent — check your inbox.");
+    });
+  });
+
+  $("reset-password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const password = $("new-password-input").value;
+    await withBusy(e.submitter, "Updating…", async () => {
+      await db.updatePassword(password);
+      const session = await db.getSession();
+      if (session) await loadPetForUser(session.user.id);
+    });
   });
 
   $("name-pet-form").addEventListener("submit", async (e) => {
@@ -258,7 +525,7 @@ function wireAuth() {
       screen("pet");
       render();
     } catch (err) {
-      $("error").textContent = err.message;
+      showMessage(err.message, true);
     }
   });
 }
@@ -269,18 +536,22 @@ async function init() {
   screen("auth");
 
   if (!db.isConfigured) {
-    $("error").textContent = "Supabase not configured yet — add your project URL/anon key to supabase.js";
+    showMessage("Supabase not configured yet — add your project URL/anon key to supabase.js", true);
     return;
   }
+
+  db.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      screen("reset-password");
+      return;
+    }
+    if (session && !currentUserId) loadPetForUser(session.user.id);
+  });
 
   const session = await db.getSession();
   if (session) {
     await loadPetForUser(session.user.id);
   }
-
-  db.onAuthStateChange((session) => {
-    if (session && !currentUserId) loadPetForUser(session.user.id);
-  });
 }
 
 init();

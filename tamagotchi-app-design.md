@@ -26,18 +26,24 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 
 ---
 
-## 3. Core Features (MVP only)
+## 3. Core Features
 
 - **Stats** (0–100): Hunger, Happiness, Energy, Health, Hygiene
 - **Life stages:** egg → baby → child → teen → adult (age + care based — neglect delays evolution, doesn't reverse it)
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
+- **Economy:** limited Food stock (`food_count`) gates Feed; Coins (`coins`) buy more Food; earned by playing the mini-game
+- **Mini-game:** reaction-tap — 5 rounds, a target dot appears briefly and disappears if not clicked in time; hits earn coins
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health hitting 0 → sickness
+- **Animations:** idle "breathing" loop (CSS) + a short bounce on successful actions, all pure CSS — no new assets
+- **Settings screen:** change password, reset pet to a fresh egg, sign out
+- **In-app tutorial:** a small "?" toggle explaining the rules, plus a live "evolves in Xm" progress line
+- **Landing page:** static marketing page (`index.html`) with a pet preview and a Play button into the app (`app.html`)
 - **Auth:** Supabase email/password login, required (so the pet isn't tied to one browser)
 - **Persistence:** one row per pet in Supabase Postgres, scoped by Row Level Security
 - **Pixel-dot rendering:** pet drawn as a procedural dot-matrix bitmap, no image files
 
-Cut for MVP: mini-games, social/leaderboards, push notifications, PWA/offline, sound. Add later only if the core loop proves fun.
+Cut for MVP: social/leaderboards, push notifications, PWA/offline, sound.
 
 ---
 
@@ -45,8 +51,10 @@ Cut for MVP: mini-games, social/leaderboards, push notifications, PWA/offline, s
 
 ```
 /PocketPet
-  index.html        # single page: pet view, stat bars, buttons, login form
-  style.css          # retro LCD styling
+  index.html        # landing/marketing page — pet preview + "Play" link into app.html
+  landing.js         # renders the static preview pet on the landing page
+  app.html            # the actual game: login, pet view, stats, actions, settings
+  style.css          # shared retro LCD / monochrome styling for both pages
   app.js             # state machine: (stats, elapsedTime, action) -> new stats; DOM wiring
   supabase.js         # Supabase client init, auth, read/write pet row
   pet-sprites.js       # procedural pixel-dot bitmap generator (no image assets)
@@ -71,6 +79,8 @@ create table pets (
   hygiene int not null default 100,
   is_sick boolean not null default false,
   is_sleeping boolean not null default false,
+  coins int not null default 20,
+  food_count int not null default 3,
   birth_timestamp timestamptz not null default now(),
   last_updated timestamptz not null default now()
 );

@@ -39,7 +39,19 @@ export async function getSession() {
 }
 
 export function onAuthStateChange(callback) {
-  requireClient().auth.onAuthStateChange((_event, session) => callback(session));
+  requireClient().auth.onAuthStateChange((event, session) => callback(event, session));
+}
+
+export async function resetPasswordForEmail(email) {
+  const { error } = await requireClient().auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword) {
+  const { error } = await requireClient().auth.updateUser({ password: newPassword });
+  if (error) throw error;
 }
 
 export async function fetchPet(userId) {
@@ -75,6 +87,9 @@ export async function savePet(pet) {
       hygiene: pet.hygiene,
       is_sick: pet.is_sick,
       is_sleeping: pet.is_sleeping,
+      coins: pet.coins,
+      food_count: pet.food_count,
+      birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })
     .eq("id", pet.id)

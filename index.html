@@ -7,62 +7,25 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="shell">
+  <main class="shell landing">
     <h1 class="title">PocketPet</h1>
-    <p id="error" class="error"></p>
 
-    <section class="screen" data-screen="auth">
-      <form id="auth-form" class="stack">
-        <input id="auth-email" type="email" placeholder="email" autocomplete="username" required />
-        <input id="auth-password" type="password" placeholder="password" autocomplete="current-password" required minlength="6" />
-        <div class="row">
-          <button type="submit">Sign In</button>
-          <button type="button" id="btn-signup">Sign Up</button>
-        </div>
-      </form>
-    </section>
+    <div class="device">
+      <div id="landing-pet" class="pet-screen"></div>
+    </div>
 
-    <section class="screen" data-screen="name-pet" hidden>
-      <form id="name-pet-form" class="stack">
-        <label for="pet-name-input">Name your egg</label>
-        <input id="pet-name-input" type="text" placeholder="Mochi" maxlength="20" />
-        <button type="submit">Hatch</button>
-      </form>
-    </section>
+    <p class="tagline">A tiny pixel-dot pet that lives in your browser.</p>
 
-    <section class="screen" data-screen="pet" hidden>
-      <div class="device">
-        <div id="pet-screen" class="pet-screen"></div>
-      </div>
-      <p id="pet-status" class="pet-status" hidden></p>
+    <ul class="pitch">
+      <li>Feed, play, clean, and put it to sleep</li>
+      <li>Play a quick mini-game to earn coins for food</li>
+      <li>Watch it grow: egg → baby → child → teen → adult</li>
+      <li>Sign in anywhere to pick up the same pet</li>
+    </ul>
 
-      <p id="recap" class="recap" hidden></p>
-
-      <div class="pet-meta">
-        <span id="pet-name"></span> · <span id="pet-stage"></span>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><label>Hunger</label><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
-        <div class="stat"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
-        <div class="stat"><label>Energy</label><div class="bar"><i id="bar-energy"></i></div><span id="val-energy"></span></div>
-        <div class="stat"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
-        <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
-      </div>
-
-      <div class="actions">
-        <button id="btn-feed">Feed</button>
-        <button id="btn-play">Play</button>
-        <button id="btn-clean">Clean</button>
-        <button id="btn-sleep">Sleep</button>
-        <button id="btn-medicine" hidden>Medicine</button>
-      </div>
-
-      <button id="btn-signout" class="signout">Sign out</button>
-    </section>
+    <a href="app.html" class="play-link">Play</a>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="landing.js"></script>
 </body>
 </html>

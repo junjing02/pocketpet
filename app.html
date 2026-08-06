@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PocketPet</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <h1 class="title">PocketPet</h1>
+    <p id="error" class="error"></p>
+
+    <section class="screen" data-screen="auth">
+      <form id="auth-form" class="stack">
+        <input id="auth-email" type="email" placeholder="email" autocomplete="username" required />
+        <div class="password-field">
+          <input id="auth-password" type="password" placeholder="password" autocomplete="current-password" required minlength="6" />
+          <button type="button" class="toggle-pw" data-target="auth-password">Show</button>
+        </div>
+        <div class="password-field" id="confirm-password-wrap" hidden>
+          <input id="auth-password-confirm" type="password" placeholder="confirm password" autocomplete="new-password" minlength="6" />
+          <button type="button" class="toggle-pw" data-target="auth-password-confirm">Show</button>
+        </div>
+        <button type="submit" id="btn-auth-primary">Sign In</button>
+      </form>
+      <div class="auth-links">
+        <button type="button" id="btn-toggle-mode">Create account</button>
+        <button type="button" id="btn-forgot">Forgot password?</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="reset-password" hidden>
+      <form id="reset-password-form" class="stack">
+        <label for="new-password-input">Set a new password</label>
+        <div class="password-field">
+          <input id="new-password-input" type="password" placeholder="new password" autocomplete="new-password" required minlength="6" />
+          <button type="button" class="toggle-pw" data-target="new-password-input">Show</button>
+        </div>
+        <button type="submit">Update Password</button>
+      </form>
+    </section>
+
+    <section class="screen" data-screen="name-pet" hidden>
+      <form id="name-pet-form" class="stack">
+        <label for="pet-name-input">Name your egg</label>
+        <input id="pet-name-input" type="text" placeholder="Mochi" maxlength="20" />
+        <button type="submit">Hatch</button>
+      </form>
+    </section>
+
+    <section class="screen" data-screen="pet" hidden>
+      <div class="topbar">
+        <button type="button" id="btn-help" class="icon-btn" aria-label="How to play">?</button>
+        <button type="button" id="btn-settings" class="icon-btn" aria-label="Settings">⚙</button>
+      </div>
+
+      <div id="help-panel" class="help-panel" hidden>
+        <p>Stats drop over time — Feed, Play, and Clean to keep them up. Sleep restores Energy.</p>
+        <p>If a stat hits 0, Health starts dropping. If Health hits 0, your pet gets sick — use Medicine.</p>
+        <p>Food is limited — Play to earn coins, then Buy Food with them.</p>
+        <p>Keep Health up and enough time passes to evolve: egg → baby → child → teen → adult.</p>
+      </div>
+
+      <div class="device">
+        <div id="pet-screen" class="pet-screen"></div>
+        <div id="game-overlay" class="game-overlay" hidden></div>
+      </div>
+      <p id="pet-status" class="pet-status" hidden></p>
+
+      <p id="recap" class="recap" hidden></p>
+
+      <div class="pet-meta">
+        <span id="pet-name"></span> · <span id="pet-stage"></span>
+      </div>
+      <p id="pet-progress" class="pet-progress"></p>
+
+      <div class="economy">
+        <span>Coins: <b id="val-coins">0</b></span>
+        <span>Food: <b id="val-food">0</b></span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><label>Hunger</label><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
+        <div class="stat"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
+        <div class="stat"><label>Energy</label><div class="bar"><i id="bar-energy"></i></div><span id="val-energy"></span></div>
+        <div class="stat"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
+        <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
+      </div>
+
+      <div class="actions">
+        <button id="btn-feed">Feed</button>
+        <button id="btn-play">Play</button>
+        <button id="btn-clean">Clean</button>
+        <button id="btn-sleep">Sleep</button>
+        <button id="btn-medicine" hidden>Medicine</button>
+      </div>
+
+      <div class="actions">
+        <button id="btn-buy-food">Buy Food (5)</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="settings" hidden>
+      <h2 class="section-title">Settings</h2>
+
+      <form id="change-password-form" class="stack">
+        <label for="settings-new-password">Change password</label>
+        <div class="password-field">
+          <input id="settings-new-password" type="password" placeholder="new password" minlength="6" autocomplete="new-password" />
+          <button type="button" class="toggle-pw" data-target="settings-new-password">Show</button>
+        </div>
+        <button type="submit">Update Password</button>
+      </form>
+
+      <div class="stack settings-actions">
+        <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
+        <button type="button" id="btn-signout">Sign Out</button>
+        <button type="button" id="btn-settings-back" class="ghost">Back</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
