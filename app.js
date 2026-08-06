@@ -130,9 +130,20 @@ function renderPetDots(pet, eyesOpen) {
     }
   }
   host.innerHTML = html;
-
-  host.classList.toggle("pet--sick", pet.is_sick);
   host.classList.toggle("pet--sleeping", pet.is_sleeping);
+
+  const status = $("pet-status");
+  if (pet.is_sick) {
+    status.textContent = "sick";
+    status.className = "pet-status pet-status--sick";
+    status.hidden = false;
+  } else if (pet.is_sleeping) {
+    status.textContent = "zzz";
+    status.className = "pet-status pet-status--sleeping";
+    status.hidden = false;
+  } else {
+    status.hidden = true;
+  }
 }
 
 function renderStats(pet) {
