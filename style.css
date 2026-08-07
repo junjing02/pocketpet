@@ -115,11 +115,19 @@ button:active { transform: translateY(1px); }
   font-size: 11px;
 }
 
+.pet-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.pet-visual, .pet-info { min-width: 0; }
+
 .device {
   position: relative;
   height: 250px;
   margin-bottom: 24px;
   overflow: hidden;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
   transition: background 0.8s ease;
@@ -287,6 +295,15 @@ button:active { transform: translateY(1px); }
 
 .settings-actions { margin-top: 20px; }
 
+.account-line {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  margin: 0 0 20px;
+  word-break: break-all;
+}
+.account-line b { color: var(--fg); font-weight: 700; }
+
 .danger { border-color: #c0392b; color: #c0392b; }
 .danger:hover { background: #c0392b; color: #fff; }
 
@@ -330,3 +347,25 @@ button:active { transform: translateY(1px); }
   transition: background 0.1s, color 0.1s;
 }
 .play-link:hover { background: var(--fg); color: #fff; }
+
+/* ---- Desktop: side-by-side layout for the pet screen ---- */
+@media (min-width: 700px) {
+  .shell { width: min(640px, 92vw); }
+
+  /* Forms stay narrow and centered even though the card itself is wider */
+  .screen[data-screen="auth"],
+  .screen[data-screen="reset-password"],
+  .screen[data-screen="name-pet"],
+  .screen[data-screen="settings"] {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .pet-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+  .pet-visual { flex: 0 0 280px; }
+  .pet-info { flex: 1; padding-top: 4px; }
+}

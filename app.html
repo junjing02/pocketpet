@@ -64,53 +64,69 @@
         <div class="help-row"><b>Growing up</b><span>Health 50+ and enough time passed evolves: egg → baby → child → teen → adult.</span></div>
       </div>
 
-      <div class="device">
-        <div id="pet-screen" class="pet-screen"></div>
-        <div id="game-overlay" class="game-overlay" hidden></div>
-      </div>
-      <p id="pet-status" class="pet-status" hidden></p>
+      <div class="pet-layout">
+        <div class="pet-visual">
+          <div class="device">
+            <div id="pet-screen" class="pet-screen"></div>
+            <div id="game-overlay" class="game-overlay" hidden></div>
+          </div>
+          <p id="pet-status" class="pet-status" hidden></p>
 
-      <p id="recap" class="recap" hidden></p>
+          <p id="recap" class="recap" hidden></p>
 
-      <div class="pet-meta">
-        <span id="pet-name"></span> · <span id="pet-stage"></span>
-      </div>
-      <p id="pet-progress" class="pet-progress"></p>
+          <div class="pet-meta">
+            <span id="pet-name"></span> · <span id="pet-stage"></span>
+          </div>
+          <p id="pet-progress" class="pet-progress"></p>
+        </div>
 
-      <div class="economy">
-        <span>Coins: <b id="val-coins">0</b></span>
-        <span>Food: <b id="val-food">0</b></span>
-      </div>
+        <div class="pet-info">
+          <div class="economy">
+            <span>Coins: <b id="val-coins">0</b></span>
+            <span>Food: <b id="val-food">0</b></span>
+          </div>
 
-      <div class="stats">
-        <div class="stat"><label>Hunger</label><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
-        <div class="stat"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
-        <div class="stat"><label>Energy</label><div class="bar"><i id="bar-energy"></i></div><span id="val-energy"></span></div>
-        <div class="stat"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
-        <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
-      </div>
+          <div class="stats">
+            <div class="stat"><label>Hunger</label><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
+            <div class="stat"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
+            <div class="stat"><label>Energy</label><div class="bar"><i id="bar-energy"></i></div><span id="val-energy"></span></div>
+            <div class="stat"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
+            <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
+          </div>
 
-      <div class="actions">
-        <button id="btn-feed">Feed</button>
-        <button id="btn-play">Play</button>
-        <button id="btn-clean">Clean</button>
-        <button id="btn-sleep">Sleep</button>
-        <button id="btn-medicine" hidden>Medicine</button>
-      </div>
+          <div class="actions">
+            <button id="btn-feed">Feed</button>
+            <button id="btn-play">Play</button>
+            <button id="btn-clean">Clean</button>
+            <button id="btn-sleep">Sleep</button>
+            <button id="btn-medicine" hidden>Medicine</button>
+          </div>
 
-      <div class="actions">
-        <button id="btn-buy-food">Buy Food (5)</button>
+          <div class="actions">
+            <button id="btn-buy-food">Buy Food (5)</button>
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="screen" data-screen="settings" hidden>
       <h2 class="section-title">Settings</h2>
 
+      <p class="account-line">Signed in as <b id="account-email"></b></p>
+
       <form id="change-password-form" class="stack">
-        <label for="settings-new-password">Change password</label>
+        <label>Change password</label>
         <div class="password-field">
-          <input id="settings-new-password" type="password" placeholder="new password" minlength="6" autocomplete="new-password" />
+          <input id="settings-old-password" type="password" placeholder="current password" minlength="6" autocomplete="current-password" required />
+          <button type="button" class="toggle-pw" data-target="settings-old-password">Show</button>
+        </div>
+        <div class="password-field">
+          <input id="settings-new-password" type="password" placeholder="new password" minlength="6" autocomplete="new-password" required />
           <button type="button" class="toggle-pw" data-target="settings-new-password">Show</button>
+        </div>
+        <div class="password-field">
+          <input id="settings-new-password-confirm" type="password" placeholder="confirm new password" minlength="6" autocomplete="new-password" required />
+          <button type="button" class="toggle-pw" data-target="settings-new-password-confirm">Show</button>
         </div>
         <button type="submit">Update Password</button>
       </form>

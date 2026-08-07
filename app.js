@@ -142,6 +142,7 @@ const $ = (id) => document.getElementById(id);
 
 let currentPet = null;
 let currentUserId = null;
+let currentUserEmail = null;
 let blinkOn = true;
 let walkFrame = 0;
 let gameActive = false;
@@ -353,7 +354,10 @@ function wireActions() {
     $("help-panel").hidden = !$("help-panel").hidden;
   });
 
-  $("btn-settings").addEventListener("click", () => screen("settings"));
+  $("btn-settings").addEventListener("click", () => {
+    $("account-email").textContent = currentUserEmail || "";
+    screen("settings");
+  });
   $("btn-settings-back").addEventListener("click", () => {
     screen("pet");
     render();
@@ -361,12 +365,38 @@ function wireActions() {
 
   $("change-password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const password = $("settings-new-password").value;
-    await withBusy(e.submitter, "Updating…", async () => {
-      await db.updatePassword(password);
+    const oldPassword = $("settings-old-password").value;
+    const newPassword = $("settings-new-password").value;
+    const confirmPassword = $("settings-new-password-confirm").value;
+
+    if (newPassword !== confirmPassword) {
+      showMessage("New passwords do not match.", true);
+      return;
+    }
+
+    const btn = e.submitter;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Updating…";
+    showMessage("");
+    try {
+      await db.signIn(currentUserEmail, oldPassword);
+    } catch {
+      showMessage("Current password is incorrect.", true);
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+    try {
+      await db.updatePassword(newPassword);
       $("change-password-form").reset();
       showMessage("Password updated.");
-    });
+    } catch (err) {
+      showMessage(err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   });
 
   $("btn-reset-pet").addEventListener("click", async () => {
@@ -398,8 +428,9 @@ function wireActions() {
   setInterval(wanderPet, 3000);
 }
 
-async function loadPetForUser(userId) {
+async function loadPetForUser(userId, email) {
   currentUserId = userId;
+  currentUserEmail = email;
   try {
     let pet = await db.fetchPet(userId);
     if (!pet) {
@@ -529,7 +560,7 @@ function wireAuth() {
     await withBusy(e.submitter, "Updating…", async () => {
       await db.updatePassword(password);
       const session = await db.getSession();
-      if (session) await loadPetForUser(session.user.id);
+      if (session) await loadPetForUser(session.user.id, session.user.email);
     });
   });
 
@@ -561,12 +592,12 @@ async function init() {
       screen("reset-password");
       return;
     }
-    if (session && !currentUserId) loadPetForUser(session.user.id);
+    if (session && !currentUserId) loadPetForUser(session.user.id, session.user.email);
   });
 
   const session = await db.getSession();
   if (session) {
-    await loadPetForUser(session.user.id);
+    await loadPetForUser(session.user.id, session.user.email);
   }
 }
 
