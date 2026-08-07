@@ -8,7 +8,7 @@ A tiny pixel-dot virtual pet that lives in your browser — feed it, play with i
 
 Hatch an egg and raise it through `hatchling → young → teen → juvenile → adult` — every stage is a distinct hand-drawn pixel silhouette, not just a bigger copy of the last. Along the way:
 
-- **Surprise egg**: every egg looks the same — which of three species (Bird, Bunny, Turtle, each a genuinely different size/shape/features) you get is a surprise revealed only once it hatches.
+- **Surprise egg**: every egg looks the same — which creature you get is a surprise revealed only once it hatches.
 - **Care**: keep Hunger, Happy, Energy, and Clean up via Feed (Snack or Meal), Play, Clean, and Sleep. Health drops from neglect and recovers on its own once you're back on top of things — unless it bottoms out into sick, which needs Medicine.
 - **Economy**: earn coins by playing one of four mini-games (Tap the Target, Stop the Marker, Odd One Out, Count the Dots), then spend them on food or a cosmetic Bow.
 - **Achievements**: Fully Grown, Coin Collector, Never Sick, Pristine Care — computed live from how you've actually played.
