@@ -556,7 +556,7 @@ button:disabled:active { transform: none; }
 .ghost { background: transparent; border-color: var(--muted); color: var(--muted); }
 .ghost:hover { background: var(--muted); color: #fff; }
 
-.landing .device { height: 240px; margin-bottom: 14px; }
+.landing .device { height: 260px; margin-bottom: 14px; }
 body:has(.landing) {
   background-color: #eee;
   background-image:

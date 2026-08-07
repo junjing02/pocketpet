@@ -5,20 +5,76 @@ const label = document.getElementById("hero-stage-label");
 const device = host.parentElement;
 host.style.setProperty("--grid-size", GRID_SIZE);
 
+// Every pet sharing the playground registers here so placement can check
+// against everyone else's current box and avoid landing on top of them.
+const pets = [host];
+
+// On a narrow phone the box holding the fully-grown hero already eats most
+// of the width, so there's no honest way to fit 3 full-size sprites without
+// overlap — shrink everyone together instead, keeping their proportions.
+function sizeScale() {
+  return Math.max(0.5, Math.min(1, device.clientWidth / 520));
+}
+
+function rectOf(el) {
+  const left = parseFloat(el.style.left) || 0;
+  const top = parseFloat(el.style.top) || 0;
+  return { left, top, right: left + el.offsetWidth, bottom: top + el.offsetHeight };
+}
+
+function overlapsOthers(el, x, y, pad = 4) {
+  const rect = { left: x, top: y, right: x + el.offsetWidth, bottom: y + el.offsetHeight };
+  return pets.some((p) => {
+    if (p === el) return false;
+    const other = rectOf(p);
+    return rect.left < other.right + pad && other.left < rect.right + pad && rect.top < other.bottom + pad && other.top < rect.bottom + pad;
+  });
+}
+
+// Rejection-samples random spots (or spots near a preferred point) until one
+// doesn't collide with any other pet's current box, falling back to the last
+// try if the playground is too crowded to find a clean spot.
+function findOpenSpot(el, { near } = {}) {
+  const maxX = Math.max(0, device.clientWidth - el.offsetWidth);
+  const maxY = Math.max(0, device.clientHeight - el.offsetHeight);
+  let lastX = near ? near.x : Math.random() * maxX;
+  let lastY = near ? near.y : Math.random() * maxY;
+
+  for (let attempt = 0; attempt < 60; attempt++) {
+    let x, y;
+    if (near) {
+      const spread = 20 + attempt * 8; // widen the search the longer the center stays blocked
+      x = Math.min(maxX, Math.max(0, near.x + (Math.random() * 2 - 1) * spread));
+      y = Math.min(maxY, Math.max(0, near.y + (Math.random() * 2 - 1) * spread));
+    } else {
+      x = Math.random() * maxX;
+      y = Math.random() * maxY;
+    }
+    lastX = x;
+    lastY = y;
+    if (!overlapsOthers(el, x, y)) return { x, y };
+  }
+  return { x: lastX, y: lastY };
+}
+
 function placeRandomly() {
-  const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
-  const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
-  host.style.left = `${Math.random() * maxX}px`;
-  host.style.top = `${Math.random() * maxY}px`;
+  const { x, y } = findOpenSpot(host);
+  host.style.left = `${x}px`;
+  host.style.top = `${y}px`;
 }
 
 function centerHost() {
-  host.style.left = `${Math.max(0, (device.clientWidth - host.offsetWidth) / 2)}px`;
-  host.style.top = `${Math.max(0, (device.clientHeight - host.offsetHeight) / 2)}px`;
+  const near = {
+    x: Math.max(0, (device.clientWidth - host.offsetWidth) / 2),
+    y: Math.max(0, (device.clientHeight - host.offsetHeight) / 2),
+  };
+  const { x, y } = findOpenSpot(host, { near });
+  host.style.left = `${x}px`;
+  host.style.top = `${y}px`;
 }
 
 function showStage(stage) {
-  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[stage]}px`);
+  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[stage] * sizeScale()}px`);
   host.style.setProperty("--dot-color", STAGE_SHADE[stage]);
   const bitmap = buildBitmap(stage, { eyesOpen: true });
   let html = "";
@@ -56,12 +112,13 @@ cycle();
 
 // The other two species wander the same playground as full-grown adults,
 // alongside the hero pet growing up — so all 3 possible surprise-egg
-// outcomes are visible together, each drifting on its own schedule.
+// outcomes are visible together, each drifting on its own schedule, and
+// none of them land on top of each other or the hero.
 function spawnCompanion(elId, species) {
   const el = document.getElementById(elId);
   if (!el) return;
   el.style.setProperty("--grid-size", GRID_SIZE);
-  el.style.setProperty("--dot-size", "4px");
+  el.style.setProperty("--dot-size", `${4 * sizeScale()}px`);
   el.style.setProperty("--dot-color", SPECIES_SHADE[species]);
   const bitmap = buildBitmap("adult", { species, eyesOpen: true });
   let html = "";
@@ -71,12 +128,12 @@ function spawnCompanion(elId, species) {
     }
   }
   el.innerHTML = html;
+  pets.push(el);
 
   function driftRandomly() {
-    const maxX = Math.max(0, device.clientWidth - el.offsetWidth);
-    const maxY = Math.max(0, device.clientHeight - el.offsetHeight);
-    el.style.left = `${Math.random() * maxX}px`;
-    el.style.top = `${Math.random() * maxY}px`;
+    const { x, y } = findOpenSpot(el);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   }
 
   driftRandomly();
