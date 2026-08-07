@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -53,3 +53,25 @@ function cycle() {
 }
 
 cycle();
+
+// Static adult preview for each species, so visitors see the variety a
+// surprise egg can hatch into (without spoiling which one they'll get).
+function renderSpeciesPreview(species, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.style.setProperty("--grid-size", GRID_SIZE);
+  el.style.setProperty("--dot-size", "4px");
+  el.style.setProperty("--dot-color", SPECIES_SHADE[species]);
+  const bitmap = buildBitmap("adult", { species, eyesOpen: true });
+  let html = "";
+  for (const row of bitmap) {
+    for (const v of row) {
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}"></i>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+for (const species of SPECIES) {
+  renderSpeciesPreview(species, `species-${species}`);
+}

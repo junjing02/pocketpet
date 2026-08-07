@@ -619,6 +619,40 @@ body:has(.landing) {
   margin: 0 0 16px;
 }
 
+.species-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.species-card { text-align: center; width: 100px; }
+.species-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.species-card:hover .species-preview {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.35);
+}
+.species-preview .pet-screen {
+  position: static;
+  transition: none;
+}
+.species-note {
+  text-align: center;
+  font-size: 9px;
+  color: var(--muted);
+  margin: 0 0 32px;
+}
+
 .game-showcase {
   display: flex;
   flex-wrap: wrap;
