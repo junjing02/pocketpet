@@ -300,10 +300,13 @@ function showRecap(recap) {
     el.hidden = true;
     return;
   }
-  const parts = recap.map((r) =>
+  const items = recap.map((r) =>
     r.stat === "life_stage" ? `Evolved into ${r.to}!` : `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`
   );
-  el.textContent = "While you were away: " + parts.join(", ");
+  el.innerHTML = `
+    <p class="recap-title">While you were away</p>
+    <ul class="recap-list">${items.map((i) => `<li>${i}</li>`).join("")}</ul>
+  `;
   el.hidden = false;
 }
 

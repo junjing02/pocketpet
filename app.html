@@ -71,7 +71,7 @@
           </div>
           <p id="pet-status" class="pet-status" hidden></p>
 
-          <p id="recap" class="recap" hidden></p>
+          <div id="recap" class="recap" hidden></div>
 
           <div class="pet-meta">
             <span id="pet-name"></span> · <span id="pet-stage"></span>
@@ -97,11 +97,12 @@
           <div class="actions">
             <button id="btn-feed">Snack</button>
             <button id="btn-feed-meal">Meal</button>
-            <button id="btn-play">Play</button>
             <button id="btn-clean">Clean</button>
             <button id="btn-sleep">Sleep</button>
             <button id="btn-medicine" hidden>Medicine</button>
           </div>
+
+          <button id="btn-play" class="play-btn">Play</button>
 
           <div class="actions">
             <button id="btn-buy-food">Buy Snack (5)</button>
@@ -154,8 +155,8 @@
       </form>
 
       <div class="stack settings-actions">
-        <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
         <button type="button" id="btn-signout">Sign Out</button>
+        <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
         <button type="button" id="btn-settings-back" class="ghost">Back</button>
       </div>
     </section>
