@@ -38,6 +38,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Care-quality variant:** an adult raised with `neglect_incidents <= 1` renders with an extra sparkle dot — the one piece of the sprite that reflects lifetime care quality, not just current stats
 - **Cosmetics:** a one-time purchasable Bow accessory (`has_bow`) — drawn as two extra dots above the head on every stage except egg
 - **Daily login streak:** first login each calendar day awards bonus coins that scale with consecutive-day streak (`login_streak`, capped bonus); shown in the away-time recap
+- **Daily habit check-in:** three fixed real-life prompts (Water, Move, Breathe) — each can be ticked once per calendar day (`habit_date` + `habit_mask` bitmask) for a small Happy + coin reward. Ties the pet's wellbeing to something the player actually did, not just in-app clicks — same idea popularized by apps like Finch, applied to PocketPet's existing bird theme
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
 - **Animations:** pixel-dot chick with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
@@ -94,6 +95,8 @@ create table pets (
   last_login_date text,
   login_streak int not null default 0,
   has_bow boolean not null default false,
+  habit_date text,
+  habit_mask int not null default 0,
   birth_timestamp timestamptz not null default now(),
   last_updated timestamptz not null default now()
 );
@@ -170,3 +173,37 @@ Browsers don't run JS while a tab is closed, so time passing is simulated on loa
 - PWA installability (manifest + service worker) — pure addition, doesn't change the architecture above.
 - True closed-app push notifications (needs VAPID keys + a server-side scheduler, e.g. a Supabase Edge Function on cron).
 - Capacitor/TWA wrap for app-store distribution if ever needed, around the same static files.
+- Multiple pets per user — designed but not built, see §12.
+- Social features (visit friends' pets, gift items) — the biggest lift of any option here: needs public profiles, a friend graph, and RLS redesigned around "readable by friends," not just "readable by owner." A genuinely different-scale project, not an incremental add.
+- Seasonal/limited-time cosmetics — cheap extension of the existing Bow mechanic once there's a reason to want more than one cosmetic.
+
+---
+
+## 12. Design: Multiple Pets Per User (not built — plan for when needed)
+
+The current model is one `pets` row per user, found via `.eq("user_id", userId).maybeSingle()`. Nothing about the schema or RLS actually *requires* that — `user_id` has no uniqueness constraint, and the RLS policy (`auth.uid() = user_id`) already scopes correctly no matter how many rows a user owns. That means multi-pet support is mostly an **app-logic and UI change**, not a security or schema redesign.
+
+**Schema additions:**
+```sql
+alter table pets add column created_at timestamptz not null default now();
+alter table pets add column is_active boolean not null default true;
+```
+- `created_at` gives a stable list order (separate from `birth_timestamp`, which resets on Reset Pet).
+- `is_active` marks which of a user's pets is "currently selected." App logic must keep this at exactly one `true` row per user — enforce it in `setActivePet()`, not the DB (consistent with how "one pet" is already app-enforced today, not DB-enforced).
+
+**`supabase.js` changes:**
+- `fetchPet(userId)` → `fetchPets(userId)`: drop `.maybeSingle()`, return the array, ordered by `created_at`.
+- New `setActivePet(userId, petId)`: two updates — clear `is_active` on the user's other rows, set it on the chosen one. (Or one RPC call if you want it atomic; not required at this scale.)
+- `createPet` unchanged in shape, just called again for a second pet.
+- New `deletePet(petId)` for removing one from the roster (distinct from "Reset Pet," which zeroes stats on the *active* pet but keeps the row).
+
+**`app.js` / UI changes:**
+- `loadPetForUser` becomes `loadPetsForUser`: fetch the array.
+  - 0 pets → existing "name your egg" screen, unchanged.
+  - 1 pet → auto-select it, existing behavior, **zero UI change for today's users** — this is what keeps the migration painless.
+  - 2+ pets → new "Choose Your Pet" screen: small grid of thumbnails (reuse `buildBitmap` per pet, same as the landing page's stage gallery pattern), tap one to `setActivePet` and continue.
+- New "Hatch Another Pet" entry point (Settings or the picker screen), gated by a `MAX_PETS` constant (e.g. 3) enforced client-side before calling `createPet` again — purely to bound row growth, not a security control.
+- Settings gets a "Switch Pet" action back to the picker.
+- Every place that currently assumes a single `currentPet` (rendering, actions, achievements, the mini-game, notifications) keeps working unchanged once `currentPet` just means "the active one" — the stat engine and sprite system don't need to know multi-pet exists at all.
+
+**What this does *not* need:** no RLS changes, no new tables, no auth changes, no changes to the decay/achievement/economy logic itself. The blast radius is `supabase.js`'s pet-fetching functions, a new picker screen, and swapping `loadPetForUser` for `loadPetsForUser` at the two call sites in `init()`.

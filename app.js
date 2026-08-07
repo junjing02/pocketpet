@@ -35,6 +35,16 @@ const DAILY_BONUS_PER_STREAK = 2;
 const DAILY_BONUS_MAX = 25;
 const LOW_STAT_THRESHOLD = 20;
 
+// Real-world habit check-in — a small nudge to tie the pet's wellbeing to
+// something you actually did today, not just clicks inside the app.
+const HABITS = [
+  { id: 0, bit: 1, label: "Water" },
+  { id: 1, bit: 2, label: "Move" },
+  { id: 2, bit: 4, label: "Breathe" },
+];
+const HABIT_HAPPINESS_BONUS = 3;
+const HABIT_COIN_BONUS = 1;
+
 const ACHIEVEMENTS = [
   { id: "grown", label: "Fully Grown", check: (p) => p.life_stage === "adult" },
   { id: "coins", label: "Coin Collector", desc: "Earn 100 coins", check: (p) => p.total_coins_earned >= 100 },
@@ -65,6 +75,8 @@ export function createInitialPet(name) {
     last_login_date: null,
     login_streak: 0,
     has_bow: false,
+    habit_date: null,
+    habit_mask: 0,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -90,6 +102,26 @@ export function applyDailyLogin(pet, now = new Date()) {
   pet.coins += bonus;
   pet.total_coins_earned = (pet.total_coins_earned || 0) + bonus;
   return { streak, bonus };
+}
+
+// Resets the habit checklist at the start of a new calendar day.
+export function ensureHabitDay(pet, now = new Date()) {
+  const today = now.toISOString().slice(0, 10);
+  if (pet.habit_date !== today) {
+    pet.habit_date = today;
+    pet.habit_mask = 0;
+  }
+  return pet;
+}
+
+export function completeHabit(pet, bit) {
+  ensureHabitDay(pet);
+  if (pet.life_stage === "egg" || (pet.habit_mask & bit) !== 0) return pet;
+  pet.habit_mask |= bit;
+  pet.happiness = clamp(pet.happiness + HABIT_HAPPINESS_BONUS);
+  pet.coins += HABIT_COIN_BONUS;
+  pet.total_coins_earned = (pet.total_coins_earned || 0) + HABIT_COIN_BONUS;
+  return pet;
 }
 
 function updateLifeStage(pet, nowMs) {
@@ -307,6 +339,14 @@ function renderStats(pet) {
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
   $("btn-buy-bow").disabled = pet.has_bow || pet.coins < BOW_PRICE;
   $("btn-buy-bow").textContent = pet.has_bow ? "Bow Owned" : `Buy Bow (${BOW_PRICE})`;
+
+  const isEggForHabits = pet.life_stage === "egg";
+  for (const h of HABITS) {
+    const btn = $(`habit-${h.id}`);
+    const done = (pet.habit_mask & h.bit) !== 0;
+    btn.disabled = done || isEggForHabits;
+    btn.textContent = done ? `${h.label} ✓` : h.label;
+  }
 }
 
 function renderAchievements(pet) {
@@ -663,6 +703,12 @@ function wireActions() {
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false }));
   $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false }));
 
+  for (const h of HABITS) {
+    const btn = $(`habit-${h.id}`);
+    btn.dataset.tooltip = `+${HABIT_HAPPINESS_BONUS} Happy, +${HABIT_COIN_BONUS} coin — once per day`;
+    btn.addEventListener("click", () => runAction((p) => completeHabit(p, h.bit), { bounce: false }));
+  }
+
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
     currentPet = null;
@@ -845,6 +891,7 @@ async function loadPetForUser(userId, email) {
     }
     const { pet: decayed, recap } = applyDecay(pet, Date.now());
     const loginBonus = applyDailyLogin(decayed);
+    ensureHabitDay(decayed);
     currentPet = await db.savePet(decayed);
     screen("pet");
     render();
