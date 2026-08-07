@@ -80,6 +80,16 @@ body {
 }
 .auth-links button:hover { background: none; color: var(--fg); }
 
+.back-home-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 10px;
+  color: var(--muted);
+  text-decoration: underline;
+}
+.back-home-link:hover { color: var(--fg); }
+
 input, button {
   font-family: inherit;
   font-size: 12px;

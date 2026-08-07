@@ -29,7 +29,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 ## 3. Core Features
 
 - **Stats** (0–100): Hunger, Happiness, Energy, Health, Hygiene
-- **Life stages:** egg → baby → child → teen → adult (age + care based — neglect delays evolution, doesn't reverse it)
+- **Life stages:** egg → hatchling → chick → fledgling → juvenile → adult (age + care based — neglect delays evolution, doesn't reverse it). Each stage is a distinct silhouette, not a scaled-up copy of the last — e.g. the fledgling is deliberately gawky/asymmetric, the adult has full spread wings and a fanned tail.
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
 - **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
 - **Mini-game:** Play opens a popup modal and randomly launches one of four 5-round games — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins
@@ -118,9 +118,11 @@ Browsers don't run JS while a tab is closed, so time passing is simulated on loa
 
 ## 7. Pixel-Dot Pet Rendering
 
-- Grid: 15×15 boolean/int matrix per frame, rendered as a CSS grid of dots (0 = off, 1 = body, 2 = eye).
-- Shape = an ellipse (radius grows with life stage) plus a few fixed feature dots — ears, arms, legs, antenna — toggled on per stage so egg → adult reads as a size/complexity progression.
-- Mood is conveyed with CSS, not new bitmaps: sick = hue-shift filter, sleeping = dimmed + closed eyes, blink = eyes toggle off every few seconds via `setInterval`.
+- Grid: 25×25 int matrix per frame, rendered as a CSS grid of flat 2D dots (0 = off, 1 = body, 2 = eye) — no gradients or shading on the dots themselves.
+- Each life stage in `pet-sprites.js` is a hand-tuned `PROFILES` entry (a `halfWidths` array draws a symmetric silhouette row by row) with its own shape, not a scaled copy of the previous stage — egg → hatchling → chick → fledgling → juvenile → adult each reads as a different creature.
+- Physical size also grows per stage via a `--dot-size` CSS variable set in `app.js` (`STAGE_DOT_SIZE`), so the pet gets visibly bigger on screen, not just more detailed.
+- Animation is a 2-frame walk cycle (legs/wings alternate every ~450ms) plus wandering to a random spot every few seconds — both pure JS re-renders, no CSS keyframes on the sprite itself. Sleeping stops the walk cycle and darkens the whole play area (`:has()` selector keyed off a class on the sprite); sick/mood is shown via a text status badge, not a color filter.
+- A "pristine" adult variant (extra sparkle dot) is drawn when lifetime care has been consistently good — the one place the sprite reflects history, not just current stats.
 - This keeps 100% of the pet's visuals in code — no art pipeline, no asset loading, nothing to break offline.
 
 ---
