@@ -382,19 +382,6 @@ button:disabled:active { transform: none; }
   color: var(--muted);
 }
 
-.habits { margin-bottom: 18px; }
-.habits-title {
-  text-align: center;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 0 0 8px;
-}
-.habits-row { display: flex; gap: 8px; }
-.habits-row button { font-size: 9px; }
-
 .economy {
   display: flex;
   justify-content: center;

@@ -38,11 +38,10 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Care-quality variant:** an adult raised with `neglect_incidents <= 1` renders with an extra sparkle dot — the one piece of the sprite that reflects lifetime care quality, not just current stats
 - **Cosmetics:** a one-time purchasable Bow accessory (`has_bow`) — drawn as two extra dots above the head on every stage except egg
 - **Daily login streak:** first login each calendar day awards bonus coins that scale with consecutive-day streak (`login_streak`, capped bonus); shown in the away-time recap
-- **Daily habit check-in:** three fixed real-life prompts (Water, Move, Breathe) — each can be ticked once per calendar day (`habit_date` + `habit_mask` bitmask) for a small Happy + coin reward. Ties the pet's wellbeing to something the player actually did, not just in-app clicks — same idea popularized by apps like Finch, applied to PocketPet's existing bird theme
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
 - **Animations:** pixel-dot chick with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
-- **Multiple pets:** up to `MAX_PETS` (3) per user, each a full independent row with its own stats/economy/achievements/habit streak. A "Switch Pet" screen (thumbnail + name + stage) lets you pick which is active; the rest of the app just operates on "the active pet" and doesn't otherwise know multi-pet exists — see §12 for how this was built on top of the original one-row model
+- **Multiple pets:** up to `MAX_PETS` (3) per user, each a full independent row with its own stats/economy/achievements. A "Switch Pet" screen (thumbnail + name + stage) lets you pick which is active; the rest of the app just operates on "the active pet" and doesn't otherwise know multi-pet exists — see §12 for how this was built on top of the original one-row model
 - **Settings screen:** change password, rename pet, switch/hatch pets, toggle local notifications, view achievements, reset pet to a fresh egg, sign out
 - **Local notifications:** opt-in browser `Notification` nudge when a stat drops to ≤20 or the pet gets sick — client-only, only fires while the tab is open (no closed-app push; that's a bigger lift, see §11)
 - **In-app tutorial:** a small "?" toggle explaining the rules, plus a live "evolves in Xm" progress line
@@ -96,8 +95,6 @@ create table pets (
   last_login_date text,
   login_streak int not null default 0,
   has_bow boolean not null default false,
-  habit_date text,
-  habit_mask int not null default 0,
   created_at timestamptz not null default now(),
   is_active boolean not null default true,
   birth_timestamp timestamptz not null default now(),
@@ -203,7 +200,7 @@ alter table pets add column is_active boolean not null default true;
 - `loadPetForUser` → `loadPetsForUser`: fetches all of a user's pets.
   - 0 pets → existing "name your egg" screen, unchanged.
   - 1+ pets → auto-loads whichever has `is_active = true` (falls back to the first row) straight into the normal pet screen — **no picker shown automatically**, even with multiple pets. Existing single-pet users see zero behavior change.
-- New "Your Pets" screen (`data-screen="pet-picker"`), reached via **Settings → Switch Pet**: lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus/habit-reset pipeline for it, same as a normal load.
+- New "Your Pets" screen (`data-screen="pet-picker"`), reached via **Settings → Switch Pet**: lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus pipeline for it, same as a normal load.
 - "Hatch New Pet" button on that screen, disabled past `MAX_PETS` (3) — client-side cap only, to bound row growth, not a security control.
 - Every place that already assumed a single `currentPet` (rendering, actions, achievements, the mini-game, notifications) needed **no changes** — `currentPet` just means "the active one," and switching pets goes through the same `activatePetAndRender()` helper the initial login uses.
 
