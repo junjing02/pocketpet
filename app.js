@@ -253,6 +253,9 @@ function renderStats(pet) {
   $("val-meals").textContent = pet.meal_count;
   $("btn-feed").disabled = pet.food_count <= 0 || pet.is_sleeping;
   $("btn-feed-meal").disabled = pet.meal_count <= 0 || pet.is_sleeping;
+  $("btn-clean").disabled = pet.is_sleeping;
+  $("btn-play").disabled = pet.is_sleeping;
+  $("btn-medicine").disabled = pet.is_sleeping;
   $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
 }

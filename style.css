@@ -99,6 +99,15 @@ button {
 }
 button:hover { background: var(--fg); color: #fff; }
 button:active { transform: translateY(1px); }
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--muted);
+  border-color: var(--muted);
+  background: #fff;
+}
+button:disabled:hover { background: #fff; color: var(--muted); }
+button:disabled:active { transform: none; }
 
 .topbar {
   display: flex;
@@ -325,6 +334,7 @@ button:active { transform: translateY(1px); }
   color: #fff;
 }
 .play-btn:hover { background: #333; }
+.play-btn:disabled, .play-btn:disabled:hover { background: #fff; color: var(--muted); }
 
 .section-title {
   text-align: center;
