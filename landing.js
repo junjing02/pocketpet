@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -54,9 +54,10 @@ function cycle() {
 
 cycle();
 
-// Static adult preview for each species, so visitors see the variety a
-// surprise egg can hatch into (without spoiling which one they'll get).
-function renderSpeciesPreview(species, elId) {
+// The other two species wander the same playground as full-grown adults,
+// alongside the hero pet growing up — so all 3 possible surprise-egg
+// outcomes are visible together, each drifting on its own schedule.
+function spawnCompanion(elId, species) {
   const el = document.getElementById(elId);
   if (!el) return;
   el.style.setProperty("--grid-size", GRID_SIZE);
@@ -70,8 +71,18 @@ function renderSpeciesPreview(species, elId) {
     }
   }
   el.innerHTML = html;
+
+  function driftRandomly() {
+    const maxX = Math.max(0, device.clientWidth - el.offsetWidth);
+    const maxY = Math.max(0, device.clientHeight - el.offsetHeight);
+    el.style.left = `${Math.random() * maxX}px`;
+    el.style.top = `${Math.random() * maxY}px`;
+  }
+
+  driftRandomly();
+  // Randomized interval per pet so the two don't move in lockstep.
+  setInterval(driftRandomly, 2600 + Math.random() * 2000);
 }
 
-for (const species of SPECIES) {
-  renderSpeciesPreview(species, `species-${species}`);
-}
+spawnCompanion("landing-pet-bunny", "bunny");
+spawnCompanion("landing-pet-turtle", "turtle");
