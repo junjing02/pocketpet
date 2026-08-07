@@ -119,6 +119,28 @@ button:disabled {
 button:disabled:hover { background: #fff; color: var(--muted); }
 button:disabled:active { transform: none; }
 
+[data-tooltip] { position: relative; }
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 5px 8px;
+  border-radius: 4px;
+  max-width: 200px;
+  width: max-content;
+  z-index: 20;
+  pointer-events: none;
+}
+
 .topbar {
   display: flex;
   justify-content: flex-end;
@@ -429,7 +451,7 @@ button:disabled:active { transform: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 9px;
   height: 100%;
 }
 .oddoneout-dot {
@@ -440,8 +462,8 @@ button:disabled:active { transform: none; }
   border: none;
   padding: 0;
 }
-.oddoneout-dot--odd-big { width: 30px; height: 30px; }
-.oddoneout-dot--odd-small { width: 12px; height: 12px; }
+.oddoneout-dot--odd-big { width: 25px; height: 25px; }
+.oddoneout-dot--odd-small { width: 16px; height: 16px; }
 
 .count-dots-area { position: relative; width: 100%; height: 100%; }
 .count-dot {

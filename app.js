@@ -508,7 +508,7 @@ function playOddOneOutRound(overlay) {
   return new Promise((resolve) => {
     overlay.innerHTML = '<div class="oddoneout-row"></div>';
     const row = overlay.querySelector(".oddoneout-row");
-    const count = 5;
+    const count = 7;
     const oddIndex = Math.floor(Math.random() * count);
     const oddClass = Math.random() < 0.5 ? "oddoneout-dot--odd-big" : "oddoneout-dot--odd-small";
 
@@ -526,13 +526,13 @@ function playOddOneOutRound(overlay) {
       dot.addEventListener("click", () => finish(i === oddIndex));
       row.appendChild(dot);
     }
-    setTimeout(() => finish(false), 1800);
+    setTimeout(() => finish(false), 1300);
   });
 }
 
 function playCountRound(overlay) {
   return new Promise((resolve) => {
-    const count = 3 + Math.floor(Math.random() * 4); // 3..6
+    const count = 6 + Math.floor(Math.random() * 6); // 6..11
     overlay.innerHTML = '<div class="count-dots-area"></div>';
     const area = overlay.querySelector(".count-dots-area");
     const size = 10;
@@ -632,15 +632,15 @@ function wireActions() {
   $("btn-buy-food").textContent = `Buy Snack (${SNACK_PRICE})`;
   $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
 
-  $("btn-feed").title = "+30 Hunger, +5 Happy, -5 Clean";
-  $("btn-feed-meal").title = "+60 Hunger, +15 Happy, -10 Clean";
-  $("btn-play").title = "Mini-game: +25 Happy, -15 Energy, -10 Hunger, plus coins";
-  $("btn-clean").title = "+40 Clean";
-  $("btn-sleep").title = "Restores Energy over time and halves other decay while asleep";
-  $("btn-medicine").title = "Cures Sick, +40 Health, -5 Happy";
-  $("btn-buy-food").title = `+1 Snack for ${SNACK_PRICE} coins`;
-  $("btn-buy-meal").title = `+1 Meal for ${MEAL_PRICE} coins`;
-  $("btn-buy-bow").title = "Cosmetic only — no stat effect";
+  $("btn-feed").dataset.tooltip = "+30 Hunger, +5 Happy, -5 Clean";
+  $("btn-feed-meal").dataset.tooltip = "+60 Hunger, +15 Happy, -10 Clean";
+  $("btn-play").dataset.tooltip = "Mini-game: +25 Happy, -15 Energy, -10 Hunger, plus coins";
+  $("btn-clean").dataset.tooltip = "+40 Clean";
+  $("btn-sleep").dataset.tooltip = "Restores Energy over time and halves other decay while asleep";
+  $("btn-medicine").dataset.tooltip = "Cures Sick, +40 Health, -5 Happy";
+  $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
+  $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
+  $("btn-buy-bow").dataset.tooltip = "Cosmetic only — no stat effect";
 
   $("btn-feed").addEventListener("click", () => runAction(feed));
   $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
