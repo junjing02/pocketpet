@@ -60,6 +60,7 @@
         <div class="modal-box">
           <p class="modal-title">How to Play</p>
           <div class="help-panel">
+            <div class="help-row"><b>Egg</b><span>Just needs time to hatch — no feeding, playing, or sleeping yet.</span></div>
             <div class="help-row"><b>Care</b><span>Feed, Play, and Clean keep Hunger, Happy, and Clean above 0. Sleep restores Energy.</span></div>
             <div class="help-row"><b>Health</b><span>Drops only from neglect, and recovers on its own once every stat is above 0 again.</span></div>
             <div class="help-row"><b>Sick</b><span>Health hitting 0 makes your pet sick — that needs Medicine, care alone won't cure it.</span></div>
@@ -100,15 +101,19 @@
             <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
           </div>
 
-          <div class="actions">
-            <button id="btn-feed">Snack</button>
-            <button id="btn-feed-meal">Meal</button>
-            <button id="btn-clean">Clean</button>
-            <button id="btn-sleep">Sleep</button>
-            <button id="btn-medicine" hidden>Medicine</button>
-          </div>
+          <p id="egg-note" class="egg-note" hidden>Your egg just needs time to hatch — no care needed yet.</p>
 
-          <button id="btn-play" class="play-btn">Play</button>
+          <div id="care-actions">
+            <div class="actions">
+              <button id="btn-feed">Snack</button>
+              <button id="btn-feed-meal">Meal</button>
+              <button id="btn-clean">Clean</button>
+              <button id="btn-sleep">Sleep</button>
+              <button id="btn-medicine" hidden>Medicine</button>
+            </div>
+
+            <button id="btn-play" class="play-btn">Play</button>
+          </div>
 
           <div class="actions">
             <button id="btn-buy-food">Buy Snack (5)</button>

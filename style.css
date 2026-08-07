@@ -257,6 +257,16 @@ button:disabled:active { transform: none; }
   50% { opacity: 0.2; }
 }
 
+.egg-note {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px;
+  margin: 0 0 14px;
+}
+
 .recap {
   font-size: 10px;
   text-align: center;

@@ -30,6 +30,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 
 - **Stats** (0–100): Hunger, Happiness, Energy, Health, Hygiene
 - **Life stages:** egg → hatchling → chick → fledgling → juvenile → adult (age + care based — neglect delays evolution, doesn't reverse it). Each stage is a distinct silhouette, not a scaled-up copy of the last — e.g. the fledgling is deliberately gawky/asymmetric, the adult has full spread wings and a fanned tail.
+- **Egg stage:** no stats decay and no care actions (Feed/Play/Clean/Sleep) are available — an unhatched egg has no needs, it just waits out the age threshold to hatch.
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
 - **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
 - **Mini-game:** Play opens a popup modal and randomly launches one of four 5-round games — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins

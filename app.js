@@ -78,27 +78,31 @@ export function applyDecay(pet, nowMs = Date.now()) {
   if (elapsedHours <= 0.001) return { pet, recap: [] };
 
   const before = { ...pet };
-  const mul = pet.is_sleeping ? SLEEP_DECAY_MULTIPLIER : 1;
 
-  pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
-  pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
-  pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
-  pet.energy = pet.is_sleeping
-    ? clamp(pet.energy + SLEEP_ENERGY_GAIN_PER_HOUR * elapsedHours)
-    : clamp(pet.energy - DECAY_PER_HOUR.energy * elapsedHours);
+  // An egg has no needs yet — it just waits to hatch, nothing to decay.
+  if (pet.life_stage !== "egg") {
+    const mul = pet.is_sleeping ? SLEEP_DECAY_MULTIPLIER : 1;
 
-  // Health only drops from neglect; it recovers on its own once every other
-  // stat is above 0 again (unless sick — that needs Medicine, not just care).
-  const neglected = pet.hunger <= 0 || pet.happiness <= 0 || pet.hygiene <= 0;
-  if (neglected) {
-    pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
-    pet.neglect_incidents = (pet.neglect_incidents || 0) + 1;
-  } else if (!pet.is_sick) {
-    pet.health = clamp(pet.health + HEALTH_REGEN_PER_HOUR * elapsedHours);
-  }
-  if (pet.health <= 0) {
-    pet.is_sick = true;
-    pet.ever_sick = true;
+    pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
+    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
+    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
+    pet.energy = pet.is_sleeping
+      ? clamp(pet.energy + SLEEP_ENERGY_GAIN_PER_HOUR * elapsedHours)
+      : clamp(pet.energy - DECAY_PER_HOUR.energy * elapsedHours);
+
+    // Health only drops from neglect; it recovers on its own once every other
+    // stat is above 0 again (unless sick — that needs Medicine, not just care).
+    const neglected = pet.hunger <= 0 || pet.happiness <= 0 || pet.hygiene <= 0;
+    if (neglected) {
+      pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
+      pet.neglect_incidents = (pet.neglect_incidents || 0) + 1;
+    } else if (!pet.is_sick) {
+      pet.health = clamp(pet.health + HEALTH_REGEN_PER_HOUR * elapsedHours);
+    }
+    if (pet.health <= 0) {
+      pet.is_sick = true;
+      pet.ever_sick = true;
+    }
   }
 
   updateLifeStage(pet, nowMs);
@@ -114,7 +118,7 @@ export function applyDecay(pet, nowMs = Date.now()) {
 }
 
 export function feed(pet) {
-  if (pet.is_sleeping || pet.food_count <= 0) return pet;
+  if (pet.life_stage === "egg" || pet.is_sleeping || pet.food_count <= 0) return pet;
   pet.food_count -= 1;
   pet.hunger = clamp(pet.hunger + 30);
   pet.happiness = clamp(pet.happiness + 5);
@@ -123,7 +127,7 @@ export function feed(pet) {
 }
 
 export function feedMeal(pet) {
-  if (pet.is_sleeping || pet.meal_count <= 0) return pet;
+  if (pet.life_stage === "egg" || pet.is_sleeping || pet.meal_count <= 0) return pet;
   pet.meal_count -= 1;
   pet.hunger = clamp(pet.hunger + 60);
   pet.happiness = clamp(pet.happiness + 15);
@@ -146,7 +150,7 @@ export function buyMeal(pet) {
 }
 
 export function play(pet) {
-  if (pet.is_sleeping || pet.energy < 10) return pet;
+  if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
   pet.energy = clamp(pet.energy - 15);
   pet.hunger = clamp(pet.hunger - 10);
@@ -154,17 +158,19 @@ export function play(pet) {
 }
 
 export function clean(pet) {
+  if (pet.life_stage === "egg") return pet;
   pet.hygiene = clamp(pet.hygiene + 40);
   return pet;
 }
 
 export function toggleSleep(pet) {
+  if (pet.life_stage === "egg") return pet;
   pet.is_sleeping = !pet.is_sleeping;
   return pet;
 }
 
 export function giveMedicine(pet) {
-  if (!pet.is_sick) return pet;
+  if (pet.life_stage === "egg" || !pet.is_sick) return pet;
   pet.is_sick = false;
   pet.health = clamp(pet.health + 40);
   pet.happiness = clamp(pet.happiness - 5);
@@ -241,11 +247,16 @@ function renderStats(pet) {
     const val = $(`val-${stat}`);
     if (val) val.textContent = Math.round(pet[stat]);
   }
+  const isEgg = pet.life_stage === "egg";
+
   $("pet-name").textContent = pet.name;
   $("pet-stage").textContent = pet.life_stage;
   $("btn-medicine").hidden = !pet.is_sick;
   $("btn-sleep").textContent = pet.is_sleeping ? "Wake" : "Sleep";
   $("pet-progress").textContent = stageProgressText(pet);
+
+  $("egg-note").hidden = !isEgg;
+  $("care-actions").hidden = isEgg;
 
   $("val-coins").textContent = pet.coins;
   $("val-food").textContent = pet.food_count;
