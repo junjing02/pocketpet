@@ -3,6 +3,7 @@ import * as db from "./supabase.js";
 
 const HOUR = 3600000;
 const STAGE_ORDER = ["egg", "baby", "child", "teen", "adult"];
+const STAGE_DOT_SIZE = { egg: 3, baby: 3.5, child: 4.5, teen: 5.5, adult: 6.5 };
 
 // --- DEMO SPEED — revert both before public launch ---
 // TIME_SCALE speeds up stat decay; AGE_THRESHOLD_MS below is hand-tuned for a
@@ -137,6 +138,7 @@ const $ = (id) => document.getElementById(id);
 let currentPet = null;
 let currentUserId = null;
 let blinkOn = true;
+let walkFrame = 0;
 let gameActive = false;
 
 function screen(name) {
@@ -159,10 +161,12 @@ function wanderPet() {
   host.style.top = `${Math.random() * maxY}px`;
 }
 
-function renderPetDots(pet, eyesOpen) {
-  const bitmap = buildBitmap(pet.life_stage, { eyesOpen });
+function renderPuppy(pet, eyesOpen) {
+  const frame = pet.is_sleeping ? 0 : walkFrame;
+  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame });
   const host = $("pet-screen");
   host.style.setProperty("--grid-size", GRID_SIZE);
+  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[pet.life_stage] || STAGE_DOT_SIZE.egg}px`);
   let html = "";
   for (const row of bitmap) {
     for (const v of row) {
@@ -171,6 +175,7 @@ function renderPetDots(pet, eyesOpen) {
   }
   host.innerHTML = html;
   host.classList.toggle("pet--sleeping", pet.is_sleeping);
+  host.classList.toggle("pet--sick", pet.is_sick);
   if (pet.life_stage === "egg") centerPetScreen(host);
 
   const status = $("pet-status");
@@ -245,7 +250,7 @@ async function persist() {
 }
 
 function render() {
-  renderPetDots(currentPet, blinkOn);
+  renderPuppy(currentPet, blinkOn);
   renderStats(currentPet);
 }
 
@@ -375,9 +380,15 @@ function wireActions() {
   setInterval(() => {
     if (!currentPet) return;
     blinkOn = !blinkOn;
-    renderPetDots(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
+    renderPuppy(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
     $("pet-progress").textContent = stageProgressText(currentPet);
   }, 2500);
+
+  setInterval(() => {
+    if (!currentPet || currentPet.is_sleeping) return;
+    walkFrame = walkFrame === 0 ? 1 : 0;
+    renderPuppy(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
+  }, 450);
 
   setInterval(wanderPet, 3000);
 }
