@@ -26,7 +26,7 @@ body {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 30px 22px 34px;
+  padding: 38px 24px 42px;
 }
 
 .title {
@@ -102,7 +102,7 @@ button:active { transform: translateY(1px); }
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 .icon-btn {
   flex: none;
@@ -116,11 +116,8 @@ button:active { transform: translateY(1px); }
 
 .device {
   position: relative;
-  background: #111;
-  border-radius: 10px;
-  padding: 12px;
   height: 250px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   overflow: hidden;
 }
 
@@ -134,9 +131,6 @@ button:active { transform: translateY(1px); }
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
   gap: 1px;
-  background: #fff;
-  padding: 10px;
-  border-radius: 8px;
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
 }
 
@@ -163,7 +157,8 @@ button:active { transform: translateY(1px); }
   height: 22px;
   border-radius: 50%;
   background: #111;
-  border: 2px solid #fff;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   padding: 0;
   animation: pulse 0.6s ease-in-out infinite;
 }
@@ -235,13 +230,31 @@ button:active { transform: translateY(1px); }
 .help-panel {
   border: 1px solid var(--line);
   border-radius: 4px;
-  padding: 10px;
-  margin-bottom: 16px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
   font-size: 9px;
   line-height: 1.6;
 }
-.help-panel p { margin: 0 0 6px; }
-.help-panel p:last-child { margin-bottom: 0; }
+.help-title {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+.help-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.help-row:last-child { margin-bottom: 0; }
+.help-row b {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
 
 .economy {
   display: flex;
