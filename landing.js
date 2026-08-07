@@ -1,7 +1,11 @@
-import { buildBitmap, GRID_SIZE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE } from "./pet-sprites.js";
 
-function renderDots(host, stage) {
-  host.style.setProperty("--grid-size", GRID_SIZE);
+const host = document.getElementById("landing-pet");
+const label = document.getElementById("hero-stage-label");
+host.style.setProperty("--grid-size", GRID_SIZE);
+
+function showStage(stage) {
+  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[stage]}px`);
   const bitmap = buildBitmap(stage, { eyesOpen: true });
   let html = "";
   for (const row of bitmap) {
@@ -10,28 +14,12 @@ function renderDots(host, stage) {
     }
   }
   host.innerHTML = html;
+  label.textContent = stage;
 }
 
-renderDots(document.getElementById("landing-pet"), "adult");
-
-const STAGES = [
-  { id: "egg", label: "Egg" },
-  { id: "hatchling", label: "Hatchling" },
-  { id: "chick", label: "Chick" },
-  { id: "fledgling", label: "Fledgling" },
-  { id: "juvenile", label: "Juvenile" },
-  { id: "adult", label: "Adult" },
-];
-
-const gallery = document.getElementById("stage-gallery");
-gallery.innerHTML = STAGES.map(
-  (s) => `
-    <div class="stage-item">
-      <div class="pet-screen stage-preview" id="stage-${s.id}"></div>
-      <p class="stage-label">${s.label}</p>
-    </div>`
-).join("");
-
-for (const s of STAGES) {
-  renderDots(document.getElementById(`stage-${s.id}`), s.id);
-}
+let stageIndex = 0;
+showStage(STAGE_ORDER[stageIndex]);
+setInterval(() => {
+  stageIndex = (stageIndex + 1) % STAGE_ORDER.length;
+  showStage(STAGE_ORDER[stageIndex]);
+}, 1500);

@@ -1,9 +1,7 @@
-import { buildBitmap, GRID_SIZE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE } from "./pet-sprites.js";
 import * as db from "./supabase.js";
 
 const HOUR = 3600000;
-const STAGE_ORDER = ["egg", "hatchling", "chick", "fledgling", "juvenile", "adult"];
-const STAGE_DOT_SIZE = { egg: 3, hatchling: 3, chick: 4, fledgling: 5, juvenile: 6, adult: 7 };
 
 // Decay runs at normal (1x) speed; life stages are tuned to a 2-hour full
 // growth cycle (egg -> adult) instead of the real multi-day pacing.

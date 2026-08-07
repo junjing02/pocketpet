@@ -3,6 +3,9 @@
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
+export const STAGE_ORDER = ["egg", "hatchling", "chick", "fledgling", "juvenile", "adult"];
+export const STAGE_DOT_SIZE = { egg: 3, hatchling: 3, chick: 4, fledgling: 5, juvenile: 6, adult: 7 };
+
 // Each stage is a genuinely different silhouette (not the same shape scaled
 // up) — a wet-looking featureless hatchling, a round fluffy chick, a gawky
 // tall fledgling with lopsided wing stubs, a more proportionate juvenile

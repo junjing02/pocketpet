@@ -460,7 +460,7 @@ button:disabled:active { transform: none; }
 .ghost:hover { background: var(--muted); color: #fff; }
 
 .landing .device {
-  height: auto;
+  height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -492,30 +492,13 @@ button:disabled:active { transform: none; }
   margin: 0 0 12px;
 }
 
-.stage-gallery {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 22px;
-}
-.stage-item { text-align: center; width: 84px; }
-.stage-preview {
-  --dot-size: 2px;
-  width: 84px;
-  height: 84px;
-  margin: 0 auto 6px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px;
-}
-.stage-label {
-  margin: 0;
-  font-size: 8px;
-  color: var(--muted);
+.hero-stage-label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  margin: 0 0 16px;
 }
 
 .game-showcase {
