@@ -359,9 +359,13 @@ function showRecap(recap, loginBonus) {
     return;
   }
   el.innerHTML = `
+    <button type="button" class="recap-close" aria-label="Dismiss">×</button>
     <p class="recap-title">While you were away</p>
     <ul class="recap-list">${items.map((i) => `<li>${i}</li>`).join("")}</ul>
   `;
+  el.querySelector(".recap-close").addEventListener("click", () => {
+    el.hidden = true;
+  });
   el.hidden = false;
 }
 
