@@ -178,6 +178,7 @@ button:disabled:active { transform: none; }
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
+  cursor: pointer;
   transition: background 0.8s ease;
 }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }

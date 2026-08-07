@@ -278,6 +278,20 @@ function wanderPet() {
   host.style.top = `${Math.random() * maxY}px`;
 }
 
+// Click-to-walk: tapping empty space in the playground (not the pet itself)
+// sends it toward that spot instead of just wandering randomly.
+function movePetTowards(clickX, clickY) {
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+  const host = $("pet-screen");
+  const device = host.parentElement;
+  const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
+  const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
+  const targetX = Math.min(maxX, Math.max(0, clickX - host.offsetWidth / 2));
+  const targetY = Math.min(maxY, Math.max(0, clickY - host.offsetHeight / 2));
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+}
+
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
   const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
@@ -719,7 +733,14 @@ function wireActions() {
     btn.addEventListener("click", () => runAction((p) => completeHabit(p, h.bit), { bounce: false }));
   }
 
-  $("pet-screen").addEventListener("click", pokePet);
+  $("pet-device").addEventListener("click", (e) => {
+    if (e.target.closest("#pet-screen")) {
+      pokePet();
+      return;
+    }
+    const rect = $("pet-device").getBoundingClientRect();
+    movePetTowards(e.clientX - rect.left, e.clientY - rect.top);
+  });
 
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
