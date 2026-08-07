@@ -192,10 +192,12 @@ button:disabled:active { transform: none; }
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
   gap: 1px;
+  cursor: pointer;
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
+.pet-screen.pet--poke { animation: poke 0.4s ease; }
 .pet-screen.pet--sick .dot--body { opacity: 0.5; }
 
 @keyframes bounce {
@@ -204,6 +206,14 @@ button:disabled:active { transform: none; }
   60% { transform: translateY(0); }
   80% { transform: translateY(-2px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes poke {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
 }
 
 .modal-backdrop {

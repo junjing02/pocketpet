@@ -468,6 +468,16 @@ function bouncePet() {
   host.classList.add("pet--bounce");
 }
 
+// Purely cosmetic — no stat effect, so clicking the pet can't be farmed for
+// free happiness. Just makes it feel alive and responsive to being poked.
+function pokePet() {
+  if (!currentPet || currentPet.life_stage === "egg") return;
+  const host = $("pet-screen");
+  host.classList.remove("pet--poke");
+  void host.offsetWidth;
+  host.classList.add("pet--poke");
+}
+
 async function runAction(fn, { bounce = true } = {}) {
   fn(currentPet);
   render();
@@ -576,7 +586,7 @@ function playOddOneOutRound(overlay) {
 
 function playCountRound(overlay) {
   return new Promise((resolve) => {
-    const count = 6 + Math.floor(Math.random() * 6); // 6..11
+    const count = 6 + Math.floor(Math.random() * 5); // 6..10
     overlay.innerHTML = '<div class="count-dots-area"></div>';
     const area = overlay.querySelector(".count-dots-area");
     const size = 10;
@@ -708,6 +718,8 @@ function wireActions() {
     btn.dataset.tooltip = `+${HABIT_HAPPINESS_BONUS} Happy, +${HABIT_COIN_BONUS} coin — once per day`;
     btn.addEventListener("click", () => runAction((p) => completeHabit(p, h.bit), { bounce: false }));
   }
+
+  $("pet-screen").addEventListener("click", pokePet);
 
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
