@@ -459,14 +459,7 @@ button:disabled:active { transform: none; }
 .ghost { background: transparent; border-color: var(--muted); color: var(--muted); }
 .ghost:hover { background: var(--muted); color: #fff; }
 
-.landing .device {
-  height: 230px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-}
-.landing .pet-screen { position: static; }
+.landing .device { height: 230px; margin-bottom: 14px; }
 body:has(.landing) {
   background: radial-gradient(circle at 50% -10%, #ffffff, #e8e8e8 75%);
 }
