@@ -399,25 +399,103 @@ function playTimingRound(overlay) {
   });
 }
 
+function playOddOneOutRound(overlay) {
+  return new Promise((resolve) => {
+    overlay.innerHTML = '<div class="oddoneout-row"></div>';
+    const row = overlay.querySelector(".oddoneout-row");
+    const count = 5;
+    const oddIndex = Math.floor(Math.random() * count);
+    const oddClass = Math.random() < 0.5 ? "oddoneout-dot--odd-big" : "oddoneout-dot--odd-small";
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `oddoneout-dot${i === oddIndex ? ` ${oddClass}` : ""}`;
+      dot.addEventListener("click", () => finish(i === oddIndex));
+      row.appendChild(dot);
+    }
+    setTimeout(() => finish(false), 1800);
+  });
+}
+
+function playCountRound(overlay) {
+  return new Promise((resolve) => {
+    const count = 3 + Math.floor(Math.random() * 4); // 3..6
+    overlay.innerHTML = '<div class="count-dots-area"></div>';
+    const area = overlay.querySelector(".count-dots-area");
+    const size = 10;
+    const w = overlay.clientWidth || 260;
+    const h = overlay.clientHeight || 180;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("div");
+      dot.className = "count-dot";
+      dot.style.left = `${Math.random() * (w - size)}px`;
+      dot.style.top = `${Math.random() * (h - size)}px`;
+      area.appendChild(dot);
+    }
+
+    setTimeout(() => {
+      const wrongPool = [count - 2, count - 1, count + 1, count + 2].filter((n) => n > 0 && n !== count);
+      const wrong = [];
+      while (wrong.length < 2 && wrongPool.length) {
+        wrong.push(wrongPool.splice(Math.floor(Math.random() * wrongPool.length), 1)[0]);
+      }
+      const options = [count, ...wrong].sort(() => Math.random() - 0.5);
+
+      overlay.innerHTML = '<div class="count-choices"></div>';
+      const choicesEl = overlay.querySelector(".count-choices");
+      let settled = false;
+      const finish = (hit) => {
+        if (settled) return;
+        settled = true;
+        overlay.innerHTML = "";
+        resolve(hit);
+      };
+      options.forEach((n) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "count-choice";
+        btn.textContent = String(n);
+        btn.addEventListener("click", () => finish(n === count));
+        choicesEl.appendChild(btn);
+      });
+    }, 900);
+  });
+}
+
+const MINI_GAMES = [
+  { name: "Tap the Target", round: playTapRound },
+  { name: "Stop the Marker", round: playTimingRound },
+  { name: "Odd One Out", round: playOddOneOutRound },
+  { name: "Count the Dots", round: playCountRound },
+];
+
 async function runPlayGame() {
   const overlay = $("game-overlay");
   const btn = $("btn-play");
   btn.disabled = true;
   gameActive = true;
-  overlay.hidden = false;
-  overlay.innerHTML = "";
 
-  const isTiming = Math.random() < 0.5;
-  const gameName = isTiming ? "Stop the marker" : "Tap the target";
-  const playRound = isTiming ? playTimingRound : playTapRound;
+  const game = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)];
+  $("game-modal-title").textContent = game.name;
+  $("game-modal").hidden = false;
 
   let hits = 0;
   for (let i = 0; i < GAME_ROUNDS; i++) {
+    $("game-modal-round").textContent = `Round ${i + 1}/${GAME_ROUNDS} — ${hits} hit${hits === 1 ? "" : "s"}`;
+    overlay.innerHTML = "";
     await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
-    if (await playRound(overlay)) hits++;
+    if (await game.round(overlay)) hits++;
   }
 
-  overlay.hidden = true;
+  $("game-modal").hidden = true;
   gameActive = false;
 
   play(currentPet); // usual happiness/energy/hunger effect — no-ops if sleeping or too tired
@@ -427,7 +505,7 @@ async function runPlayGame() {
   render();
   if (!currentPet.is_sleeping) bouncePet();
   btn.disabled = false;
-  showMessage(`${gameName}: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
+  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
   try {
     await persist();
   } catch (err) {

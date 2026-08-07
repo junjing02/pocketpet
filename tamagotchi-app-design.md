@@ -32,7 +32,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Life stages:** egg → baby → child → teen → adult (age + care based — neglect delays evolution, doesn't reverse it)
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
 - **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
-- **Mini-game:** Play randomly launches one of two 5-round games — reaction-tap (click a dot before it disappears) or a timing-stop bar (click while a moving marker is in the zone); hits earn coins
+- **Mini-game:** Play opens a popup modal and randomly launches one of four 5-round games — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins
 - **Achievements:** computed live from pet state (not separately stored) — Fully Grown, Coin Collector (100 lifetime coins via `total_coins_earned`), Never Sick (`ever_sick`), Pristine Care (`neglect_incidents === 0`)
 - **Care-quality variant:** an adult raised with `neglect_incidents <= 1` renders with an extra sparkle dot — the one piece of the sprite that reflects lifetime care quality, not just current stats
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
