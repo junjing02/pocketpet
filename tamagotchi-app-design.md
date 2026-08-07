@@ -206,7 +206,7 @@ alter table pets add column is_active boolean not null default true;
 - `loadPetForUser` → `loadPetsForUser`: fetches all of a user's pets.
   - 0 pets → existing "name your egg" screen, unchanged.
   - 1+ pets → auto-loads whichever has `is_active = true` (falls back to the first row) straight into the normal pet screen — **no picker shown automatically**, even with multiple pets. Existing single-pet users see zero behavior change.
-- New "Your Pets" screen (`data-screen="pet-picker"`), reached via **Settings → Switch Pet**: lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus pipeline for it, same as a normal load.
+- New "Your Pets" screen (`data-screen="pet-picker"`), reached via the ⇄ icon on the main pet screen's topbar: lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus pipeline for it, same as a normal load.
 - "Hatch New Pet" button on that screen, disabled past `MAX_PETS` (3) — client-side cap only, to bound row growth, not a security control.
 - Every place that already assumed a single `currentPet` (rendering, actions, achievements, the mini-game, notifications) needed **no changes** — `currentPet` just means "the active one," and switching pets goes through the same `activatePetAndRender()` helper the initial login uses.
 

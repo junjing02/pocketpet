@@ -827,7 +827,7 @@ function wireActions() {
   });
   $("btn-achievements-back").addEventListener("click", () => screen("settings"));
 
-  $("btn-switch-pet").addEventListener("click", async () => {
+  $("btn-switch-pet-main").addEventListener("click", async () => {
     try {
       const pets = await db.fetchPets(currentUserId);
       renderPetPicker(pets);
@@ -836,7 +836,10 @@ function wireActions() {
       showMessage(err.message, true);
     }
   });
-  $("btn-picker-back").addEventListener("click", () => screen("settings"));
+  $("btn-picker-back").addEventListener("click", () => {
+    screen("pet");
+    render();
+  });
   $("btn-hatch-another").addEventListener("click", () => screen("name-pet"));
 
   $("btn-toggle-notifications").addEventListener("click", async () => {
