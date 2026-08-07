@@ -354,14 +354,27 @@ function wireActions() {
     $("help-panel").hidden = !$("help-panel").hidden;
   });
 
+  function collapsePasswordForm() {
+    $("change-password-form").reset();
+    $("change-password-form").hidden = true;
+    $("btn-change-password").hidden = false;
+  }
+
   $("btn-settings").addEventListener("click", () => {
     $("account-email").textContent = currentUserEmail || "";
+    collapsePasswordForm();
     screen("settings");
   });
   $("btn-settings-back").addEventListener("click", () => {
     screen("pet");
     render();
   });
+
+  $("btn-change-password").addEventListener("click", () => {
+    $("btn-change-password").hidden = true;
+    $("change-password-form").hidden = false;
+  });
+  $("btn-cancel-password").addEventListener("click", collapsePasswordForm);
 
   $("change-password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -389,7 +402,7 @@ function wireActions() {
     }
     try {
       await db.updatePassword(newPassword);
-      $("change-password-form").reset();
+      collapsePasswordForm();
       showMessage("Password updated.");
     } catch (err) {
       showMessage(err.message, true);

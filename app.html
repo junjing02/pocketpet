@@ -114,8 +114,9 @@
 
       <p class="account-line">Signed in as <b id="account-email"></b></p>
 
-      <form id="change-password-form" class="stack">
-        <label>Change password</label>
+      <button type="button" id="btn-change-password" class="ghost">Change Password</button>
+
+      <form id="change-password-form" class="stack" hidden>
         <div class="password-field">
           <input id="settings-old-password" type="password" placeholder="current password" minlength="6" autocomplete="current-password" required />
           <button type="button" class="toggle-pw" data-target="settings-old-password">Show</button>
@@ -129,6 +130,7 @@
           <button type="button" class="toggle-pw" data-target="settings-new-password-confirm">Show</button>
         </div>
         <button type="submit">Update Password</button>
+        <button type="button" id="btn-cancel-password" class="ghost">Cancel</button>
       </form>
 
       <div class="stack settings-actions">

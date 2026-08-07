@@ -49,6 +49,7 @@ body {
 .error.error--bad { color: #c0392b; }
 
 .stack { display: flex; flex-direction: column; gap: 10px; }
+.stack[hidden] { display: none; }
 .row { display: flex; gap: 10px; }
 
 .password-field { display: flex; gap: 6px; }
@@ -289,6 +290,9 @@ button:active { transform: translateY(1px); }
   word-break: break-all;
 }
 .account-line b { color: var(--fg); font-weight: 700; }
+
+#btn-change-password { display: block; width: 100%; margin-bottom: 20px; }
+#change-password-form { margin-bottom: 20px; }
 
 .danger { border-color: #c0392b; color: #c0392b; }
 .danger:hover { background: #c0392b; color: #fff; }
