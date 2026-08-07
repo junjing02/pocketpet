@@ -5,11 +5,15 @@ const HOUR = 3600000;
 const STAGE_ORDER = ["egg", "baby", "child", "teen", "adult"];
 const STAGE_DOT_SIZE = { egg: 3, baby: 3.5, child: 4.5, teen: 5.5, adult: 6.5 };
 
-// --- DEMO SPEED — revert both before public launch ---
-// TIME_SCALE speeds up stat decay; AGE_THRESHOLD_MS below is hand-tuned for a
-// few-minutes demo instead of the real egg(1h)/baby(1d)/child(3d)/teen(7d) pacing.
-const TIME_SCALE = 60;
-const AGE_THRESHOLD_MS = { baby: 60 * 1000, child: 3 * 60 * 1000, teen: 6 * 60 * 1000, adult: 10 * 60 * 1000 };
+// Decay runs at normal (1x) speed; life stages are tuned to a 2-hour full
+// growth cycle (egg -> adult) instead of the real multi-day pacing.
+const TIME_SCALE = 1;
+const AGE_THRESHOLD_MS = {
+  baby: 12 * 60 * 1000, // 12 min
+  child: 36 * 60 * 1000, // 36 min
+  teen: 72 * 60 * 1000, // 1h 12m
+  adult: 120 * 60 * 1000, // 2h
+};
 
 const EVOLVE_HEALTH_MIN = 50;
 const DECAY_PER_HOUR = { hunger: 4, happiness: 3, energy: 2.5, hygiene: 3.5 };
