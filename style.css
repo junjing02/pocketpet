@@ -291,8 +291,52 @@ button:active { transform: translateY(1px); }
 }
 .account-line b { color: var(--fg); font-weight: 700; }
 
-#btn-change-password { display: block; width: 100%; margin-bottom: 20px; }
+#btn-change-password, #btn-achievements { display: block; width: 100%; margin-bottom: 12px; }
+#btn-achievements { margin-bottom: 20px; }
 #change-password-form { margin-bottom: 20px; }
+
+.achievement {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--track);
+  font-size: 10px;
+  color: var(--muted);
+}
+.achievement:last-child { border-bottom: none; }
+.achievement-mark { font-size: 12px; text-align: center; }
+.achievement--earned { color: var(--fg); }
+.achievement--earned .achievement-mark { color: var(--fg); }
+
+.timing-track {
+  position: relative;
+  width: 80%;
+  height: 6px;
+  margin: 0 auto;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border-radius: 3px;
+}
+.timing-zone {
+  position: absolute;
+  left: 40%;
+  width: 20%;
+  height: 100%;
+  background: var(--track);
+  border-radius: 3px;
+}
+.timing-marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #111;
+  transform: translate(-50%, -50%);
+}
 
 .danger { border-color: #c0392b; color: #c0392b; }
 .danger:hover { background: #c0392b; color: #fff; }
@@ -346,7 +390,8 @@ button:active { transform: translateY(1px); }
   .screen[data-screen="auth"],
   .screen[data-screen="reset-password"],
   .screen[data-screen="name-pet"],
-  .screen[data-screen="settings"] {
+  .screen[data-screen="settings"],
+  .screen[data-screen="achievements"] {
     max-width: 320px;
     margin: 0 auto;
   }

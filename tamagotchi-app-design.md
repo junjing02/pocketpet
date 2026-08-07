@@ -31,8 +31,10 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Stats** (0–100): Hunger, Happiness, Energy, Health, Hygiene
 - **Life stages:** egg → baby → child → teen → adult (age + care based — neglect delays evolution, doesn't reverse it)
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
-- **Economy:** limited Food stock (`food_count`) gates Feed; Coins (`coins`) buy more Food; earned by playing the mini-game
-- **Mini-game:** reaction-tap — 5 rounds, a target dot appears briefly and disappears if not clicked in time; hits earn coins
+- **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
+- **Mini-game:** Play randomly launches one of two 5-round games — reaction-tap (click a dot before it disappears) or a timing-stop bar (click while a moving marker is in the zone); hits earn coins
+- **Achievements:** computed live from pet state (not separately stored) — Fully Grown, Coin Collector (100 lifetime coins via `total_coins_earned`), Never Sick (`ever_sick`), Pristine Care (`neglect_incidents === 0`)
+- **Care-quality variant:** an adult raised with `neglect_incidents <= 1` renders with an extra sparkle dot — the one piece of the sprite that reflects lifetime care quality, not just current stats
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
 - **Animations:** pixel-dot chick with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
@@ -81,6 +83,10 @@ create table pets (
   is_sleeping boolean not null default false,
   coins int not null default 20,
   food_count int not null default 3,
+  meal_count int not null default 0,
+  total_coins_earned int not null default 0,
+  ever_sick boolean not null default false,
+  neglect_incidents int not null default 0,
   birth_timestamp timestamptz not null default now(),
   last_updated timestamptz not null default now()
 );

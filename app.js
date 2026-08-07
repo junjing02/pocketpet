@@ -18,12 +18,21 @@ const HEALTH_REGEN_PER_HOUR = 6;
 const SLEEP_ENERGY_GAIN_PER_HOUR = 10;
 const SLEEP_DECAY_MULTIPLIER = 0.5;
 
-const FOOD_PRICE = 5;
+const SNACK_PRICE = 5;
+const MEAL_PRICE = 15;
 const STARTING_COINS = 20;
-const STARTING_FOOD = 3;
+const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
 const GAME_TARGET_MS = 700;
 const COINS_PER_HIT = 4;
+const PRISTINE_NEGLECT_MAX = 1;
+
+const ACHIEVEMENTS = [
+  { id: "grown", label: "Fully Grown", check: (p) => p.life_stage === "adult" },
+  { id: "coins", label: "Coin Collector", desc: "Earn 100 coins", check: (p) => p.total_coins_earned >= 100 },
+  { id: "healthy", label: "Never Sick", desc: "Never let Health hit 0", check: (p) => !p.ever_sick },
+  { id: "pristine", label: "Pristine Care", desc: "Never let a stat hit 0", check: (p) => p.neglect_incidents === 0 },
+];
 
 const clamp = (v) => Math.round(Math.max(0, Math.min(100, v)));
 
@@ -40,7 +49,11 @@ export function createInitialPet(name) {
     is_sick: false,
     is_sleeping: false,
     coins: STARTING_COINS,
-    food_count: STARTING_FOOD,
+    food_count: STARTING_SNACKS,
+    meal_count: 0,
+    total_coins_earned: 0,
+    ever_sick: false,
+    neglect_incidents: 0,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -76,10 +89,14 @@ export function applyDecay(pet, nowMs = Date.now()) {
   const neglected = pet.hunger <= 0 || pet.happiness <= 0 || pet.hygiene <= 0;
   if (neglected) {
     pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
+    pet.neglect_incidents = (pet.neglect_incidents || 0) + 1;
   } else if (!pet.is_sick) {
     pet.health = clamp(pet.health + HEALTH_REGEN_PER_HOUR * elapsedHours);
   }
-  if (pet.health <= 0) pet.is_sick = true;
+  if (pet.health <= 0) {
+    pet.is_sick = true;
+    pet.ever_sick = true;
+  }
 
   updateLifeStage(pet, nowMs);
   pet.last_updated = new Date(nowMs).toISOString();
@@ -102,10 +119,26 @@ export function feed(pet) {
   return pet;
 }
 
+export function feedMeal(pet) {
+  if (pet.is_sleeping || pet.meal_count <= 0) return pet;
+  pet.meal_count -= 1;
+  pet.hunger = clamp(pet.hunger + 60);
+  pet.happiness = clamp(pet.happiness + 15);
+  pet.hygiene = clamp(pet.hygiene - 10);
+  return pet;
+}
+
 export function buyFood(pet) {
-  if (pet.coins < FOOD_PRICE) return pet;
-  pet.coins -= FOOD_PRICE;
+  if (pet.coins < SNACK_PRICE) return pet;
+  pet.coins -= SNACK_PRICE;
   pet.food_count += 1;
+  return pet;
+}
+
+export function buyMeal(pet) {
+  if (pet.coins < MEAL_PRICE) return pet;
+  pet.coins -= MEAL_PRICE;
+  pet.meal_count += 1;
   return pet;
 }
 
@@ -169,7 +202,7 @@ function wanderPet() {
 
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
-  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame });
+  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame, variant: petVariant(pet) });
   const host = $("pet-screen");
   host.style.setProperty("--grid-size", GRID_SIZE);
   host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[pet.life_stage] || STAGE_DOT_SIZE.egg}px`);
@@ -213,8 +246,27 @@ function renderStats(pet) {
 
   $("val-coins").textContent = pet.coins;
   $("val-food").textContent = pet.food_count;
+  $("val-meals").textContent = pet.meal_count;
   $("btn-feed").disabled = pet.food_count <= 0 || pet.is_sleeping;
-  $("btn-buy-food").disabled = pet.coins < FOOD_PRICE;
+  $("btn-feed-meal").disabled = pet.meal_count <= 0 || pet.is_sleeping;
+  $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
+  $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
+}
+
+function renderAchievements(pet) {
+  const list = $("achievements-list");
+  list.innerHTML = ACHIEVEMENTS.map((a) => {
+    const earned = a.check(pet);
+    return `
+      <div class="achievement${earned ? " achievement--earned" : ""}">
+        <span class="achievement-mark">${earned ? "✓" : "·"}</span>
+        <span class="achievement-text"><b>${a.label}</b>${a.desc ? ` — ${a.desc}` : ""}</span>
+      </div>`;
+  }).join("");
+}
+
+function petVariant(pet) {
+  return pet.neglect_incidents <= PRISTINE_NEGLECT_MAX ? "pristine" : "normal";
 }
 
 function formatDuration(ms) {
@@ -278,7 +330,7 @@ async function runAction(fn, { bounce = true } = {}) {
   }
 }
 
-function playRound(overlay) {
+function playTapRound(overlay) {
   return new Promise((resolve) => {
     const target = document.createElement("button");
     target.type = "button";
@@ -302,6 +354,51 @@ function playRound(overlay) {
   });
 }
 
+const TIMING_PERIOD_MS = 1100;
+const TIMING_ZONE = [0.4, 0.6]; // hit if the marker is within this 0..1 range
+
+function triangleWave(elapsedMs, periodMs) {
+  const phase = (elapsedMs % periodMs) / periodMs;
+  return phase < 0.5 ? phase * 2 : 2 - phase * 2;
+}
+
+function playTimingRound(overlay) {
+  return new Promise((resolve) => {
+    overlay.innerHTML = `
+      <div class="timing-track">
+        <div class="timing-zone"></div>
+        <div class="timing-marker"></div>
+      </div>`;
+    const marker = overlay.querySelector(".timing-marker");
+    const start = performance.now();
+    let raf, settled = false;
+
+    const tick = (now) => {
+      marker.style.left = `${triangleWave(now - start, TIMING_PERIOD_MS) * 100}%`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      cancelAnimationFrame(raf);
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+
+    overlay.addEventListener(
+      "click",
+      () => {
+        const pos = triangleWave(performance.now() - start, TIMING_PERIOD_MS);
+        finish(pos >= TIMING_ZONE[0] && pos <= TIMING_ZONE[1]);
+      },
+      { once: true }
+    );
+    setTimeout(() => finish(false), 3000);
+  });
+}
+
 async function runPlayGame() {
   const overlay = $("game-overlay");
   const btn = $("btn-play");
@@ -309,6 +406,10 @@ async function runPlayGame() {
   gameActive = true;
   overlay.hidden = false;
   overlay.innerHTML = "";
+
+  const isTiming = Math.random() < 0.5;
+  const gameName = isTiming ? "Stop the marker" : "Tap the target";
+  const playRound = isTiming ? playTimingRound : playTapRound;
 
   let hits = 0;
   for (let i = 0; i < GAME_ROUNDS; i++) {
@@ -322,10 +423,11 @@ async function runPlayGame() {
   play(currentPet); // usual happiness/energy/hunger effect — no-ops if sleeping or too tired
   const coinsEarned = hits * COINS_PER_HIT;
   currentPet.coins += coinsEarned;
+  currentPet.total_coins_earned = (currentPet.total_coins_earned || 0) + coinsEarned;
   render();
   if (!currentPet.is_sleeping) bouncePet();
   btn.disabled = false;
-  showMessage(`Play: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
+  showMessage(`${gameName}: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
   try {
     await persist();
   } catch (err) {
@@ -334,13 +436,16 @@ async function runPlayGame() {
 }
 
 function wireActions() {
-  $("btn-buy-food").textContent = `Buy Food (${FOOD_PRICE})`;
+  $("btn-buy-food").textContent = `Buy Snack (${SNACK_PRICE})`;
+  $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
   $("btn-feed").addEventListener("click", () => runAction(feed));
+  $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
   $("btn-play").addEventListener("click", () => runPlayGame());
   $("btn-clean").addEventListener("click", () => runAction(clean));
   $("btn-sleep").addEventListener("click", () => runAction(toggleSleep, { bounce: false }));
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine));
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false }));
+  $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false }));
 
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
@@ -369,6 +474,12 @@ function wireActions() {
     screen("pet");
     render();
   });
+
+  $("btn-achievements").addEventListener("click", () => {
+    renderAchievements(currentPet);
+    screen("achievements");
+  });
+  $("btn-achievements-back").addEventListener("click", () => screen("settings"));
 
   $("btn-change-password").addEventListener("click", () => {
     $("btn-change-password").hidden = true;

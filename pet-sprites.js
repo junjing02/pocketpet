@@ -52,6 +52,8 @@ const PROFILES = {
       [{ rowOffset: 9, colOffsets: [-4, 2] }], // feet
       [{ rowOffset: 9, colOffsets: [-2, 4] }],
     ],
+    // Only drawn when raised with consistently good care (see petVariant() in app.js)
+    sparkle: { rowOffset: 0, colOffsets: [7] },
   },
 };
 
@@ -64,7 +66,7 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { eyesOpen = true, frame = 0 } = {}) {
+export function buildBitmap(stage, { eyesOpen = true, frame = 0, variant = "normal" } = {}) {
   const profile = PROFILES[stage] || PROFILES.egg;
   const grid = emptyGrid();
 
@@ -100,6 +102,11 @@ export function buildBitmap(stage, { eyesOpen = true, frame = 0 } = {}) {
     const row = profile.startRow + profile.eyes.rowOffset;
     setDot(grid, row, CX - profile.eyes.colOffset, 2);
     setDot(grid, row, CX + profile.eyes.colOffset, 2);
+  }
+
+  if (profile.sparkle && variant === "pristine") {
+    const row = profile.startRow + profile.sparkle.rowOffset;
+    for (const off of profile.sparkle.colOffsets) setDot(grid, row, CX + off, 2);
   }
 
   return grid;

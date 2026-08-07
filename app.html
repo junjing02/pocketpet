@@ -83,7 +83,8 @@
         <div class="pet-info">
           <div class="economy">
             <span>Coins: <b id="val-coins">0</b></span>
-            <span>Food: <b id="val-food">0</b></span>
+            <span>Snacks: <b id="val-food">0</b></span>
+            <span>Meals: <b id="val-meals">0</b></span>
           </div>
 
           <div class="stats">
@@ -95,7 +96,8 @@
           </div>
 
           <div class="actions">
-            <button id="btn-feed">Feed</button>
+            <button id="btn-feed">Snack</button>
+            <button id="btn-feed-meal">Meal</button>
             <button id="btn-play">Play</button>
             <button id="btn-clean">Clean</button>
             <button id="btn-sleep">Sleep</button>
@@ -103,7 +105,8 @@
           </div>
 
           <div class="actions">
-            <button id="btn-buy-food">Buy Food (5)</button>
+            <button id="btn-buy-food">Buy Snack (5)</button>
+            <button id="btn-buy-meal">Buy Meal (15)</button>
           </div>
         </div>
       </div>
@@ -115,6 +118,7 @@
       <p class="account-line">Signed in as <b id="account-email"></b></p>
 
       <button type="button" id="btn-change-password" class="ghost">Change Password</button>
+      <button type="button" id="btn-achievements" class="ghost">Achievements</button>
 
       <form id="change-password-form" class="stack" hidden>
         <div class="password-field">
@@ -137,6 +141,16 @@
         <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
         <button type="button" id="btn-signout">Sign Out</button>
         <button type="button" id="btn-settings-back" class="ghost">Back</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="achievements" hidden>
+      <h2 class="section-title">Achievements</h2>
+
+      <div id="achievements-list"></div>
+
+      <div class="stack settings-actions">
+        <button type="button" id="btn-achievements-back" class="ghost">Back</button>
       </div>
     </section>
   </main>
