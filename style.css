@@ -144,7 +144,7 @@ button:disabled:active { transform: none; }
 [data-tooltip]:hover::after,
 [data-tooltip]:focus-visible::after {
   opacity: 1;
-  transition: opacity 0.15s ease 1.5s;
+  transition: opacity 0.15s ease 1s;
 }
 
 .topbar {
