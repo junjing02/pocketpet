@@ -259,7 +259,7 @@ button:disabled:active { transform: none; }
 
 .recap {
   font-size: 10px;
-  text-align: left;
+  text-align: center;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -272,7 +272,6 @@ button:disabled:active { transform: none; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-align: center;
 }
 .recap-list {
   list-style: none;
@@ -280,9 +279,9 @@ button:disabled:active { transform: none; }
   padding: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
-.recap-list li::before { content: "· "; color: var(--muted); }
 
 .pet-meta {
   text-align: center;
