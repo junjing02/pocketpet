@@ -93,6 +93,9 @@ export async function savePet(pet) {
       total_coins_earned: pet.total_coins_earned,
       ever_sick: pet.ever_sick,
       neglect_incidents: pet.neglect_incidents,
+      last_login_date: pet.last_login_date,
+      login_streak: pet.login_streak,
+      has_bow: pet.has_bow,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

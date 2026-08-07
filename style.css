@@ -374,9 +374,13 @@ button:disabled:active { transform: none; }
 }
 .account-line b { color: var(--fg); font-weight: 700; }
 
-#btn-change-password, #btn-achievements, #btn-help-close { display: block; width: 100%; margin-bottom: 12px; }
-#btn-achievements { margin-bottom: 20px; }
-#change-password-form { margin-bottom: 20px; }
+#btn-change-password, #btn-rename-pet, #btn-achievements, #btn-toggle-notifications, #btn-help-close {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+}
+#btn-toggle-notifications { margin-bottom: 20px; }
+#change-password-form, #rename-pet-form { margin-bottom: 20px; }
 
 .achievement {
   display: grid;

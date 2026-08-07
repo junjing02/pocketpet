@@ -23,12 +23,17 @@ const SLEEP_DECAY_MULTIPLIER = 0.5;
 
 const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
+const BOW_PRICE = 25;
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
 const GAME_TARGET_MS = 700;
 const COINS_PER_HIT = 4;
 const PRISTINE_NEGLECT_MAX = 1;
+const DAILY_BONUS_BASE = 5;
+const DAILY_BONUS_PER_STREAK = 2;
+const DAILY_BONUS_MAX = 25;
+const LOW_STAT_THRESHOLD = 20;
 
 const ACHIEVEMENTS = [
   { id: "grown", label: "Fully Grown", check: (p) => p.life_stage === "adult" },
@@ -57,9 +62,34 @@ export function createInitialPet(name) {
     total_coins_earned: 0,
     ever_sick: false,
     neglect_incidents: 0,
+    last_login_date: null,
+    login_streak: 0,
+    has_bow: false,
     birth_timestamp: now,
     last_updated: now,
   };
+}
+
+// Returns { streak, bonus } the first time this is called on a given
+// calendar day, or null if today's login was already counted.
+export function applyDailyLogin(pet, now = new Date()) {
+  const today = now.toISOString().slice(0, 10);
+  if (pet.last_login_date === today) return null;
+
+  let streak = 1;
+  if (pet.last_login_date) {
+    const prev = new Date(`${pet.last_login_date}T00:00:00Z`);
+    const cur = new Date(`${today}T00:00:00Z`);
+    const dayGap = Math.round((cur - prev) / 86400000);
+    if (dayGap === 1) streak = (pet.login_streak || 0) + 1;
+  }
+
+  pet.login_streak = streak;
+  pet.last_login_date = today;
+  const bonus = Math.min(DAILY_BONUS_BASE + (streak - 1) * DAILY_BONUS_PER_STREAK, DAILY_BONUS_MAX);
+  pet.coins += bonus;
+  pet.total_coins_earned = (pet.total_coins_earned || 0) + bonus;
+  return { streak, bonus };
 }
 
 function updateLifeStage(pet, nowMs) {
@@ -149,6 +179,13 @@ export function buyMeal(pet) {
   return pet;
 }
 
+export function buyBow(pet) {
+  if (pet.has_bow || pet.coins < BOW_PRICE) return pet;
+  pet.coins -= BOW_PRICE;
+  pet.has_bow = true;
+  return pet;
+}
+
 export function play(pet) {
   if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
@@ -211,7 +248,7 @@ function wanderPet() {
 
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
-  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame, variant: petVariant(pet) });
+  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
   const host = $("pet-screen");
   host.style.setProperty("--grid-size", GRID_SIZE);
   host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[pet.life_stage] || STAGE_DOT_SIZE.egg}px`);
@@ -268,6 +305,8 @@ function renderStats(pet) {
   $("btn-medicine").disabled = pet.is_sleeping;
   $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
+  $("btn-buy-bow").disabled = pet.has_bow || pet.coins < BOW_PRICE;
+  $("btn-buy-bow").textContent = pet.has_bow ? "Bow Owned" : `Buy Bow (${BOW_PRICE})`;
 }
 
 function renderAchievements(pet) {
@@ -307,15 +346,18 @@ function stageProgressText(pet) {
   return "Evolving soon…";
 }
 
-function showRecap(recap) {
+function showRecap(recap, loginBonus) {
   const el = $("recap");
-  if (!recap.length) {
-    el.hidden = true;
-    return;
-  }
   const items = recap.map((r) =>
     r.stat === "life_stage" ? `Evolved into ${r.to}!` : `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`
   );
+  if (loginBonus) {
+    items.unshift(`Day ${loginBonus.streak} login streak — +${loginBonus.bonus} coins`);
+  }
+  if (!items.length) {
+    el.hidden = true;
+    return;
+  }
   el.innerHTML = `
     <p class="recap-title">While you were away</p>
     <ul class="recap-list">${items.map((i) => `<li>${i}</li>`).join("")}</ul>
@@ -330,6 +372,49 @@ async function persist() {
 function render() {
   renderPuppy(currentPet, blinkOn);
   renderStats(currentPet);
+  checkNotifications(currentPet);
+}
+
+// Local-only nudges — only fire while this tab is open, never across a closed
+// tab (see design doc §7). Uses a per-stat "already notified" set so it fires
+// once when a stat crosses the threshold, not on every render.
+const NOTIFY_KEY = "pocketpet_notify_enabled";
+const notifiedLow = new Set();
+
+function notificationsEnabled() {
+  return (
+    localStorage.getItem(NOTIFY_KEY) === "1" &&
+    typeof Notification !== "undefined" &&
+    Notification.permission === "granted"
+  );
+}
+
+function checkNotifications(pet) {
+  if (!notificationsEnabled() || !pet) return;
+  const checks = [
+    ["hunger", "Hunger"],
+    ["happiness", "Happy"],
+    ["hygiene", "Clean"],
+    ["energy", "Energy"],
+  ];
+  for (const [key, label] of checks) {
+    if (pet[key] <= LOW_STAT_THRESHOLD) {
+      if (!notifiedLow.has(key)) {
+        notifiedLow.add(key);
+        new Notification("PocketPet", { body: `${label} is low — ${pet.name} needs you.` });
+      }
+    } else {
+      notifiedLow.delete(key);
+    }
+  }
+  if (pet.is_sick) {
+    if (!notifiedLow.has("sick")) {
+      notifiedLow.add("sick");
+      new Notification("PocketPet", { body: `${pet.name} is sick! Give Medicine.` });
+    }
+  } else {
+    notifiedLow.delete("sick");
+  }
 }
 
 function bouncePet() {
@@ -561,6 +646,7 @@ function wireActions() {
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine));
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false }));
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false }));
+  $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false }));
 
   $("btn-signout").addEventListener("click", async () => {
     await db.signOut();
@@ -586,9 +672,17 @@ function wireActions() {
     $("btn-change-password").hidden = false;
   }
 
+  function collapseRenameForm() {
+    $("rename-pet-form").reset();
+    $("rename-pet-form").hidden = true;
+    $("btn-rename-pet").hidden = false;
+  }
+
   $("btn-settings").addEventListener("click", () => {
     $("account-email").textContent = currentUserEmail || "";
+    $("btn-toggle-notifications").textContent = notificationsEnabled() ? "Disable Notifications" : "Enable Notifications";
     collapsePasswordForm();
+    collapseRenameForm();
     screen("settings");
   });
   $("btn-settings-back").addEventListener("click", () => {
@@ -602,11 +696,53 @@ function wireActions() {
   });
   $("btn-achievements-back").addEventListener("click", () => screen("settings"));
 
+  $("btn-toggle-notifications").addEventListener("click", async () => {
+    if (notificationsEnabled()) {
+      localStorage.setItem(NOTIFY_KEY, "0");
+      $("btn-toggle-notifications").textContent = "Enable Notifications";
+      showMessage("Notifications disabled.");
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      showMessage("Notifications aren't supported in this browser.", true);
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      showMessage("Notification permission denied.", true);
+      return;
+    }
+    localStorage.setItem(NOTIFY_KEY, "1");
+    $("btn-toggle-notifications").textContent = "Disable Notifications";
+    showMessage("Notifications on — we'll nudge you if a stat gets low while this tab is open.");
+  });
+
   $("btn-change-password").addEventListener("click", () => {
     $("btn-change-password").hidden = true;
     $("change-password-form").hidden = false;
   });
   $("btn-cancel-password").addEventListener("click", collapsePasswordForm);
+
+  $("btn-rename-pet").addEventListener("click", () => {
+    $("btn-rename-pet").hidden = true;
+    $("rename-pet-form").hidden = false;
+    $("rename-pet-input").value = currentPet.name;
+  });
+  $("btn-cancel-rename").addEventListener("click", collapseRenameForm);
+
+  $("rename-pet-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = $("rename-pet-input").value.trim();
+    if (!name) return;
+    currentPet.name = name;
+    collapseRenameForm();
+    try {
+      await persist();
+      showMessage("Name updated.");
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
 
   $("change-password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -676,6 +812,7 @@ function wireActions() {
 async function loadPetForUser(userId, email) {
   currentUserId = userId;
   currentUserEmail = email;
+  notifiedLow.clear();
   try {
     let pet = await db.fetchPet(userId);
     if (!pet) {
@@ -683,10 +820,11 @@ async function loadPetForUser(userId, email) {
       return;
     }
     const { pet: decayed, recap } = applyDecay(pet, Date.now());
+    const loginBonus = applyDailyLogin(decayed);
     currentPet = await db.savePet(decayed);
     screen("pet");
     render();
-    showRecap(recap);
+    showRecap(recap, loginBonus);
   } catch (err) {
     currentUserId = null;
     showMessage(err.message, true);

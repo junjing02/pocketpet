@@ -118,6 +118,7 @@
           <div class="actions">
             <button id="btn-buy-food">Buy Snack (5)</button>
             <button id="btn-buy-meal">Buy Meal (15)</button>
+            <button id="btn-buy-bow">Buy Bow (25)</button>
           </div>
         </div>
       </div>
@@ -146,7 +147,15 @@
       <p class="account-line">Signed in as <b id="account-email"></b></p>
 
       <button type="button" id="btn-change-password" class="ghost">Change Password</button>
+      <button type="button" id="btn-rename-pet" class="ghost">Rename Pet</button>
       <button type="button" id="btn-achievements" class="ghost">Achievements</button>
+      <button type="button" id="btn-toggle-notifications" class="ghost">Enable Notifications</button>
+
+      <form id="rename-pet-form" class="stack" hidden>
+        <input id="rename-pet-input" type="text" placeholder="pet name" maxlength="20" required />
+        <button type="submit">Save Name</button>
+        <button type="button" id="btn-cancel-rename" class="ghost">Cancel</button>
+      </form>
 
       <form id="change-password-form" class="stack" hidden>
         <div class="password-field">

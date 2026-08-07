@@ -33,20 +33,23 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Egg stage:** no stats decay and no care actions (Feed/Play/Clean/Sleep) are available — an unhatched egg has no needs, it just waits out the age threshold to hatch.
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
 - **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
-- **Mini-game:** Play opens a popup modal and randomly launches one of four 5-round games — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins
+- **Mini-game:** Play opens a popup modal with a menu of four games to choose from — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins
 - **Achievements:** computed live from pet state (not separately stored) — Fully Grown, Coin Collector (100 lifetime coins via `total_coins_earned`), Never Sick (`ever_sick`), Pristine Care (`neglect_incidents === 0`)
 - **Care-quality variant:** an adult raised with `neglect_incidents <= 1` renders with an extra sparkle dot — the one piece of the sprite that reflects lifetime care quality, not just current stats
+- **Cosmetics:** a one-time purchasable Bow accessory (`has_bow`) — drawn as two extra dots above the head on every stage except egg
+- **Daily login streak:** first login each calendar day awards bonus coins that scale with consecutive-day streak (`login_streak`, capped bonus); shown in the away-time recap
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
 - **Animations:** pixel-dot chick with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
-- **Settings screen:** change password, reset pet to a fresh egg, sign out
+- **Settings screen:** change password, rename pet, toggle local notifications, view achievements, reset pet to a fresh egg, sign out
+- **Local notifications:** opt-in browser `Notification` nudge when a stat drops to ≤20 or the pet gets sick — client-only, only fires while the tab is open (no closed-app push; that's a bigger lift, see §11)
 - **In-app tutorial:** a small "?" toggle explaining the rules, plus a live "evolves in Xm" progress line
 - **Landing page:** static marketing page (`index.html`) with a pet preview and a Play button into the app (`app.html`)
 - **Auth:** Supabase email/password login, required (so the pet isn't tied to one browser)
 - **Persistence:** one row per pet in Supabase Postgres, scoped by Row Level Security
 - **Pixel-dot rendering:** pet drawn as a procedural dot-matrix bitmap, no image files
 
-Cut for MVP: social/leaderboards, push notifications, PWA/offline, sound.
+Cut for MVP: social/leaderboards, true closed-app push notifications, PWA/offline, sound.
 
 ---
 
@@ -88,6 +91,9 @@ create table pets (
   total_coins_earned int not null default 0,
   ever_sick boolean not null default false,
   neglect_incidents int not null default 0,
+  last_login_date text,
+  login_streak int not null default 0,
+  has_bow boolean not null default false,
   birth_timestamp timestamptz not null default now(),
   last_updated timestamptz not null default now()
 );

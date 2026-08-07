@@ -27,12 +27,14 @@ const PROFILES = {
     startRow: 10,
     halfWidths: [1, 2, 3, 3, 2, 1],
     eyes: { rowOffset: 2, colOffset: 2 },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
   chick: {
     startRow: 8,
     halfWidths: [2, 3, 4, 4, 3, 2],
     eyes: { rowOffset: 1, colOffset: 2 },
     tuft: { rowOffset: -1, colOffsets: [0] },
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 6, colOffsets: [-1, 0] },
     limbFrames: [
       [{ rowOffset: 7, colOffsets: [-2, 1] }], // feet
@@ -45,6 +47,7 @@ const PROFILES = {
     halfWidths: [2, 3, 3, 3, 3, 3, 2],
     eyes: { rowOffset: 1, colOffset: 2 },
     tuft: { rowOffset: -1, colOffsets: [-1] }, // off-center, scruffy
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 7, colOffsets: [0, 1] },
     features: [
       { rowOffset: 3, colOffsets: [-5] }, // lopsided wing stub, one side only sticks out here
@@ -60,6 +63,7 @@ const PROFILES = {
     halfWidths: [3, 5, 6, 6, 6, 5, 3],
     eyes: { rowOffset: 1, colOffset: 4 },
     tuft: { rowOffset: -1, colOffsets: [0] },
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 7, colOffsets: [-1, 0, 1] },
     features: [
       { rowOffset: 2, colOffsets: [-8, 8] }, // real, symmetric wings now
@@ -75,6 +79,7 @@ const PROFILES = {
     halfWidths: [3, 5, 7, 7, 7, 7, 5, 3],
     eyes: { rowOffset: 1, colOffset: 4 },
     tuft: { rowOffset: -1, colOffsets: [-1, 1] }, // crest
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
     features: [
       { rowOffset: 3, colOffsets: [-9, 9] }, // full wings
@@ -98,7 +103,7 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { eyesOpen = true, frame = 0, variant = "normal" } = {}) {
+export function buildBitmap(stage, { eyesOpen = true, frame = 0, variant = "normal", hasBow = false } = {}) {
   const profile = PROFILES[stage] || PROFILES.egg;
   const grid = emptyGrid();
 
@@ -120,6 +125,11 @@ export function buildBitmap(stage, { eyesOpen = true, frame = 0, variant = "norm
   if (profile.beak) {
     const row = profile.startRow + profile.beak.rowOffset;
     for (const off of profile.beak.colOffsets) setDot(grid, row, CX + off, 1);
+  }
+
+  if (profile.bow && hasBow) {
+    const row = profile.startRow + profile.bow.rowOffset;
+    for (const off of profile.bow.colOffsets) setDot(grid, row, CX + off, 2);
   }
 
   if (profile.limbFrames) {
