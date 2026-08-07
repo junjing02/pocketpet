@@ -148,10 +148,12 @@
 
       <p class="account-line">Signed in as <b id="account-email"></b></p>
 
-      <button type="button" id="btn-change-password" class="ghost">Change Password</button>
-      <button type="button" id="btn-rename-pet" class="ghost">Rename Pet</button>
-      <button type="button" id="btn-achievements" class="ghost">Achievements</button>
-      <button type="button" id="btn-toggle-notifications" class="ghost">Enable Notifications</button>
+      <div id="settings-menu" class="stack">
+        <button type="button" id="btn-change-password" class="ghost">Change Password</button>
+        <button type="button" id="btn-rename-pet" class="ghost">Rename Pet</button>
+        <button type="button" id="btn-achievements" class="ghost">Achievements</button>
+        <button type="button" id="btn-toggle-notifications" class="ghost">Enable Notifications</button>
+      </div>
 
       <form id="rename-pet-form" class="stack" hidden>
         <input id="rename-pet-input" type="text" placeholder="pet name" maxlength="20" required />
@@ -176,7 +178,7 @@
         <button type="button" id="btn-cancel-password" class="ghost">Cancel</button>
       </form>
 
-      <div class="stack settings-actions">
+      <div id="settings-bottom-actions" class="stack settings-actions">
         <button type="button" id="btn-signout">Sign Out</button>
         <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
         <button type="button" id="btn-settings-back" class="ghost">Back</button>

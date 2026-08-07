@@ -677,16 +677,27 @@ function wireActions() {
     if (e.target.id === "help-modal") $("help-modal").hidden = true;
   });
 
+  function showSettingsMenu() {
+    $("settings-menu").hidden = false;
+    $("settings-bottom-actions").hidden = false;
+  }
+
+  function openSettingsForm(formId) {
+    $("settings-menu").hidden = true;
+    $("settings-bottom-actions").hidden = true;
+    $(formId).hidden = false;
+  }
+
   function collapsePasswordForm() {
     $("change-password-form").reset();
     $("change-password-form").hidden = true;
-    $("btn-change-password").hidden = false;
+    showSettingsMenu();
   }
 
   function collapseRenameForm() {
     $("rename-pet-form").reset();
     $("rename-pet-form").hidden = true;
-    $("btn-rename-pet").hidden = false;
+    showSettingsMenu();
   }
 
   $("btn-settings").addEventListener("click", () => {
@@ -729,14 +740,12 @@ function wireActions() {
   });
 
   $("btn-change-password").addEventListener("click", () => {
-    $("btn-change-password").hidden = true;
-    $("change-password-form").hidden = false;
+    openSettingsForm("change-password-form");
   });
   $("btn-cancel-password").addEventListener("click", collapsePasswordForm);
 
   $("btn-rename-pet").addEventListener("click", () => {
-    $("btn-rename-pet").hidden = true;
-    $("rename-pet-form").hidden = false;
+    openSettingsForm("rename-pet-form");
     $("rename-pet-input").value = currentPet.name;
   });
   $("btn-cancel-rename").addEventListener("click", collapseRenameForm);
