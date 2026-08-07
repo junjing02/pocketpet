@@ -120,8 +120,7 @@ button:disabled:hover { background: #fff; color: var(--muted); }
 button:disabled:active { transform: none; }
 
 [data-tooltip] { position: relative; }
-[data-tooltip]:hover::after,
-[data-tooltip]:focus-visible::after {
+[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 7px);
@@ -139,6 +138,13 @@ button:disabled:active { transform: none; }
   width: max-content;
   z-index: 20;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease 0s;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transition: opacity 0.15s ease 3s;
 }
 
 .topbar {
