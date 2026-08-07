@@ -471,21 +471,33 @@ function playCountRound(overlay) {
 }
 
 const MINI_GAMES = [
-  { name: "Tap the Target", round: playTapRound },
-  { name: "Stop the Marker", round: playTimingRound },
-  { name: "Odd One Out", round: playOddOneOutRound },
-  { name: "Count the Dots", round: playCountRound },
+  { id: "tap", name: "Tap the Target", round: playTapRound },
+  { id: "timing", name: "Stop the Marker", round: playTimingRound },
+  { id: "odd", name: "Odd One Out", round: playOddOneOutRound },
+  { id: "count", name: "Count the Dots", round: playCountRound },
 ];
 
-async function runPlayGame() {
-  const overlay = $("game-overlay");
-  const btn = $("btn-play");
-  btn.disabled = true;
+function openGamePicker() {
+  $("btn-play").disabled = true;
   gameActive = true;
-
-  const game = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)];
-  $("game-modal-title").textContent = game.name;
+  $("game-modal-title").textContent = "Choose a Game";
+  $("game-modal-round").textContent = "";
+  $("game-picker").hidden = false;
+  $("game-overlay").hidden = true;
   $("game-modal").hidden = false;
+}
+
+function closeGameModal() {
+  $("game-modal").hidden = true;
+  $("btn-play").disabled = false;
+  gameActive = false;
+}
+
+async function runPlayGame(game) {
+  const overlay = $("game-overlay");
+  $("game-picker").hidden = true;
+  overlay.hidden = false;
+  $("game-modal-title").textContent = game.name;
 
   let hits = 0;
   for (let i = 0; i < GAME_ROUNDS; i++) {
@@ -495,8 +507,7 @@ async function runPlayGame() {
     if (await game.round(overlay)) hits++;
   }
 
-  $("game-modal").hidden = true;
-  gameActive = false;
+  closeGameModal();
 
   play(currentPet); // usual happiness/energy/hunger effect — no-ops if sleeping or too tired
   const coinsEarned = hits * COINS_PER_HIT;
@@ -504,7 +515,6 @@ async function runPlayGame() {
   currentPet.total_coins_earned = (currentPet.total_coins_earned || 0) + coinsEarned;
   render();
   if (!currentPet.is_sleeping) bouncePet();
-  btn.disabled = false;
   showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
   try {
     await persist();
@@ -518,7 +528,14 @@ function wireActions() {
   $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
   $("btn-feed").addEventListener("click", () => runAction(feed));
   $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
-  $("btn-play").addEventListener("click", () => runPlayGame());
+  $("btn-play").addEventListener("click", openGamePicker);
+  $("btn-game-cancel").addEventListener("click", closeGameModal);
+  document.querySelectorAll(".game-picker-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const game = MINI_GAMES.find((g) => g.id === btn.dataset.game);
+      runPlayGame(game);
+    });
+  });
   $("btn-clean").addEventListener("click", () => runAction(clean));
   $("btn-sleep").addEventListener("click", () => runAction(toggleSleep, { bounce: false }));
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine));
