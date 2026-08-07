@@ -1,69 +1,56 @@
-// Hand-tuned pixel-dot puppy sprites — no image assets, just an on/off grid.
-// grid values: 0 = off, 1 = fur dot, 2 = dark dot (eyes/nose)
+// Hand-tuned pixel-dot chick sprites — no image assets, just an on/off grid.
+// grid values: 0 = off, 1 = fur/feather dot, 2 = eye dot
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
-// A separate (smaller) body stacked under a (bigger) head is what makes this
-// read as a puppy instead of one big circle — the head/body seam creates a
-// visible "neck" instead of one continuous round blob.
+// One rounded body per stage (no separate head/body, no ears/tail) — a beak,
+// a fluff tuft, and (from child onward) tiny feet and wing nubs are all it
+// takes to read as a chick while staying much simpler than a dog.
 const PROFILES = {
   egg: {
-    head: { startRow: 6, halfWidths: [1, 3, 4, 5, 6, 6, 6, 6, 6, 5, 4, 3, 1] },
+    startRow: 6,
+    halfWidths: [1, 3, 4, 5, 6, 6, 6, 6, 6, 5, 4, 3, 1],
   },
   baby: {
-    head: { startRow: 9, halfWidths: [2, 3, 3, 3, 2] },
-    eyes: { rowOffset: 2, colOffset: 2 },
-    nose: { rowOffset: 3, col: 0 },
+    startRow: 9,
+    halfWidths: [2, 3, 4, 4, 3, 2],
+    eyes: { rowOffset: 1, colOffset: 2 },
+    tuft: { rowOffset: -1, colOffsets: [0] },
+    beak: { rowOffset: 6, colOffsets: [0, 1] },
   },
   child: {
-    head: { startRow: 6, halfWidths: [2, 3, 4, 3] },
-    body: { startRow: 10, halfWidths: [2, 2, 1] },
-    eyes: { rowOffset: 1, colOffset: 2 },
-    nose: { rowOffset: 2, col: 0 },
-    features: [{ onHead: true, rowOffset: -1, colOffsets: [-3, 3] }], // ears
+    startRow: 7,
+    halfWidths: [3, 4, 5, 5, 4, 3],
+    eyes: { rowOffset: 1, colOffset: 3 },
+    tuft: { rowOffset: -1, colOffsets: [0] },
+    beak: { rowOffset: 6, colOffsets: [-1, 0] },
     limbFrames: [
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [3] }, // tail
-        { onBody: true, rowOffset: 3, colOffsets: [-2, 1] }, // feet
-      ],
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [4] },
-        { onBody: true, rowOffset: 3, colOffsets: [-1, 2] },
-      ],
+      [{ rowOffset: 7, colOffsets: [-2, 1] }], // feet
+      [{ rowOffset: 7, colOffsets: [-1, 2] }],
     ],
   },
   teen: {
-    head: { startRow: 5, halfWidths: [3, 4, 5, 5, 4] },
-    body: { startRow: 10, halfWidths: [3, 3, 2] },
-    eyes: { rowOffset: 1, colOffset: 3 },
-    nose: { rowOffset: 3, col: 0 },
-    features: [{ onHead: true, rowOffset: -1, colOffsets: [-4, 4] }], // ears
+    startRow: 6,
+    halfWidths: [3, 5, 6, 6, 6, 5, 3],
+    eyes: { rowOffset: 1, colOffset: 4 },
+    tuft: { rowOffset: -1, colOffsets: [0] },
+    beak: { rowOffset: 7, colOffsets: [-1, 0] },
+    features: [{ rowOffset: 3, colOffsets: [-8, 8] }], // wings
     limbFrames: [
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [5] }, // tail
-        { onBody: true, rowOffset: 3, colOffsets: [-3, 1] }, // feet
-      ],
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [6] },
-        { onBody: true, rowOffset: 3, colOffsets: [-1, 3] },
-      ],
+      [{ rowOffset: 8, colOffsets: [-3, 2] }], // feet
+      [{ rowOffset: 8, colOffsets: [-2, 3] }],
     ],
   },
   adult: {
-    head: { startRow: 4, halfWidths: [3, 5, 6, 6, 5] },
-    body: { startRow: 9, halfWidths: [4, 4, 3, 2] },
+    startRow: 5,
+    halfWidths: [3, 5, 7, 7, 7, 7, 5, 3],
     eyes: { rowOffset: 1, colOffset: 4 },
-    nose: { rowOffset: 3, col: 0 },
-    features: [{ onHead: true, rowOffset: -1, colOffsets: [-5, 5] }], // ears
+    tuft: { rowOffset: -1, colOffsets: [-1, 1] },
+    beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
+    features: [{ rowOffset: 3, colOffsets: [-9, 9] }], // wings
     limbFrames: [
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [6] }, // tail
-        { onBody: true, rowOffset: 4, colOffsets: [-4, 2] }, // feet
-      ],
-      [
-        { onBody: true, rowOffset: 0, colOffsets: [7] },
-        { onBody: true, rowOffset: 4, colOffsets: [-2, 4] },
-      ],
+      [{ rowOffset: 9, colOffsets: [-4, 2] }], // feet
+      [{ rowOffset: 9, colOffsets: [-2, 4] }],
     ],
   },
 };
@@ -77,45 +64,42 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-function drawStack(grid, stack) {
-  if (!stack) return;
-  stack.halfWidths.forEach((w, i) => {
-    const row = stack.startRow + i;
-    for (let c = CX - w; c <= CX + w; c++) setDot(grid, row, c, 1);
-  });
-}
-
 export function buildBitmap(stage, { eyesOpen = true, frame = 0 } = {}) {
   const profile = PROFILES[stage] || PROFILES.egg;
   const grid = emptyGrid();
 
-  drawStack(grid, profile.head);
-  drawStack(grid, profile.body);
-
-  const anchorRow = (feature) => (feature.onBody ? profile.body : profile.head).startRow + feature.rowOffset;
+  profile.halfWidths.forEach((w, i) => {
+    const row = profile.startRow + i;
+    for (let c = CX - w; c <= CX + w; c++) setDot(grid, row, c, 1);
+  });
 
   for (const feature of profile.features || []) {
-    const row = anchorRow(feature);
+    const row = profile.startRow + feature.rowOffset;
     for (const off of feature.colOffsets) setDot(grid, row, CX + off, 1);
+  }
+
+  if (profile.tuft) {
+    const row = profile.startRow + profile.tuft.rowOffset;
+    for (const off of profile.tuft.colOffsets) setDot(grid, row, CX + off, 1);
+  }
+
+  if (profile.beak) {
+    const row = profile.startRow + profile.beak.rowOffset;
+    for (const off of profile.beak.colOffsets) setDot(grid, row, CX + off, 1);
   }
 
   if (profile.limbFrames) {
     const limbs = profile.limbFrames[frame % profile.limbFrames.length];
     for (const limb of limbs) {
-      const row = anchorRow(limb);
+      const row = profile.startRow + limb.rowOffset;
       for (const off of limb.colOffsets) setDot(grid, row, CX + off, 1);
     }
   }
 
   if (profile.eyes && eyesOpen) {
-    const row = profile.head.startRow + profile.eyes.rowOffset;
+    const row = profile.startRow + profile.eyes.rowOffset;
     setDot(grid, row, CX - profile.eyes.colOffset, 2);
     setDot(grid, row, CX + profile.eyes.colOffset, 2);
-  }
-
-  if (profile.nose) {
-    const row = profile.head.startRow + profile.nose.rowOffset;
-    setDot(grid, row, CX + profile.nose.col, 2);
   }
 
   return grid;
