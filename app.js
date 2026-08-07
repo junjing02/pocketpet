@@ -14,6 +14,7 @@ const AGE_THRESHOLD_MS = { baby: 60 * 1000, child: 3 * 60 * 1000, teen: 6 * 60 *
 const EVOLVE_HEALTH_MIN = 50;
 const DECAY_PER_HOUR = { hunger: 4, happiness: 3, energy: 2.5, hygiene: 3.5 };
 const HEALTH_DECAY_PER_HOUR_NEGLECTED = 5;
+const HEALTH_REGEN_PER_HOUR = 6;
 const SLEEP_ENERGY_GAIN_PER_HOUR = 10;
 const SLEEP_DECAY_MULTIPLIER = 0.5;
 
@@ -70,9 +71,13 @@ export function applyDecay(pet, nowMs = Date.now()) {
     ? clamp(pet.energy + SLEEP_ENERGY_GAIN_PER_HOUR * elapsedHours)
     : clamp(pet.energy - DECAY_PER_HOUR.energy * elapsedHours);
 
+  // Health only drops from neglect; it recovers on its own once every other
+  // stat is above 0 again (unless sick — that needs Medicine, not just care).
   const neglected = pet.hunger <= 0 || pet.happiness <= 0 || pet.hygiene <= 0;
   if (neglected) {
     pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
+  } else if (!pet.is_sick) {
+    pet.health = clamp(pet.health + HEALTH_REGEN_PER_HOUR * elapsedHours);
   }
   if (pet.health <= 0) pet.is_sick = true;
 

@@ -34,8 +34,8 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Economy:** limited Food stock (`food_count`) gates Feed; Coins (`coins`) buy more Food; earned by playing the mini-game
 - **Mini-game:** reaction-tap — 5 rounds, a target dot appears briefly and disappears if not clicked in time; hits earn coins
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
-- **Neglect:** stats hitting 0 drag health down; health hitting 0 → sickness
-- **Animations:** idle "breathing" loop (CSS) + a short bounce on successful actions, all pure CSS — no new assets
+- **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
+- **Animations:** pixel-dot puppy with a 2-frame walk/wag cycle (legs + tail alternate) plus wandering around the screen and a bounce on successful actions
 - **Settings screen:** change password, reset pet to a fresh egg, sign out
 - **In-app tutorial:** a small "?" toggle explaining the rules, plus a live "evolves in Xm" progress line
 - **Landing page:** static marketing page (`index.html`) with a pet preview and a Play button into the app (`app.html`)
