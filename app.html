@@ -161,6 +161,7 @@
       <div id="settings-menu" class="stack">
         <button type="button" id="btn-change-password" class="ghost">Change Password</button>
         <button type="button" id="btn-rename-pet" class="ghost">Rename Pet</button>
+        <button type="button" id="btn-switch-pet" class="ghost">Switch Pet</button>
         <button type="button" id="btn-achievements" class="ghost">Achievements</button>
         <button type="button" id="btn-toggle-notifications" class="ghost">Enable Notifications</button>
       </div>
@@ -202,6 +203,17 @@
 
       <div class="stack settings-actions">
         <button type="button" id="btn-achievements-back" class="ghost">Back</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="pet-picker" hidden>
+      <h2 class="section-title">Your Pets</h2>
+
+      <div id="pet-picker-list"></div>
+
+      <div class="stack settings-actions">
+        <button type="button" id="btn-hatch-another" class="ghost">Hatch New Pet</button>
+        <button type="button" id="btn-picker-back" class="ghost">Back</button>
       </div>
     </section>
   </main>

@@ -54,20 +54,41 @@ export async function updatePassword(newPassword) {
   if (error) throw error;
 }
 
-export async function fetchPet(userId) {
+export async function fetchPets(userId) {
   const { data, error } = await requireClient()
     .from("pets")
     .select("*")
     .eq("user_id", userId)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return data;
 }
 
+// Clears is_active on the user's other pets before inserting so a new pet
+// (whether it's the first or an additional one) is always the sole active row.
 export async function createPet(userId, name) {
-  const { data, error } = await requireClient()
+  const client = requireClient();
+  const { error: clearError } = await client.from("pets").update({ is_active: false }).eq("user_id", userId);
+  if (clearError) throw clearError;
+
+  const { data, error } = await client
     .from("pets")
-    .insert({ user_id: userId, name })
+    .insert({ user_id: userId, name, is_active: true })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setActivePet(userId, petId) {
+  const client = requireClient();
+  const { error: clearError } = await client.from("pets").update({ is_active: false }).eq("user_id", userId);
+  if (clearError) throw clearError;
+
+  const { data, error } = await client
+    .from("pets")
+    .update({ is_active: true })
+    .eq("id", petId)
     .select()
     .single();
   if (error) throw error;

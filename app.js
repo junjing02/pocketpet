@@ -30,6 +30,7 @@ const GAME_ROUNDS = 5;
 const GAME_TARGET_MS = 700;
 const COINS_PER_HIT = 4;
 const PRISTINE_NEGLECT_MAX = 1;
+const MAX_PETS = 3;
 const DAILY_BONUS_BASE = 5;
 const DAILY_BONUS_PER_STREAK = 2;
 const DAILY_BONUS_MAX = 25;
@@ -377,6 +378,56 @@ function renderAchievements(pet) {
 
 function petVariant(pet) {
   return pet.neglect_incidents <= PRISTINE_NEGLECT_MAX ? "pristine" : "normal";
+}
+
+function miniSpriteHtml(pet) {
+  const bitmap = buildBitmap(pet.life_stage, { eyesOpen: true, variant: petVariant(pet), hasBow: pet.has_bow });
+  let html = "";
+  for (const row of bitmap) {
+    for (const v of row) {
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}"></i>`;
+    }
+  }
+  return html;
+}
+
+function renderPetPicker(pets) {
+  const list = $("pet-picker-list");
+  list.innerHTML = pets
+    .map(
+      (p) => `
+    <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
+      <div class="pet-picker-thumb" style="--grid-size:${GRID_SIZE}">${miniSpriteHtml(p)}</div>
+      <div class="pet-picker-info">
+        <b>${p.name}</b>
+        <span>${p.life_stage}</span>
+      </div>
+      <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
+        ${p.is_active ? "Active" : "Select"}
+      </button>
+    </div>`
+    )
+    .join("");
+
+  list.querySelectorAll(".pet-picker-select").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const petId = btn.dataset.petId;
+      btn.disabled = true;
+      btn.textContent = "Loading…";
+      try {
+        const updated = await db.setActivePet(currentUserId, petId);
+        await activatePetAndRender(updated);
+      } catch (err) {
+        showMessage(err.message, true);
+        btn.disabled = false;
+        btn.textContent = "Select";
+      }
+    });
+  });
+
+  $("btn-hatch-another").disabled = pets.length >= MAX_PETS;
+  $("btn-hatch-another").dataset.tooltip =
+    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets` : "Hatch a new egg — your other pets keep going";
 }
 
 function formatDuration(ms) {
@@ -801,6 +852,18 @@ function wireActions() {
   });
   $("btn-achievements-back").addEventListener("click", () => screen("settings"));
 
+  $("btn-switch-pet").addEventListener("click", async () => {
+    try {
+      const pets = await db.fetchPets(currentUserId);
+      renderPetPicker(pets);
+      screen("pet-picker");
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
+  $("btn-picker-back").addEventListener("click", () => screen("settings"));
+  $("btn-hatch-another").addEventListener("click", () => screen("name-pet"));
+
   $("btn-toggle-notifications").addEventListener("click", async () => {
     if (notificationsEnabled()) {
       localStorage.setItem(NOTIFY_KEY, "0");
@@ -912,23 +975,30 @@ function wireActions() {
   setInterval(wanderPet, 3000);
 }
 
-async function loadPetForUser(userId, email) {
+// Runs decay/login-bonus/habit-reset for whichever pet just became the
+// active one (initial load, or switching via the picker) and shows it.
+async function activatePetAndRender(pet) {
+  const { pet: decayed, recap } = applyDecay(pet, Date.now());
+  const loginBonus = applyDailyLogin(decayed);
+  ensureHabitDay(decayed);
+  currentPet = await db.savePet(decayed);
+  screen("pet");
+  render();
+  showRecap(recap, loginBonus);
+}
+
+async function loadPetsForUser(userId, email) {
   currentUserId = userId;
   currentUserEmail = email;
   notifiedLow.clear();
   try {
-    let pet = await db.fetchPet(userId);
-    if (!pet) {
+    const pets = await db.fetchPets(userId);
+    if (!pets.length) {
       screen("name-pet");
       return;
     }
-    const { pet: decayed, recap } = applyDecay(pet, Date.now());
-    const loginBonus = applyDailyLogin(decayed);
-    ensureHabitDay(decayed);
-    currentPet = await db.savePet(decayed);
-    screen("pet");
-    render();
-    showRecap(recap, loginBonus);
+    const active = pets.find((p) => p.is_active) || pets[0];
+    await activatePetAndRender(active);
   } catch (err) {
     currentUserId = null;
     showMessage(err.message, true);
@@ -1047,7 +1117,7 @@ function wireAuth() {
     await withBusy(e.submitter, "Updating…", async () => {
       await db.updatePassword(password);
       const session = await db.getSession();
-      if (session) await loadPetForUser(session.user.id, session.user.email);
+      if (session) await loadPetsForUser(session.user.id, session.user.email);
     });
   });
 
@@ -1079,12 +1149,12 @@ async function init() {
       screen("reset-password");
       return;
     }
-    if (session && !currentUserId) loadPetForUser(session.user.id, session.user.email);
+    if (session && !currentUserId) loadPetsForUser(session.user.id, session.user.email);
   });
 
   const session = await db.getSession();
   if (session) {
-    await loadPetForUser(session.user.id, session.user.email);
+    await loadPetsForUser(session.user.id, session.user.email);
   }
 }
 
