@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js";
 import * as db from "./supabase.js";
 
 const HOUR = 3600000;
@@ -8,8 +8,8 @@ const HOUR = 3600000;
 const TIME_SCALE = 1;
 const AGE_THRESHOLD_MS = {
   hatchling: 4 * 60 * 1000, // 4 min
-  chick: 14 * 60 * 1000, // 14 min
-  fledgling: 36 * 60 * 1000, // 36 min
+  young: 14 * 60 * 1000, // 14 min
+  teen: 36 * 60 * 1000, // 36 min
   juvenile: 72 * 60 * 1000, // 1h 12m
   adult: 120 * 60 * 1000, // 2h
 };
@@ -49,6 +49,7 @@ export function createInitialPet(name) {
   const now = new Date().toISOString();
   return {
     name,
+    species: pickRandomSpecies(),
     life_stage: "egg",
     hunger: 100,
     happiness: 100,
@@ -144,7 +145,7 @@ export function applyDecay(pet, nowMs = Date.now()) {
     const delta = Math.round(pet[stat] - before[stat]);
     if (delta !== 0) recap.push({ stat, delta });
   }
-  if (before.life_stage !== pet.life_stage) recap.push({ stat: "life_stage", to: pet.life_stage });
+  if (before.life_stage !== pet.life_stage) recap.push({ stat: "life_stage", to: pet.life_stage, species: pet.species || "bird" });
   return { pet, recap };
 }
 
@@ -263,10 +264,14 @@ function movePetTowards(clickX, clickY) {
 
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
-  const bitmap = buildBitmap(pet.life_stage, { eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
+  const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
   const host = $("pet-screen");
   host.style.setProperty("--grid-size", GRID_SIZE);
   host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[pet.life_stage] || STAGE_DOT_SIZE.egg}px`);
+  // Species stays a surprise until it hatches — the egg shape is shared, so
+  // don't leak a species-specific shade before there's a species to reveal.
+  if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
+  else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   let html = "";
   for (const row of bitmap) {
     for (const v of row) {
@@ -302,7 +307,7 @@ function renderStats(pet) {
   const isEgg = pet.life_stage === "egg";
 
   $("pet-name").textContent = pet.name;
-  $("pet-stage").textContent = pet.life_stage;
+  $("pet-stage").textContent = isEgg ? pet.life_stage : `${speciesLabel(pet)} · ${pet.life_stage}`;
   $("btn-medicine").hidden = !pet.is_sick;
   $("btn-sleep").textContent = pet.is_sleeping ? "Wake" : "Sleep";
   $("pet-progress").textContent = stageProgressText(pet);
@@ -340,8 +345,19 @@ function petVariant(pet) {
   return pet.neglect_incidents <= PRISTINE_NEGLECT_MAX ? "pristine" : "normal";
 }
 
+// Falls back to "bird" for any pet row fetched before the `species` column
+// existed — old rows read as undefined until the migration backfills them.
+function speciesOf(pet) {
+  return pet.species || "bird";
+}
+
+function speciesLabel(pet) {
+  const s = speciesOf(pet);
+  return s[0].toUpperCase() + s.slice(1);
+}
+
 function miniSpriteHtml(pet) {
-  const bitmap = buildBitmap(pet.life_stage, { eyesOpen: true, variant: petVariant(pet), hasBow: pet.has_bow });
+  const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen: true, variant: petVariant(pet), hasBow: pet.has_bow });
   let html = "";
   for (const row of bitmap) {
     for (const v of row) {
@@ -357,10 +373,10 @@ function renderPetPicker(pets) {
     .map(
       (p) => `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="--grid-size:${GRID_SIZE}">${miniSpriteHtml(p)}</div>
+      <div class="pet-picker-thumb" style="--grid-size:${GRID_SIZE};${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]}`}">${miniSpriteHtml(p)}</div>
       <div class="pet-picker-info">
         <b>${p.name}</b>
-        <span>${p.life_stage}</span>
+        <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}`}</span>
       </div>
       <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
         ${p.is_active ? "Active" : "Select"}
@@ -413,9 +429,14 @@ function stageProgressText(pet) {
 
 function showRecap(recap, loginBonus) {
   const el = $("recap");
-  const items = recap.map((r) =>
-    r.stat === "life_stage" ? `Evolved into ${r.to}!` : `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`
-  );
+  const items = recap.map((r) => {
+    if (r.stat !== "life_stage") return `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`;
+    if (r.to === "hatchling") {
+      const species = `${r.species[0].toUpperCase()}${r.species.slice(1)}`;
+      return `It hatched — you got a ${species}!`;
+    }
+    return `Evolved into ${r.to}!`;
+  });
   if (loginBonus) {
     items.unshift(`Day ${loginBonus.streak} login streak — +${loginBonus.bonus} coins`);
   }
@@ -1078,7 +1099,7 @@ function wireAuth() {
     e.preventDefault();
     const name = $("pet-name-input").value.trim() || "Mochi";
     try {
-      currentPet = await db.createPet(currentUserId, name);
+      currentPet = await db.createPet(currentUserId, name, pickRandomSpecies());
       screen("pet");
       render();
     } catch (err) {

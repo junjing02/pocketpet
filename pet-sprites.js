@@ -1,35 +1,50 @@
-// Hand-tuned pixel-dot bird sprites — no image assets, just an on/off grid.
-// grid values: 0 = off, 1 = fur/feather dot, 2 = eye dot
+// Hand-tuned pixel-dot sprites — no image assets, just an on/off grid.
+// grid values: 0 = off, 1 = body dot, 2 = eye/sparkle/bow dot
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
-export const STAGE_ORDER = ["egg", "hatchling", "chick", "fledgling", "juvenile", "adult"];
-export const STAGE_DOT_SIZE = { egg: 3, hatchling: 3.5, chick: 4.5, fledgling: 5.5, juvenile: 6.5, adult: 7.5 };
+export const STAGE_ORDER = ["egg", "hatchling", "young", "teen", "juvenile", "adult"];
+export const STAGE_DOT_SIZE = { egg: 3, hatchling: 3.5, young: 4.5, teen: 5.5, juvenile: 6.5, adult: 7.5 };
 export const STAGE_SHADE = {
   egg: "#d4d4d4",
   hatchling: "#b3b3b3",
-  chick: "#8a8a8a",
-  fledgling: "#666666",
+  young: "#8a8a8a",
+  teen: "#666666",
   juvenile: "#3a3a3a",
   adult: "#111111",
 };
 
-// Each stage is a genuinely different silhouette (not the same shape scaled
-// up) — a wet-looking featureless hatchling, a round fluffy chick, a gawky
-// tall fledgling with lopsided wing stubs, a more proportionate juvenile
-// growing real wings, and a full majestic adult with a fanned tail.
-const PROFILES = {
-  egg: {
-    startRow: 6,
-    halfWidths: [1, 3, 4, 5, 6, 6, 6, 6, 6, 5, 4, 3, 1],
-  },
+// Which creature an egg hatches into is a surprise — every species shares the
+// same egg shape (no spoilers) and only diverges starting at hatchling. Each
+// is a genuinely different silhouette, not a palette swap: different size,
+// proportions, and features across all 5 post-egg stages.
+export const SPECIES = ["bird", "bunny", "turtle"];
+export const SPECIES_SHADE = {
+  bird: "#111111",
+  bunny: "#333333",
+  turtle: "#555555",
+};
+
+export function pickRandomSpecies() {
+  return SPECIES[Math.floor(Math.random() * SPECIES.length)];
+}
+
+const EGG_PROFILE = {
+  startRow: 6,
+  halfWidths: [1, 3, 4, 5, 6, 6, 6, 6, 6, 5, 4, 3, 1],
+};
+
+// Bird: a wet-looking featureless hatchling, a round fluffy young bird, a
+// gawky tall teen with lopsided wing stubs, a proportionate juvenile growing
+// real wings, and a full majestic adult with a fanned tail.
+const BIRD_PROFILES = {
   hatchling: {
     startRow: 10,
     halfWidths: [1, 2, 3, 3, 2, 1],
     eyes: { rowOffset: 2, colOffset: 2 },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
-  chick: {
+  young: {
     startRow: 8,
     halfWidths: [2, 3, 4, 4, 3, 2],
     eyes: { rowOffset: 1, colOffset: 2 },
@@ -37,11 +52,11 @@ const PROFILES = {
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 6, colOffsets: [-1, 0] },
     limbFrames: [
-      [{ rowOffset: 7, colOffsets: [-2, 1] }], // feet
+      [{ rowOffset: 7, colOffsets: [-2, 1] }],
       [{ rowOffset: 7, colOffsets: [-1, 2] }],
     ],
   },
-  fledgling: {
+  teen: {
     // Tall/uniform-width column instead of round — the "awkward teenager" shape
     startRow: 6,
     halfWidths: [2, 3, 3, 3, 3, 3, 2],
@@ -94,6 +109,142 @@ const PROFILES = {
   },
 };
 
+// Bunny: round chubby body, no beak, tall ears that grow with every stage,
+// a small tail poof out back — a much wider, softer silhouette than the bird.
+const BUNNY_PROFILES = {
+  hatchling: {
+    startRow: 10,
+    halfWidths: [1, 2, 3, 3, 2, 1],
+    eyes: { rowOffset: 2, colOffset: 2 },
+    features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+  },
+  young: {
+    startRow: 7,
+    halfWidths: [2, 3, 4, 4, 4, 3, 2],
+    eyes: { rowOffset: 2, colOffset: 2 },
+    features: [
+      { rowOffset: -1, colOffsets: [-3, 3] }, // ear base
+      { rowOffset: -2, colOffsets: [-3, 3] }, // ear tip
+      { rowOffset: 3, colOffsets: [-6] }, // tail poof
+    ],
+    bow: { rowOffset: -3, colOffsets: [-3, 3] },
+    limbFrames: [
+      [{ rowOffset: 7, colOffsets: [-2, 1] }],
+      [{ rowOffset: 7, colOffsets: [-1, 2] }],
+    ],
+  },
+  teen: {
+    startRow: 5,
+    halfWidths: [2, 3, 4, 5, 5, 5, 4, 3, 2],
+    eyes: { rowOffset: 2, colOffset: 3 },
+    features: [
+      { rowOffset: -1, colOffsets: [-4, 4] },
+      { rowOffset: -2, colOffsets: [-4, 4] },
+      { rowOffset: -3, colOffsets: [-4, 4] }, // long, gawky ears
+      { rowOffset: 4, colOffsets: [-7] }, // tail poof
+    ],
+    bow: { rowOffset: -4, colOffsets: [-4, 4] },
+    limbFrames: [
+      [{ rowOffset: 9, colOffsets: [-3, 2] }],
+      [{ rowOffset: 9, colOffsets: [-2, 3] }],
+    ],
+  },
+  juvenile: {
+    startRow: 5,
+    halfWidths: [3, 5, 6, 7, 7, 7, 6, 5, 3],
+    eyes: { rowOffset: 2, colOffset: 4 },
+    features: [
+      { rowOffset: -1, colOffsets: [-5, 5] },
+      { rowOffset: -2, colOffsets: [-5, 5] },
+      { rowOffset: -3, colOffsets: [-5, 5] },
+      { rowOffset: -4, colOffsets: [-5, 5] },
+      { rowOffset: 5, colOffsets: [9] }, // tail poof
+    ],
+    bow: { rowOffset: -5, colOffsets: [-5, 5] },
+    limbFrames: [
+      [{ rowOffset: 9, colOffsets: [-4, 3] }],
+      [{ rowOffset: 9, colOffsets: [-3, 4] }],
+    ],
+  },
+  adult: {
+    startRow: 6,
+    halfWidths: [3, 5, 7, 8, 8, 8, 8, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 5 },
+    features: [
+      { rowOffset: -1, colOffsets: [-6, 6] },
+      { rowOffset: -2, colOffsets: [-6, 6] },
+      { rowOffset: -3, colOffsets: [-6, 6] },
+      { rowOffset: -4, colOffsets: [-6, 6] },
+      { rowOffset: -5, colOffsets: [-6, 6] }, // tall, full-grown ears
+      { rowOffset: 6, colOffsets: [10] }, // tail poof
+    ],
+    bow: { rowOffset: -6, colOffsets: [-6, 6] },
+    limbFrames: [
+      [{ rowOffset: 9, colOffsets: [-5, 4] }],
+      [{ rowOffset: 9, colOffsets: [-4, 5] }],
+    ],
+    sparkle: { rowOffset: 1, colOffsets: [8] },
+  },
+};
+
+// Turtle: wide, flat shell dome with a small head poking out front and
+// stubby legs peeking from under the shell edge — short and broad instead
+// of tall, the opposite proportions of the bird and bunny.
+const TURTLE_PROFILES = {
+  hatchling: {
+    startRow: 11,
+    halfWidths: [2, 4, 4, 2],
+    features: [{ rowOffset: 4, colOffsets: [-1, 0, 1] }], // small head
+    eyes: { rowOffset: 4, colOffset: 1 },
+  },
+  young: {
+    startRow: 9,
+    halfWidths: [2, 4, 5, 5, 4, 2],
+    features: [
+      { rowOffset: 6, colOffsets: [-1, 0, 1, 2] }, // head, poking a bit forward
+    ],
+    eyes: { rowOffset: 6, colOffset: 1 },
+    limbFrames: [
+      [{ rowOffset: 5, colOffsets: [-6, 6] }],
+      [{ rowOffset: 5, colOffsets: [-5, 5] }],
+    ],
+  },
+  teen: {
+    startRow: 8,
+    halfWidths: [3, 5, 6, 7, 6, 5, 3],
+    features: [{ rowOffset: 7, colOffsets: [-1, 0, 1, 2, 3] }], // longer head
+    eyes: { rowOffset: 7, colOffset: 1 },
+    limbFrames: [
+      [{ rowOffset: 6, colOffsets: [-8, 8] }],
+      [{ rowOffset: 6, colOffsets: [-7, 9] }],
+    ],
+  },
+  juvenile: {
+    startRow: 7,
+    halfWidths: [3, 6, 7, 8, 8, 7, 6, 3],
+    features: [{ rowOffset: 8, colOffsets: [-1, 0, 1, 2, 3, 4] }],
+    eyes: { rowOffset: 8, colOffset: 1 },
+    limbFrames: [
+      [{ rowOffset: 7, colOffsets: [-9, 9] }],
+      [{ rowOffset: 7, colOffsets: [-8, 10] }],
+    ],
+  },
+  adult: {
+    startRow: 6,
+    halfWidths: [3, 7, 9, 10, 10, 10, 9, 7, 3],
+    features: [{ rowOffset: 9, colOffsets: [-1, 0, 1, 2, 3, 4, 5] }], // big head, fully out
+    eyes: { rowOffset: 9, colOffset: 1 },
+    limbFrames: [
+      [{ rowOffset: 8, colOffsets: [-10, 10] }],
+      [{ rowOffset: 8, colOffsets: [-9, 11] }],
+    ],
+    sparkle: { rowOffset: 2, colOffsets: [8] },
+  },
+};
+
+const SPECIES_PROFILES = { bird: BIRD_PROFILES, bunny: BUNNY_PROFILES, turtle: TURTLE_PROFILES };
+
 function emptyGrid() {
   return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
 }
@@ -103,8 +254,8 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { eyesOpen = true, frame = 0, variant = "normal", hasBow = false } = {}) {
-  const profile = PROFILES[stage] || PROFILES.egg;
+export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false } = {}) {
+  const profile = stage === "egg" ? EGG_PROFILE : (SPECIES_PROFILES[species] || BIRD_PROFILES)[stage] || EGG_PROFILE;
   const grid = emptyGrid();
 
   profile.halfWidths.forEach((w, i) => {

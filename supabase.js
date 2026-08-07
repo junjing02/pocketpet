@@ -66,14 +66,14 @@ export async function fetchPets(userId) {
 
 // Clears is_active on the user's other pets before inserting so a new pet
 // (whether it's the first or an additional one) is always the sole active row.
-export async function createPet(userId, name) {
+export async function createPet(userId, name, species) {
   const client = requireClient();
   const { error: clearError } = await client.from("pets").update({ is_active: false }).eq("user_id", userId);
   if (clearError) throw clearError;
 
   const { data, error } = await client
     .from("pets")
-    .insert({ user_id: userId, name, is_active: true })
+    .insert({ user_id: userId, name, species, is_active: true })
     .select()
     .single();
   if (error) throw error;
@@ -100,6 +100,7 @@ export async function savePet(pet) {
     .from("pets")
     .update({
       name: pet.name,
+      species: pet.species,
       life_stage: pet.life_stage,
       hunger: pet.hunger,
       happiness: pet.happiness,

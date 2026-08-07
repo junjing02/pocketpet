@@ -29,8 +29,9 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 ## 3. Core Features
 
 - **Stats** (0–100): Hunger, Happiness, Energy, Health, Hygiene
-- **Life stages:** egg → hatchling → chick → fledgling → juvenile → adult (age + care based — neglect delays evolution, doesn't reverse it). Each stage is a distinct silhouette, not a scaled-up copy of the last — e.g. the fledgling is deliberately gawky/asymmetric, the adult has full spread wings and a fanned tail.
+- **Life stages:** egg → hatchling → young → teen → juvenile → adult (age + care based — neglect delays evolution, doesn't reverse it). Each stage is a distinct silhouette, not a scaled-up copy of the last — e.g. the bird's teen stage is deliberately gawky/asymmetric, the adult has full spread wings and a fanned tail.
 - **Egg stage:** no stats decay and no care actions (Feed/Play/Clean/Sleep) are available — an unhatched egg has no needs, it just waits out the age threshold to hatch.
+- **Surprise egg species:** which creature an egg becomes (`species`: Bird, Bunny, or Turtle) is picked at random when the egg is created and kept secret — every egg renders with the same shared shape regardless of species, so there's no way to tell what's inside. The species is revealed the moment it hatches into a hatchling, both in the sprite (each species has its own hand-tuned silhouette for all 5 post-egg stages) and in a "You got a ___!" recap line. See §7 for how the sprite system implements this.
 - **Actions:** Feed, Play, Clean, Sleep toggle, Medicine (when sick)
 - **Economy:** two food types — Snack (`food_count`, cheap/weak) and Meal (`meal_count`, pricier/stronger); Coins (`coins`) buy either; earned by playing the mini-game
 - **Mini-game:** Play opens a popup modal with a menu of four games to choose from — Tap the Target, Stop the Marker, Odd One Out, Count the Dots; hits earn coins
@@ -40,7 +41,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Daily login streak:** first login each calendar day awards bonus coins that scale with consecutive-day streak (`login_streak`, capped bonus); shown in the away-time recap
 - **Decay:** stats drop on a real-time schedule, computed from elapsed time on load — see §6
 - **Neglect:** stats hitting 0 drag health down; health recovers on its own once every stat is back above 0 (unless sick — that needs Medicine); health hitting 0 → sickness
-- **Animations:** pixel-dot chick with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
+- **Animations:** pixel-dot pet with a 2-frame walk cycle (feet alternate) plus wandering around the screen and a bounce on successful actions
 - **Multiple pets:** up to `MAX_PETS` (3) per user, each a full independent row with its own stats/economy/achievements. A "Switch Pet" screen (thumbnail + name + stage) lets you pick which is active; the rest of the app just operates on "the active pet" and doesn't otherwise know multi-pet exists — see §12 for how this was built on top of the original one-row model
 - **Settings screen:** change password, rename pet, switch/hatch pets, toggle local notifications, view achievements, reset pet to a fresh egg, sign out
 - **Local notifications:** opt-in browser `Notification` nudge when a stat drops to ≤20 or the pet gets sick — client-only, only fires while the tab is open (no closed-app push; that's a bigger lift, see §11)
@@ -78,6 +79,7 @@ create table pets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) default auth.uid(),
   name text not null default 'Mochi',
+  species text not null default 'bird',
   life_stage text not null default 'egg',
   hunger int not null default 100,
   happiness int not null default 100,
@@ -111,6 +113,8 @@ create policy "Users can manage their own pet"
 
 One to `MAX_PETS` rows per user (app-enforced, not a DB constraint — RLS already scopes correctly no matter how many rows a user has). Exactly one row per user has `is_active = true` at a time; that's the one loaded and rendered. `last_updated` drives the decay calculation on every load (§6).
 
+`species` was added after the table already existed in production, via `alter table pets add column species text not null default 'bird';` — existing rows silently become `bird` (harmless; they already rendered with the bird sprite before species existed). Only newly-created pets get a random species going forward (§7).
+
 ---
 
 ## 6. Time/Decay Mechanic
@@ -129,7 +133,9 @@ Browsers don't run JS while a tab is closed, so time passing is simulated on loa
 ## 7. Pixel-Dot Pet Rendering
 
 - Grid: 25×25 int matrix per frame, rendered as a CSS grid of flat 2D dots (0 = off, 1 = body, 2 = eye) — no gradients or shading on the dots themselves.
-- Each life stage in `pet-sprites.js` is a hand-tuned `PROFILES` entry (a `halfWidths` array draws a symmetric silhouette row by row) with its own shape, not a scaled copy of the previous stage — egg → hatchling → chick → fledgling → juvenile → adult each reads as a different creature.
+- Each life stage in `pet-sprites.js` is a hand-tuned profile entry (a `halfWidths` array draws a symmetric silhouette row by row) with its own shape, not a scaled copy of the previous stage — egg → hatchling → young → teen → juvenile → adult each reads as a different creature.
+- **Three species, one shared egg:** `PROFILES` is now nested per species (`bird`, `bunny`, `turtle`), each with its own hand-tuned hatchling/young/teen/juvenile/adult set — genuinely different proportions, not palette swaps (bird: tall, winged, beaked; bunny: round, tall-eared, tailed, no beak; turtle: wide flat shell dome, small forward-poking head, stubby legs). The egg stage uses one shared profile for every species, so the shape gives nothing away; `buildBitmap(stage, { species, ... })` only looks up a species-specific profile once `stage !== "egg"`. `species` is picked once via `pickRandomSpecies()` when the pet/egg is created and stored on the row, not re-rolled.
+- **Monochrome color-as-species-hint:** since the whole app is strict black/white/gray (no hues), each species also gets its own fixed dark-gray shade (`SPECIES_SHADE`) applied via the existing `--dot-color` CSS variable — `app.js` only sets it once the pet is past the egg stage, so the color can't leak the species early either.
 - Physical size also grows per stage via a `--dot-size` CSS variable set in `app.js` (`STAGE_DOT_SIZE`), so the pet gets visibly bigger on screen, not just more detailed.
 - Animation is a 2-frame walk cycle (legs/wings alternate every ~450ms) plus wandering to a random spot every few seconds — both pure JS re-renders, no CSS keyframes on the sprite itself. Sleeping stops the walk cycle and darkens the whole play area (`:has()` selector keyed off a class on the sprite); sick/mood is shown via a text status badge, not a color filter.
 - A "pristine" adult variant (extra sparkle dot) is drawn when lifetime care has been consistently good — the one place the sprite reflects history, not just current stats.
