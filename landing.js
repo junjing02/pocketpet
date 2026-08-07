@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -19,6 +19,7 @@ function centerHost() {
 
 function showStage(stage) {
   host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[stage]}px`);
+  host.style.setProperty("--dot-color", STAGE_SHADE[stage]);
   const bitmap = buildBitmap(stage, { eyesOpen: true });
   let html = "";
   for (const row of bitmap) {
@@ -28,18 +29,27 @@ function showStage(stage) {
   }
   host.innerHTML = html;
   label.textContent = stage;
-  // Eggs don't move; every other stage gets a new random spot each cycle.
-  stage === "egg" ? centerHost() : placeRandomly();
+  // Freeze in a readable spot right away — no competing with a shape change.
+  centerHost();
 }
 
-let stageIndex = 0;
-showStage(STAGE_ORDER[stageIndex]);
-setInterval(() => {
-  stageIndex = (stageIndex + 1) % STAGE_ORDER.length;
-  showStage(STAGE_ORDER[stageIndex]);
-}, 1500);
+const STAGE_HOLD_MS = 2500;
+const DRIFT_AFTER_MS = 1100; // pause before wandering, so the new shape registers first
 
-// A little extra wandering within a stage, not just on stage change.
-setInterval(() => {
-  if (STAGE_ORDER[stageIndex] !== "egg") placeRandomly();
-}, 700);
+let stageIndex = 0;
+
+function cycle() {
+  const stage = STAGE_ORDER[stageIndex];
+  showStage(stage);
+
+  if (stage !== "egg") {
+    setTimeout(placeRandomly, DRIFT_AFTER_MS);
+  }
+
+  setTimeout(() => {
+    stageIndex = (stageIndex + 1) % STAGE_ORDER.length;
+    cycle();
+  }, STAGE_HOLD_MS);
+}
+
+cycle();

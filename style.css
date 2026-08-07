@@ -240,7 +240,7 @@ button:disabled:active { transform: none; }
 /* ---- Puppy (flat 2D pixel-dot grid) ---- */
 
 .dot { background: transparent; }
-.dot--body { background: #111; }
+.dot--body { background: var(--dot-color, #111); }
 .dot--eye { background: #fff; }
 
 .pet-status {
@@ -459,12 +459,37 @@ button:disabled:active { transform: none; }
 .ghost { background: transparent; border-color: var(--muted); color: var(--muted); }
 .ghost:hover { background: var(--muted); color: #fff; }
 
-.landing .device { height: 230px; margin-bottom: 14px; }
+.landing .device { height: 240px; margin-bottom: 14px; }
 body:has(.landing) {
-  background: radial-gradient(circle at 50% -10%, #ffffff, #e8e8e8 75%);
+  background-color: #eee;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at 50% -10%, #ffffff, #e8e8e8 75%);
+  background-size: 22px 22px, 22px 22px, auto;
+}
+
+.bg-decor {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.18);
+  animation: bg-float 7s ease-in-out infinite;
+}
+@keyframes bg-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(12px, -16px); }
 }
 
 .shell.landing {
+  position: relative;
+  z-index: 1;
   box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.3);
   border-radius: 10px;
 }
