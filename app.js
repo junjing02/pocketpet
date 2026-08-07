@@ -558,7 +558,13 @@ function wireActions() {
   });
 
   $("btn-help").addEventListener("click", () => {
-    $("help-panel").hidden = !$("help-panel").hidden;
+    $("help-modal").hidden = false;
+  });
+  $("btn-help-close").addEventListener("click", () => {
+    $("help-modal").hidden = true;
+  });
+  $("help-modal").addEventListener("click", (e) => {
+    if (e.target.id === "help-modal") $("help-modal").hidden = true;
   });
 
   function collapsePasswordForm() {

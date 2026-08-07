@@ -282,20 +282,9 @@ button:active { transform: translateY(1px); }
 }
 
 .help-panel {
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 12px 14px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-size: 9px;
   line-height: 1.6;
-}
-.help-title {
-  margin: 0 0 10px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-align: center;
 }
 .help-row {
   display: grid;
@@ -356,7 +345,7 @@ button:active { transform: translateY(1px); }
 }
 .account-line b { color: var(--fg); font-weight: 700; }
 
-#btn-change-password, #btn-achievements { display: block; width: 100%; margin-bottom: 12px; }
+#btn-change-password, #btn-achievements, #btn-help-close { display: block; width: 100%; margin-bottom: 12px; }
 #btn-achievements { margin-bottom: 20px; }
 #change-password-form { margin-bottom: 20px; }
 
