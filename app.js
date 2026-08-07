@@ -631,6 +631,17 @@ async function runPlayGame(game) {
 function wireActions() {
   $("btn-buy-food").textContent = `Buy Snack (${SNACK_PRICE})`;
   $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
+
+  $("btn-feed").title = "+30 Hunger, +5 Happy, -5 Clean";
+  $("btn-feed-meal").title = "+60 Hunger, +15 Happy, -10 Clean";
+  $("btn-play").title = "Mini-game: +25 Happy, -15 Energy, -10 Hunger, plus coins";
+  $("btn-clean").title = "+40 Clean";
+  $("btn-sleep").title = "Restores Energy over time and halves other decay while asleep";
+  $("btn-medicine").title = "Cures Sick, +40 Health, -5 Happy";
+  $("btn-buy-food").title = `+1 Snack for ${SNACK_PRICE} coins`;
+  $("btn-buy-meal").title = `+1 Meal for ${MEAL_PRICE} coins`;
+  $("btn-buy-bow").title = "Cosmetic only — no stat effect";
+
   $("btn-feed").addEventListener("click", () => runAction(feed));
   $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
   $("btn-play").addEventListener("click", openGamePicker);
