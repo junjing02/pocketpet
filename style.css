@@ -766,46 +766,74 @@ body:has(.landing) {
   transform: translate(-50%, -50%);
 }
 
-.evolution-tree {
-  margin-bottom: 10px;
-  overflow-x: auto;
+/* A distinct card panel for the whole showcase, same visual language as the
+   rest of the landing page's cards — separates it clearly as its own
+   section instead of just more loose content on the page. */
+.evolution-panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 28px 20px 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 16px 32px -24px rgba(0, 0, 0, 0.35);
 }
+
+.evolution-tree { overflow-x: auto; }
 
 .evolution-root {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+.evolution-root .evolution-stage {
+  --dot-size: 4px;
+  width: 110px;
+  height: 110px;
+}
 .evolution-root::after {
   content: "";
   width: 1px;
-  height: 14px;
+  height: 22px;
   background: var(--line);
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .evolution-caption {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fg);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+}
+
+.evolution-stage-label {
+  display: block;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
   font-size: 8px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* One shared trunk line down the left, with a tick branching out to each
    species row — same shape as a directory tree, so the shared egg reads as
-   one root with 3 possible paths instead of repeating it per row. */
+   one root with 3 possible paths instead of repeating it per row. Each
+   branch is exactly --stage-h (image) + 20px (label block) tall, so the
+   trunk/tick math below only has to track --stage-h, not guess at layout. */
 .evolution-branches {
+  --stage-h: 90px;
   position: relative;
-  width: fit-content;
-  margin: 0 auto;
-  padding-left: 16px;
+  padding-left: 24px;
 }
 .evolution-branches::before {
   content: "";
   position: absolute;
   top: 0;
-  bottom: 18px;
+  bottom: calc(var(--stage-h) / 2 + 20px);
   left: 0;
   width: 1px;
   background: var(--line);
@@ -813,43 +841,57 @@ body:has(.landing) {
 .evolution-branch {
   position: relative;
   display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
 .evolution-branch:last-child { margin-bottom: 0; }
 .evolution-branch::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: -16px;
-  width: 16px;
+  top: calc(var(--stage-h) / 2);
+  left: -24px;
+  width: 24px;
   height: 1px;
   background: var(--line);
 }
 .evolution-branch-row {
   display: flex;
-  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scroll-snap-type: x proximity;
 }
+.evolution-cell { flex: none; scroll-snap-align: start; }
 .evolution-stage {
-  --dot-size: 1.3px;
-  width: 36px;
-  height: 36px;
+  --dot-size: 2.6px;
+  width: var(--stage-h, 90px);
+  height: var(--stage-h, 90px);
   flex: none;
   display: grid;
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
   gap: 0;
-  background: var(--bg);
+  background: #fff;
   border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: 6px;
+  padding: 4px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.evolution-cell:hover .evolution-stage {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.35);
 }
 
-.evolution-note {
-  text-align: center;
-  font-size: 9px;
-  color: var(--muted);
-  margin: 0 0 32px;
+@media (min-width: 700px) {
+  .shell.landing { width: min(760px, 92vw); }
+  .evolution-panel { padding: 36px 32px 28px; }
+  .evolution-root .evolution-stage { width: 140px; height: 140px; --dot-size: 5.2px; }
+  .evolution-branches { --stage-h: 108px; padding-left: 32px; }
+  .evolution-stage { --dot-size: 3.2px; }
+  .evolution-branch::before { left: -32px; width: 32px; }
+  .evolution-branch-row { gap: 14px; }
 }
 
 .play-link {

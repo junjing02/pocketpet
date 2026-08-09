@@ -87,10 +87,14 @@ function renderEvolutionTree() {
   egg.innerHTML = stageDotsHtml("egg");
 
   branches.innerHTML = SPECIES.map((species) => {
-    const cells = NON_EGG_STAGES.map(
-      (stage) =>
-        `<div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${stageDotsHtml(stage, species)}</div>`
-    ).join("");
+    const cells = NON_EGG_STAGES.map((stage) => {
+      const stageLabel = stage[0].toUpperCase() + stage.slice(1);
+      return `
+        <div class="evolution-cell">
+          <div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${stageDotsHtml(stage, species)}</div>
+          <span class="evolution-stage-label">${stageLabel}</span>
+        </div>`;
+    }).join("");
     return `<div class="evolution-branch"><div class="evolution-branch-row">${cells}</div></div>`;
   }).join("");
 }
