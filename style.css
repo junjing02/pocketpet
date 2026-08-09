@@ -209,12 +209,12 @@ button:disabled:active { transform: none; }
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
 }
 
-/* Ground shadow for the landing page's wandering hero pet only — it's
-   trimmed to its actual silhouette (see landing.js), so this lands right
-   under its feet and moves/resizes with it automatically as it wanders
-   and grows. Not applied to the in-app pet screen (#pet-screen shares the
-   .pet-screen class but this is scoped to the landing hero specifically). */
-#landing-pet::after {
+/* Ground shadow for the wandering pets — the landing hero and the main
+   in-app pet screen, both trimmed to their actual silhouette (see
+   trimBitmap() in landing.js/app.js), so this lands right under their feet
+   and moves/resizes with them automatically as they wander and grow. */
+#landing-pet::after,
+#pet-screen::after {
   content: "";
   position: absolute;
   left: 50%;

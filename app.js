@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=2";
-import * as db from "./supabase.js?v=2";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=3";
+import * as db from "./supabase.js?v=3";
 
 const HOUR = 3600000;
 
@@ -280,14 +280,19 @@ function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
   const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
   const host = $("pet-screen");
-  host.style.setProperty("--grid-size", GRID_SIZE);
+  // Trim to the creature's actual bounding box (not the full 25x25 grid) so
+  // the host element's own size matches what's visible — keeps wandering
+  // bounds accurate and lets the ground shadow (CSS ::after) sit right
+  // under its feet instead of under a bunch of empty grid.
+  const { rows, width } = trimBitmap(bitmap);
+  host.style.setProperty("--grid-size", width);
   host.style.setProperty("--dot-size", `${DOT_SIZE}px`);
   // Species stays a surprise until it hatches — the egg shape is shared, so
   // don't leak a species-specific shade before there's a species to reveal.
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   let html = "";
-  for (const row of bitmap) {
+  for (const row of rows) {
     for (const v of row) {
       html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
     }
