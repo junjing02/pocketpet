@@ -398,15 +398,9 @@ function renderPetPicker(pets) {
         <b>${p.name}</b>
         <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}`}</span>
       </div>
-      <div class="pet-picker-actions">
-        <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
-          ${p.is_active ? "Active" : "Select"}
-        </button>
-        <button type="button" class="pet-picker-release ghost" data-pet-id="${p.id}" data-active="${p.is_active}"
-          data-tooltip="Give this pet to a new home, freeing up a slot">
-          Release
-        </button>
-      </div>
+      <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
+        ${p.is_active ? "Active" : "Select"}
+      </button>
     </div>`
     )
     .join("");
@@ -427,35 +421,9 @@ function renderPetPicker(pets) {
     });
   });
 
-  list.querySelectorAll(".pet-picker-release").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Give this pet to a new home? This can't be undone.")) return;
-      const petId = btn.dataset.petId;
-      const wasActive = btn.dataset.active === "true";
-      btn.disabled = true;
-      try {
-        await db.deletePet(petId);
-        const remaining = await db.fetchPets(currentUserId);
-        if (remaining.length === 0) {
-          screen("name-pet");
-          return;
-        }
-        if (wasActive) {
-          const updated = await db.setActivePet(currentUserId, remaining[0].id);
-          await activatePetAndRender(updated);
-          return;
-        }
-        renderPetPicker(remaining);
-      } catch (err) {
-        showMessage(err.message, true);
-        btn.disabled = false;
-      }
-    });
-  });
-
   $("btn-hatch-another").disabled = pets.length >= MAX_PETS;
   $("btn-hatch-another").dataset.tooltip =
-    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets — release one to hatch another` : "Hatch a new egg — your other pets keep going";
+    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets — release your active one to hatch another` : "Hatch a new egg — your other pets keep going";
 }
 
 function formatDuration(ms) {
@@ -1047,6 +1015,24 @@ function wireActions() {
       currentPet = await db.savePet(fresh);
       screen("pet");
       render();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
+
+  $("btn-release-pet").addEventListener("click", async () => {
+    if (!confirm("Give your active pet to a new home? This can't be undone.")) return;
+    const releasedId = currentPet.id;
+    try {
+      await db.deletePet(releasedId);
+      const remaining = await db.fetchPets(currentUserId);
+      if (remaining.length === 0) {
+        currentPet = null;
+        screen("name-pet");
+        return;
+      }
+      const updated = await db.setActivePet(currentUserId, remaining[0].id);
+      await activatePetAndRender(updated);
     } catch (err) {
       showMessage(err.message, true);
     }

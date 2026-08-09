@@ -61,24 +61,38 @@ function cycle() {
 
 cycle();
 
-// Static full-evolution chart, one row per species — every stage laid out
-// side by side instead of watching them cycle one at a time.
-function renderEvolutionShowcase() {
-  const container = document.getElementById("evolution-rows");
-  if (!container) return;
-  container.innerHTML = SPECIES.map((species) => {
-    const cells = STAGE_ORDER.map((stage) => {
-      const bitmap = buildBitmap(stage, { species, eyesOpen: true });
-      let dots = "";
-      for (const row of bitmap) {
-        for (const v of row) {
-          dots += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
-        }
-      }
-      return `<div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${dots}</div>`;
-    }).join("");
-    return `<div class="evolution-row">${cells}</div>`;
+// Static full-evolution tree: one shared egg at the root (every species
+// hatches from the same shape, so showing it 3 times would just be
+// repetition) branching into one row per species — hatchling through adult.
+const NON_EGG_STAGES = STAGE_ORDER.filter((s) => s !== "egg");
+
+function stageDotsHtml(stage, species) {
+  const bitmap = buildBitmap(stage, { species, eyesOpen: true });
+  let dots = "";
+  for (const row of bitmap) {
+    for (const v of row) {
+      dots += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
+    }
+  }
+  return dots;
+}
+
+function renderEvolutionTree() {
+  const egg = document.getElementById("evolution-egg");
+  const branches = document.getElementById("evolution-branches");
+  if (!egg || !branches) return;
+
+  egg.style.setProperty("--grid-size", GRID_SIZE);
+  egg.style.setProperty("--dot-color", STAGE_SHADE.egg);
+  egg.innerHTML = stageDotsHtml("egg");
+
+  branches.innerHTML = SPECIES.map((species) => {
+    const cells = NON_EGG_STAGES.map(
+      (stage) =>
+        `<div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${stageDotsHtml(stage, species)}</div>`
+    ).join("");
+    return `<div class="evolution-branch"><div class="evolution-branch-row">${cells}</div></div>`;
   }).join("");
 }
 
-renderEvolutionShowcase();
+renderEvolutionTree();

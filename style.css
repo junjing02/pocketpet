@@ -530,9 +530,7 @@ button:disabled:active { transform: none; }
 }
 .pet-picker-info span { color: var(--muted); font-size: 9px; }
 
-.pet-picker-actions { display: flex; flex-direction: column; gap: 4px; }
-.pet-picker-select,
-.pet-picker-release { flex: none; width: auto; font-size: 9px; padding: 6px 10px; }
+.pet-picker-select { flex: none; width: auto; font-size: 9px; padding: 8px 10px; }
 
 .timing-track {
   position: relative;
@@ -768,31 +766,68 @@ body:has(.landing) {
   transform: translate(-50%, -50%);
 }
 
-.evolution-labels {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 6px;
+.evolution-tree {
+  margin-bottom: 10px;
+  overflow-x: auto;
 }
-.evolution-labels span {
-  width: 36px;
-  text-align: center;
+
+.evolution-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.evolution-root::after {
+  content: "";
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+  margin-top: 6px;
+}
+
+.evolution-caption {
   font-size: 8px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin-top: 4px;
 }
 
-.evolution-showcase {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 32px;
-  overflow-x: auto;
+/* One shared trunk line down the left, with a tick branching out to each
+   species row — same shape as a directory tree, so the shared egg reads as
+   one root with 3 possible paths instead of repeating it per row. */
+.evolution-branches {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+  padding-left: 16px;
 }
-.evolution-row {
+.evolution-branches::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 18px;
+  left: 0;
+  width: 1px;
+  background: var(--line);
+}
+.evolution-branch {
+  position: relative;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.evolution-branch:last-child { margin-bottom: 0; }
+.evolution-branch::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  width: 16px;
+  height: 1px;
+  background: var(--line);
+}
+.evolution-branch-row {
+  display: flex;
   gap: 6px;
 }
 .evolution-stage {
@@ -808,6 +843,13 @@ body:has(.landing) {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 2px;
+}
+
+.evolution-note {
+  text-align: center;
+  font-size: 9px;
+  color: var(--muted);
+  margin: 0 0 32px;
 }
 
 .play-link {
