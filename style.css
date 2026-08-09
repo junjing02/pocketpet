@@ -778,8 +778,9 @@ body:has(.landing) {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 28px 20px 24px;
+  padding: 22px 18px 20px;
   margin-bottom: 32px;
+  overflow: hidden;
   box-shadow: 0 16px 32px -24px rgba(0, 0, 0, 0.35);
 }
 
@@ -789,18 +790,18 @@ body:has(.landing) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .evolution-header .evolution-stage {
-  width: 110px;
-  height: 110px;
+  width: 92px;
+  height: 92px;
 }
-.evolution-header .evolution-stage-grid { --dot-size: 4px; }
+.evolution-header .evolution-stage-grid { --dot-size: 3.3px; }
 .evolution-intro {
   font-size: 10px;
   color: var(--muted);
   text-align: center;
-  margin: 10px 0 0;
+  margin: 8px 0 0;
 }
 
 /* Vertical timeline: one full-width row per species, stages flowing left to
@@ -810,24 +811,29 @@ body:has(.landing) {
    scroll region (not one per row) keeps every row's stages aligned in the
    same columns, and a single swipe scrolls all 3 species at once instead
    of needing 3 separate swipes to see everything. A right-edge fade hints
-   there's more without needing any UI chrome to say so. */
+   there's more without needing any UI chrome to say so.
+   overflow-x stays "auto" (never "visible") at every breakpoint — relying
+   on the row width fitting exactly at a given viewport is what let it
+   spill outside the panel before, so scroll is now always the fallback,
+   not an assumption. */
 .evolution-rows {
-  --stage-h: 94px;
+  --stage-h: 76px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
+  max-width: 100%;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 10px;
   scroll-snap-type: x proximity;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
 }
 .evolution-row {
   display: flex;
   flex: none;
   width: fit-content;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .evolution-arrow {
   flex: none;
@@ -835,7 +841,7 @@ body:has(.landing) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--muted);
 }
 /* .evolution-stage is a fixed-size box that just centers whatever the
@@ -843,6 +849,7 @@ body:has(.landing) {
    the box stays a consistent size across every stage, the creature inside
    it doesn't sit off-center just because it's small or oddly proportioned. */
 .evolution-stage {
+  position: relative;
   width: var(--stage-h);
   height: var(--stage-h);
   flex: none;
@@ -860,8 +867,22 @@ body:has(.landing) {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.35);
 }
+/* A soft shadow under each box so the pets read as sitting on a surface
+   rather than floating flat against the page. */
+.evolution-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 55%;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 50%;
+  filter: blur(2.5px);
+  transform: translateX(-50%);
+}
 .evolution-stage-grid {
-  --dot-size: 3px;
+  --dot-size: 2.6px;
   display: grid;
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
@@ -870,20 +891,13 @@ body:has(.landing) {
 
 @media (min-width: 700px) {
   .shell.landing { width: min(760px, 92vw); }
-  .evolution-panel { padding: 36px 32px 28px; }
-  .evolution-header .evolution-stage { width: 140px; height: 140px; }
-  .evolution-header .evolution-stage-grid { --dot-size: 5.2px; }
-  .evolution-rows {
-    --stage-h: 120px;
-    gap: 28px;
-    align-items: center;
-    overflow-x: visible;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .evolution-stage-grid { --dot-size: 4.4px; }
-  .evolution-row { gap: 16px; }
-  .evolution-arrow { font-size: 18px; }
+  .evolution-panel { padding: 28px 24px 24px; }
+  .evolution-header .evolution-stage { width: 115px; height: 115px; }
+  .evolution-header .evolution-stage-grid { --dot-size: 4.2px; }
+  .evolution-rows { --stage-h: 96px; gap: 20px; align-items: center; }
+  .evolution-stage-grid { --dot-size: 3.4px; }
+  .evolution-row { gap: 10px; }
+  .evolution-arrow { font-size: 15px; }
 }
 
 .play-link {
