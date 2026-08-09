@@ -11,7 +11,7 @@ export const client = isConfigured
   : null;
 
 function requireClient() {
-  if (!client) throw new Error("Supabase not configured yet — fill in SUPABASE_URL/SUPABASE_ANON_KEY in supabase.js");
+  if (!client) throw new Error("Supabase not configured yet. Fill in SUPABASE_URL/SUPABASE_ANON_KEY in supabase.js");
   return client;
 }
 

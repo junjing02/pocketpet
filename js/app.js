@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=4";
-import * as db from "./supabase.js?v=4";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=5";
+import * as db from "./supabase.js?v=5";
 
 const HOUR = 3600000;
 
@@ -362,7 +362,7 @@ function renderAchievements(pet) {
     return `
       <div class="achievement${earned ? " achievement--earned" : ""}">
         <span class="achievement-mark">${earned ? "✓" : "·"}</span>
-        <span class="achievement-text"><b>${a.label}</b>${a.desc ? ` — ${a.desc}` : ""}</span>
+        <span class="achievement-text"><b>${a.label}</b>${a.desc ? ` (${a.desc})` : ""}</span>
       </div>`;
   }).join("");
 }
@@ -433,7 +433,7 @@ function renderPetPicker(pets) {
 
   $("btn-hatch-another").disabled = pets.length >= MAX_PETS;
   $("btn-hatch-another").dataset.tooltip =
-    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets — release your active one to hatch another` : "Hatch a new egg — your other pets keep going";
+    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets. Release your active one to hatch another` : "Hatch a new egg. Your other pets keep going";
 }
 
 function formatDuration(ms) {
@@ -453,7 +453,7 @@ function stageProgressText(pet) {
   const ageMs = Date.now() - new Date(pet.birth_timestamp).getTime();
   const remaining = AGE_THRESHOLD_MS[next] - ageMs;
   if (remaining > 0) return `Evolves into ${next} in ${formatDuration(remaining)}`;
-  if (pet.health < EVOLVE_HEALTH_MIN) return `Ready to evolve — raise Health above ${EVOLVE_HEALTH_MIN} first`;
+  if (pet.health < EVOLVE_HEALTH_MIN) return `Ready to evolve. Raise Health above ${EVOLVE_HEALTH_MIN} first`;
   return "Evolving soon…";
 }
 
@@ -463,12 +463,12 @@ function showRecap(recap, loginBonus) {
     if (r.stat !== "life_stage") return `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`;
     if (r.to === "hatchling") {
       const species = `${r.species[0].toUpperCase()}${r.species.slice(1)}`;
-      return `It hatched — you got a ${species}!`;
+      return `It hatched. You got a ${species}!`;
     }
     return `Evolved into ${r.to}!`;
   });
   if (loginBonus) {
-    items.unshift(`Day ${loginBonus.streak} login streak — +${loginBonus.bonus} coins`);
+    items.unshift(`Day ${loginBonus.streak} login streak, +${loginBonus.bonus} coins`);
   }
   if (!items.length) {
     el.hidden = true;
@@ -521,7 +521,7 @@ function checkNotifications(pet) {
     if (pet[key] <= LOW_STAT_THRESHOLD) {
       if (!notifiedLow.has(key)) {
         notifiedLow.add(key);
-        new Notification("PocketPet", { body: `${label} is low — ${pet.name} needs you.` });
+        new Notification("PocketPet", { body: `${label} is low. ${pet.name} needs you.` });
       }
     } else {
       notifiedLow.delete(key);
@@ -785,7 +785,7 @@ async function runPlayGame(game) {
 
   let hits = 0;
   for (let i = 0; i < GAME_ROUNDS; i++) {
-    $("game-modal-round").textContent = `Round ${i + 1}/${GAME_ROUNDS} — ${hits} hit${hits === 1 ? "" : "s"}`;
+    $("game-modal-round").textContent = `Round ${i + 1}/${GAME_ROUNDS}, ${hits} hit${hits === 1 ? "" : "s"}`;
     overlay.innerHTML = "";
     await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
     if (await game.round(overlay)) hits++;
@@ -799,7 +799,7 @@ async function runPlayGame(game) {
   currentPet.total_coins_earned = (currentPet.total_coins_earned || 0) + coinsEarned;
   render();
   if (!currentPet.is_sleeping) bouncePet();
-  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits — +${coinsEarned} coins!`);
+  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!`);
   try {
     await persist();
   } catch (err) {
@@ -876,7 +876,7 @@ function wireActions() {
   $("btn-medicine").dataset.tooltip = "Cures Sick, +40 Health, -5 Happy";
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
-  $("btn-buy-bow").dataset.tooltip = "Cosmetic only — no stat effect";
+  $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
 
   $("btn-feed").addEventListener("click", () => runAction(feed));
   $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
@@ -1008,7 +1008,7 @@ function wireActions() {
     }
     localStorage.setItem(NOTIFY_KEY, "1");
     $("btn-toggle-notifications").textContent = "Disable Notifications";
-    showMessage("Notifications on — we'll nudge you if a stat gets low while this tab is open.");
+    showMessage("Notifications on. We'll nudge you if a stat gets low while this tab is open.");
   });
 
   $("btn-change-password").addEventListener("click", () => {
@@ -1159,7 +1159,7 @@ function showMessage(text, isError = false) {
 function friendlyAuthError(err) {
   const msg = err.message || String(err);
   if (/invalid login credentials/i.test(msg)) return "Incorrect email or password.";
-  if (/email not confirmed/i.test(msg)) return "Please confirm your email first — check your inbox.";
+  if (/email not confirmed/i.test(msg)) return "Please confirm your email first, check your inbox.";
   return msg;
 }
 
@@ -1249,7 +1249,7 @@ function wireAuth() {
     }
     await withBusy($("btn-forgot"), "Sending…", async () => {
       await db.resetPasswordForEmail(email);
-      showMessage("Password reset email sent — check your inbox.");
+      showMessage("Password reset email sent, check your inbox.");
     });
   });
 
@@ -1283,7 +1283,7 @@ async function init() {
   screen("auth");
 
   if (!db.isConfigured) {
-    showMessage("Supabase not configured yet — add your project URL/anon key to supabase.js", true);
+    showMessage("Supabase not configured yet. Add your project URL/anon key to supabase.js", true);
     return;
   }
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PocketPet</title>
-  <link rel="stylesheet" href="css/style.css?v=4" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
 </head>
 <body>
   <main class="shell">
@@ -61,17 +61,17 @@
         <div class="modal-box">
           <p class="modal-title">How to Play</p>
           <div class="help-panel">
-            <div class="help-row"><b>Egg</b><span>Just needs time to hatch — no feeding, playing, or sleeping yet.</span></div>
+            <div class="help-row"><b>Egg</b><span>Just needs time to hatch, no feeding, playing, or sleeping yet.</span></div>
             <div class="help-row"><b>Care</b><span>Feed, Play, and Clean keep Hunger, Happy, and Clean above 0. Sleep restores Energy.</span></div>
             <div class="help-row"><b>Playground</b><span>Tap your pet to poke it, tap empty space to send it walking there, or drag it anywhere directly.</span></div>
             <div class="help-row"><b>Health</b><span>Drops only from neglect, and recovers on its own once every stat is above 0 again.</span></div>
-            <div class="help-row"><b>Sick</b><span>Health hitting 0 makes your pet sick (shown by a shiver and a fainter look) — that needs Medicine, care alone won't cure it.</span></div>
-            <div class="help-row"><b>Needs a hand</b><span>Any stat at 20 or below shows on the pet itself — shaking when hungry, drooping when sad, itching when dirty, nodding off when tired — so you don't have to watch the bars.</span></div>
-            <div class="help-row"><b>Economy</b><span>Food is limited. Play opens a mini-game that earns coins — spend them on Snacks, Meals, or a cosmetic Bow (no stat effect, just looks nice).</span></div>
-            <div class="help-row"><b>Growing up</b><span>Health 50+ and enough time passed evolves: egg → hatchling → young → teen → juvenile → adult — each stage looks completely different.</span></div>
-            <div class="help-row"><b>Surprise egg</b><span>Every egg looks the same — you won't know which creature you got until it hatches.</span></div>
+            <div class="help-row"><b>Sick</b><span>Health hitting 0 makes your pet sick (shown by a shiver and a fainter look). That needs Medicine, care alone won't cure it.</span></div>
+            <div class="help-row"><b>Needs a hand</b><span>Any stat at 20 or below shows on the pet itself (shaking when hungry, drooping when sad, itching when dirty, nodding off when tired), so you don't have to watch the bars.</span></div>
+            <div class="help-row"><b>Economy</b><span>Food is limited. Play opens a mini-game that earns coins to spend on Snacks, Meals, or a cosmetic Bow (no stat effect, just looks nice).</span></div>
+            <div class="help-row"><b>Growing up</b><span>Health 50+ and enough time passed evolves: egg → hatchling → young → teen → juvenile → adult. Each stage looks completely different.</span></div>
+            <div class="help-row"><b>Surprise egg</b><span>Every egg looks the same. You won't know which creature you got until it hatches.</span></div>
             <div class="help-row"><b>Daily bonus</b><span>Log in on consecutive days for a growing coin bonus, shown in the away-time recap.</span></div>
-            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 pets from the ⇄ icon — switch which one's active there, or rename/reset/release whichever one is currently active to free up a slot for a new surprise egg.</span></div>
+            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 pets from the ⇄ icon. Switch which one's active there, or rename/reset/release whichever one is currently active to free up a slot for a new surprise egg.</span></div>
             <div class="help-row"><b>Settings</b><span>Change password, view Achievements, or enable low-stat notifications from the gear icon.</span></div>
           </div>
           <button type="button" id="btn-help-close" class="ghost">Close</button>
@@ -108,7 +108,7 @@
             <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
           </div>
 
-          <p id="egg-note" class="egg-note" hidden>Your egg just needs time to hatch — no care needed yet.</p>
+          <p id="egg-note" class="egg-note" hidden>Your egg just needs time to hatch, no care needed yet.</p>
 
           <div id="care-actions">
             <div class="actions">
@@ -215,6 +215,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=4"></script>
+  <script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>
