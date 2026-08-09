@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=3";
-import * as db from "./supabase.js?v=3";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=4";
+import * as db from "./supabase.js?v=4";
 
 const HOUR = 3600000;
 
@@ -241,6 +241,7 @@ let currentUserEmail = null;
 let blinkOn = true;
 let walkFrame = 0;
 let gameActive = false;
+let draggingPet = false;
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -253,7 +254,7 @@ function centerPetScreen(host) {
 }
 
 function wanderPet() {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet) return;
   const host = $("pet-screen");
   const device = host.parentElement;
   const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
@@ -553,6 +554,55 @@ function pokePet() {
   host.classList.add("pet--poke");
 }
 
+// Also purely cosmetic (no stat effect, same reasoning as pokePet): lets
+// the pet be picked up and carried anywhere in the playground, not just
+// clicked-to-walk. A plain click (no real movement) still counts as a poke,
+// same as before — only tells them apart by whether the pointer actually
+// moved before release.
+let suppressNextPetClick = false;
+
+function wireDragPet() {
+  const host = $("pet-screen");
+  const device = $("pet-device");
+  let dragging = false;
+  let moved = false;
+  let grabOffsetX = 0;
+  let grabOffsetY = 0;
+
+  host.addEventListener("pointerdown", (e) => {
+    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+    dragging = true;
+    draggingPet = true;
+    moved = false;
+    const rect = device.getBoundingClientRect();
+    grabOffsetX = e.clientX - rect.left - host.offsetLeft;
+    grabOffsetY = e.clientY - rect.top - host.offsetTop;
+    host.setPointerCapture(e.pointerId);
+    host.classList.add("pet--dragging");
+  });
+
+  host.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    moved = true;
+    const rect = device.getBoundingClientRect();
+    const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
+    const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
+    host.style.left = `${Math.min(maxX, Math.max(0, e.clientX - rect.left - grabOffsetX))}px`;
+    host.style.top = `${Math.min(maxY, Math.max(0, e.clientY - rect.top - grabOffsetY))}px`;
+  });
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    draggingPet = false;
+    host.classList.remove("pet--dragging");
+    if (moved) suppressNextPetClick = true; // don't also treat the release as a poke/click-to-walk
+  }
+
+  host.addEventListener("pointerup", endDrag);
+  host.addEventListener("pointercancel", endDrag);
+}
+
 async function runAction(fn, { bounce = true } = {}) {
   fn(currentPet);
   render();
@@ -845,7 +895,12 @@ function wireActions() {
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false }));
   $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false }));
 
+  wireDragPet();
   $("pet-device").addEventListener("click", (e) => {
+    if (suppressNextPetClick) {
+      suppressNextPetClick = false;
+      return;
+    }
     if (e.target.closest("#pet-screen")) {
       pokePet();
       return;

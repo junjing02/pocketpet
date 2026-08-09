@@ -205,8 +205,14 @@ button:disabled:active { transform: none; }
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
   gap: 0;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
+}
+#pet-screen.pet--dragging {
+  cursor: grabbing;
+  transition: none;
+  z-index: 5;
 }
 
 /* Ground shadow for the wandering pets — the landing hero and the main
