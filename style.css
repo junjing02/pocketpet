@@ -778,33 +778,24 @@ body:has(.landing) {
   box-shadow: 0 16px 32px -24px rgba(0, 0, 0, 0.35);
 }
 
-.evolution-tree { overflow-x: auto; }
-
-.evolution-root {
+/* The shared egg sits once, above every species' row — showing it 3 times
+   (once per row) would just be repeating the same image. */
+.evolution-header {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 24px;
 }
-.evolution-root .evolution-stage {
+.evolution-header .evolution-stage {
   --dot-size: 4px;
   width: 110px;
   height: 110px;
 }
-.evolution-root::after {
-  content: "";
-  width: 1px;
-  height: 22px;
-  background: var(--line);
-  margin-top: 10px;
-}
-
-.evolution-caption {
+.evolution-intro {
   font-size: 10px;
-  font-weight: 700;
-  color: var(--fg);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 8px;
+  color: var(--muted);
+  text-align: center;
+  margin: 10px 0 0;
 }
 
 .evolution-stage-label {
@@ -819,55 +810,40 @@ body:has(.landing) {
   margin-top: 6px;
 }
 
-/* One shared trunk line down the left, with a tick branching out to each
-   species row — same shape as a directory tree, so the shared egg reads as
-   one root with 3 possible paths instead of repeating it per row. Each
-   branch is exactly --stage-h (image) + 20px (label block) tall, so the
-   trunk/tick math below only has to track --stage-h, not guess at layout. */
-.evolution-branches {
-  --stage-h: 90px;
-  position: relative;
-  padding-left: 24px;
+/* Vertical timeline: one full-width row per species, stages flowing left to
+   right with arrows, stacked down the page instead of squeezed side by
+   side — no shared trunk/indent to fit around, so every row gets the
+   panel's full width for the biggest cards that still fit without a
+   horizontal scroll (that's still there as a fallback on the narrowest
+   phones, via each row's own overflow-x). */
+.evolution-rows {
+  --stage-h: 94px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
-.evolution-branches::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: calc(var(--stage-h) / 2 + 20px);
-  left: 0;
-  width: 1px;
-  background: var(--line);
-}
-.evolution-branch {
-  position: relative;
+.evolution-row {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 20px;
-}
-.evolution-branch:last-child { margin-bottom: 0; }
-.evolution-branch::before {
-  content: "";
-  position: absolute;
-  top: calc(var(--stage-h) / 2);
-  left: -24px;
-  width: 24px;
-  height: 1px;
-  background: var(--line);
-}
-.evolution-branch-row {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;
   scroll-snap-type: x proximity;
 }
 .evolution-cell { flex: none; scroll-snap-align: start; }
+.evolution-arrow {
+  flex: none;
+  height: var(--stage-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--muted);
+}
 .evolution-stage {
-  --dot-size: 2.6px;
-  width: var(--stage-h, 90px);
-  height: var(--stage-h, 90px);
+  --dot-size: 3px;
+  width: var(--stage-h);
+  height: var(--stage-h);
   flex: none;
   display: grid;
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
@@ -887,11 +863,11 @@ body:has(.landing) {
 @media (min-width: 700px) {
   .shell.landing { width: min(760px, 92vw); }
   .evolution-panel { padding: 36px 32px 28px; }
-  .evolution-root .evolution-stage { width: 140px; height: 140px; --dot-size: 5.2px; }
-  .evolution-branches { --stage-h: 108px; padding-left: 32px; }
-  .evolution-stage { --dot-size: 3.2px; }
-  .evolution-branch::before { left: -32px; width: 32px; }
-  .evolution-branch-row { gap: 14px; }
+  .evolution-header .evolution-stage { width: 140px; height: 140px; --dot-size: 5.2px; }
+  .evolution-rows { --stage-h: 120px; gap: 28px; }
+  .evolution-stage { --dot-size: 4.4px; }
+  .evolution-row { overflow-x: visible; justify-content: center; gap: 16px; }
+  .evolution-arrow { font-size: 18px; }
 }
 
 .play-link {

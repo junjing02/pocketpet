@@ -61,9 +61,10 @@ function cycle() {
 
 cycle();
 
-// Static full-evolution tree: one shared egg at the root (every species
-// hatches from the same shape, so showing it 3 times would just be
-// repetition) branching into one row per species — hatchling through adult.
+// Static full-evolution timeline: the shared egg shown once (every species
+// hatches from the same shape, so repeating it per row would just be
+// redundant), then one full-width row per species — hatchling through
+// adult, flowing left to right with arrows, stacked down the page.
 const NON_EGG_STAGES = STAGE_ORDER.filter((s) => s !== "egg");
 
 function stageDotsHtml(stage, species) {
@@ -77,26 +78,28 @@ function stageDotsHtml(stage, species) {
   return dots;
 }
 
-function renderEvolutionTree() {
+function renderEvolutionTimeline() {
   const egg = document.getElementById("evolution-egg");
-  const branches = document.getElementById("evolution-branches");
-  if (!egg || !branches) return;
+  const rows = document.getElementById("evolution-rows");
+  if (!egg || !rows) return;
 
   egg.style.setProperty("--grid-size", GRID_SIZE);
   egg.style.setProperty("--dot-color", STAGE_SHADE.egg);
   egg.innerHTML = stageDotsHtml("egg");
 
-  branches.innerHTML = SPECIES.map((species) => {
-    const cells = NON_EGG_STAGES.map((stage) => {
+  rows.innerHTML = SPECIES.map((species) => {
+    const cells = NON_EGG_STAGES.map((stage, i) => {
       const stageLabel = stage[0].toUpperCase() + stage.slice(1);
+      const arrow = i > 0 ? `<span class="evolution-arrow">→</span>` : "";
       return `
+        ${arrow}
         <div class="evolution-cell">
           <div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${stageDotsHtml(stage, species)}</div>
           <span class="evolution-stage-label">${stageLabel}</span>
         </div>`;
     }).join("");
-    return `<div class="evolution-branch"><div class="evolution-branch-row">${cells}</div></div>`;
+    return `<div class="evolution-row">${cells}</div>`;
   }).join("");
 }
 
-renderEvolutionTree();
+renderEvolutionTimeline();
