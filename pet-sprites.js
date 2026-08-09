@@ -44,13 +44,13 @@ const BIRD_PROFILES = {
   hatchling: {
     startRow: 10,
     halfWidths: [1, 2, 3, 3, 2, 1],
-    eyes: { rowOffset: 2, colOffset: 2 },
+    eyes: { rowOffset: 2, colOffset: 1 },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
   young: {
     startRow: 8,
     halfWidths: [2, 3, 4, 4, 3, 2],
-    eyes: { rowOffset: 1, colOffset: 2 },
+    eyes: { rowOffset: 1, colOffset: 1 },
     tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 6, colOffsets: [-1, 0] },
@@ -63,7 +63,7 @@ const BIRD_PROFILES = {
     // Tall/uniform-width column instead of round — the "awkward teenager" shape
     startRow: 6,
     halfWidths: [2, 3, 3, 3, 3, 3, 2],
-    eyes: { rowOffset: 1, colOffset: 2 },
+    eyes: { rowOffset: 1, colOffset: 1 },
     tuft: { rowOffset: -1, colOffsets: [-1] }, // off-center, scruffy
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 7, colOffsets: [0, 1] },
@@ -79,7 +79,7 @@ const BIRD_PROFILES = {
   juvenile: {
     startRow: 5,
     halfWidths: [3, 5, 6, 6, 6, 5, 3],
-    eyes: { rowOffset: 1, colOffset: 4 },
+    eyes: { rowOffset: 1, colOffset: 3 },
     tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 7, colOffsets: [-1, 0, 1] },
@@ -95,7 +95,7 @@ const BIRD_PROFILES = {
   adult: {
     startRow: 5,
     halfWidths: [3, 5, 7, 7, 7, 7, 5, 3],
-    eyes: { rowOffset: 1, colOffset: 4 },
+    eyes: { rowOffset: 1, colOffset: 3 },
     tuft: { rowOffset: -1, colOffsets: [-1, 1] }, // crest
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
     beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
@@ -118,7 +118,7 @@ const BUNNY_PROFILES = {
   hatchling: {
     startRow: 10,
     halfWidths: [1, 2, 3, 3, 2, 1],
-    eyes: { rowOffset: 2, colOffset: 2 },
+    eyes: { rowOffset: 2, colOffset: 1 },
     features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
   },
@@ -140,7 +140,7 @@ const BUNNY_PROFILES = {
   teen: {
     startRow: 5,
     halfWidths: [2, 3, 4, 5, 5, 5, 4, 3, 2],
-    eyes: { rowOffset: 2, colOffset: 3 },
+    eyes: { rowOffset: 2, colOffset: 2 },
     features: [
       { rowOffset: -1, colOffsets: [-4, 4] },
       { rowOffset: -2, colOffsets: [-4, 4] },
@@ -198,14 +198,14 @@ const TURTLE_PROFILES = {
   hatchling: {
     startRow: 11,
     halfWidths: [2, 4, 4, 2],
-    features: [{ rowOffset: 4, colOffsets: [-1, 0, 1] }], // small head
+    features: [{ rowOffset: 4, colOffsets: [-2, -1, 0, 1, 2] }], // small head
     eyes: { rowOffset: 4, colOffset: 1 },
   },
   young: {
     startRow: 9,
     halfWidths: [2, 4, 5, 5, 4, 2],
     features: [
-      { rowOffset: 6, colOffsets: [-1, 0, 1, 2] }, // head, poking a bit forward
+      { rowOffset: 6, colOffsets: [-3, -2, -1, 0, 1, 2, 3] }, // head pokes out further
     ],
     eyes: { rowOffset: 6, colOffset: 1 },
     limbFrames: [
@@ -216,8 +216,8 @@ const TURTLE_PROFILES = {
   teen: {
     startRow: 8,
     halfWidths: [3, 5, 6, 7, 6, 5, 3],
-    features: [{ rowOffset: 7, colOffsets: [-1, 0, 1, 2, 3] }], // longer head
-    eyes: { rowOffset: 7, colOffset: 1 },
+    features: [{ rowOffset: 7, colOffsets: [-4, -3, -2, -1, 0, 1, 2, 3, 4] }], // longer head
+    eyes: { rowOffset: 7, colOffset: 2 },
     limbFrames: [
       [{ rowOffset: 6, colOffsets: [-8, 8] }],
       [{ rowOffset: 6, colOffsets: [-7, 9] }],
@@ -226,8 +226,8 @@ const TURTLE_PROFILES = {
   juvenile: {
     startRow: 7,
     halfWidths: [3, 6, 7, 8, 8, 7, 6, 3],
-    features: [{ rowOffset: 8, colOffsets: [-1, 0, 1, 2, 3, 4] }],
-    eyes: { rowOffset: 8, colOffset: 1 },
+    features: [{ rowOffset: 8, colOffsets: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5] }],
+    eyes: { rowOffset: 8, colOffset: 3 },
     limbFrames: [
       [{ rowOffset: 7, colOffsets: [-9, 9] }],
       [{ rowOffset: 7, colOffsets: [-8, 10] }],
@@ -236,8 +236,8 @@ const TURTLE_PROFILES = {
   adult: {
     startRow: 6,
     halfWidths: [3, 7, 9, 10, 10, 10, 9, 7, 3],
-    features: [{ rowOffset: 9, colOffsets: [-1, 0, 1, 2, 3, 4, 5] }], // big head, fully out
-    eyes: { rowOffset: 9, colOffset: 1 },
+    features: [{ rowOffset: 9, colOffsets: [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6] }], // big head, fully out
+    eyes: { rowOffset: 9, colOffset: 4 },
     limbFrames: [
       [{ rowOffset: 8, colOffsets: [-10, 10] }],
       [{ rowOffset: 8, colOffsets: [-9, 11] }],
