@@ -199,7 +199,15 @@ button:disabled:active { transform: none; }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
+.pet-screen.pet--sick { animation: shiver 1.3s ease-in-out infinite; }
 .pet-screen.pet--sick .dot--body { opacity: 0.5; }
+
+/* Unmet-need cues — only one is ever active at a time (see LOW_STAT_MOODS
+   priority in app.js), so they don't need to be combined visually. */
+.pet-screen.pet--hungry { animation: hungry-shake 0.5s ease-in-out infinite; }
+.pet-screen.pet--tired { animation: tired-nod 2.2s ease-in-out infinite; }
+.pet-screen.pet--dirty { animation: dirty-itch 0.6s ease-in-out infinite; }
+.pet-screen.pet--sad { animation: sad-droop 2.6s ease-in-out infinite; }
 
 @keyframes bounce {
   0% { transform: translateY(0); }
@@ -215,6 +223,35 @@ button:disabled:active { transform: none; }
   50% { transform: rotate(8deg); }
   75% { transform: rotate(-4deg); }
   100% { transform: rotate(0deg); }
+}
+
+@keyframes shiver {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1px); }
+}
+
+@keyframes hungry-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes tired-nod {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(3px) rotate(2deg); }
+}
+
+@keyframes dirty-itch {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-3deg); }
+  40% { transform: rotate(2deg); }
+  60% { transform: rotate(-2deg); }
+  80% { transform: rotate(3deg); }
+}
+
+@keyframes sad-droop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
 }
 
 .modal-backdrop {
@@ -292,6 +329,7 @@ button:disabled:active { transform: none; }
 }
 .pet-status--sick { animation: blink 1s steps(2, jump-none) infinite; }
 .pet-status--sleeping { color: var(--muted); }
+.pet-status--mood { color: var(--muted); }
 
 @keyframes blink {
   50% { opacity: 0.2; }

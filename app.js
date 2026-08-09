@@ -36,6 +36,20 @@ const DAILY_BONUS_PER_STREAK = 2;
 const DAILY_BONUS_MAX = 25;
 const LOW_STAT_THRESHOLD = 20;
 
+// Visual + text cue for the most urgent unmet need, checked in this order —
+// sick/sleeping/egg take priority and are handled separately in renderPuppy.
+const LOW_STAT_MOODS = [
+  { key: "hunger", cls: "pet--hungry", label: "hungry" },
+  { key: "energy", cls: "pet--tired", label: "tired" },
+  { key: "hygiene", cls: "pet--dirty", label: "dirty" },
+  { key: "happiness", cls: "pet--sad", label: "sad" },
+];
+
+function lowStatMood(pet) {
+  if (pet.is_sick || pet.is_sleeping || pet.life_stage === "egg") return null;
+  return LOW_STAT_MOODS.find((m) => pet[m.key] <= LOW_STAT_THRESHOLD) || null;
+}
+
 const ACHIEVEMENTS = [
   { id: "grown", label: "Fully Grown", check: (p) => p.life_stage === "adult" },
   { id: "coins", label: "Coin Collector", desc: "Earn 100 coins", check: (p) => p.total_coins_earned >= 100 },
@@ -281,6 +295,8 @@ function renderPuppy(pet, eyesOpen) {
   host.innerHTML = html;
   host.classList.toggle("pet--sleeping", pet.is_sleeping);
   host.classList.toggle("pet--sick", pet.is_sick);
+  const mood = lowStatMood(pet);
+  for (const m of LOW_STAT_MOODS) host.classList.toggle(m.cls, mood === m);
   if (pet.life_stage === "egg") centerPetScreen(host);
 
   const status = $("pet-status");
@@ -291,6 +307,10 @@ function renderPuppy(pet, eyesOpen) {
   } else if (pet.is_sleeping) {
     status.textContent = "zzz";
     status.className = "pet-status pet-status--sleeping";
+    status.hidden = false;
+  } else if (mood) {
+    status.textContent = mood.label;
+    status.className = "pet-status pet-status--mood";
     status.hidden = false;
   } else {
     status.hidden = true;
