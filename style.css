@@ -209,6 +209,24 @@ button:disabled:active { transform: none; }
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
 }
 
+/* Ground shadow for the landing page's wandering hero pet only — it's
+   trimmed to its actual silhouette (see landing.js), so this lands right
+   under its feet and moves/resizes with it automatically as it wanders
+   and grows. Not applied to the in-app pet screen (#pet-screen shares the
+   .pet-screen class but this is scoped to the landing hero specifically). */
+#landing-pet::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 60%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 50%;
+  filter: blur(2px);
+  transform: translateX(-50%);
+}
+
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
 .pet-screen.pet--sick { animation: shiver 1.3s ease-in-out infinite; }
@@ -866,20 +884,6 @@ body:has(.landing) {
 .evolution-stage:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.35);
-}
-/* A soft shadow under each box so the pets read as sitting on a surface
-   rather than floating flat against the page. */
-.evolution-stage::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 55%;
-  height: 7px;
-  background: rgba(0, 0, 0, 0.16);
-  border-radius: 50%;
-  filter: blur(2.5px);
-  transform: translateX(-50%);
 }
 .evolution-stage-grid {
   --dot-size: 2.6px;

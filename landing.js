@@ -1,9 +1,8 @@
-import { buildBitmap, trimBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js?v=2";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
 const device = host.parentElement;
-host.style.setProperty("--grid-size", GRID_SIZE);
 host.style.setProperty("--dot-size", `${DOT_SIZE}px`);
 
 function placeRandomly() {
@@ -21,8 +20,14 @@ function centerHost() {
 function showStage(stage, species) {
   host.style.setProperty("--dot-color", STAGE_SHADE[stage]);
   const bitmap = buildBitmap(stage, { species, eyesOpen: true });
+  // Trim to the creature's actual bounding box (not the full 25x25 grid) so
+  // the host element's own size matches what's visible — needed both for
+  // accurate wandering bounds and so the ground shadow (CSS ::after, below)
+  // lands right under its feet instead of under a bunch of empty grid.
+  const { rows, width } = trimBitmap(bitmap);
+  host.style.setProperty("--grid-size", width);
   let html = "";
-  for (const row of bitmap) {
+  for (const row of rows) {
     for (const v of row) {
       html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
     }
