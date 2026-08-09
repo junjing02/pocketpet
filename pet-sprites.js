@@ -13,8 +13,11 @@ export const STAGE_ORDER = ["egg", "hatchling", "young", "teen", "juvenile", "ad
 // making the border look thin on a hatchling and chunky on an adult. Growth
 // now comes entirely from each stage's silhouette using more cells (a
 // hatchling is ~9 wide, an adult ~23 — plenty of size difference on its
-// own), so the outline stroke stays the same width at every stage.
-export const DOT_SIZE = 5;
+// own), so the outline stroke stays the same width at every stage. Kept
+// small (rather than the app's usual ~1px hairlines) only because the
+// outline is 1 whole grid cell, not a border — this is close to the floor
+// before eyes/features stop being legible at all.
+export const DOT_SIZE = 3.5;
 export const STAGE_SHADE = {
   egg: "#f0f0f0",
   hatchling: "#e8e8e8",
