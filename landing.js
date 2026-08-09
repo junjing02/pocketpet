@@ -24,7 +24,7 @@ function showStage(stage, species) {
   let html = "";
   for (const row of bitmap) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
     }
   }
   host.innerHTML = html;

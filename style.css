@@ -192,7 +192,7 @@ button:disabled:active { transform: none; }
   display: grid;
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
-  gap: 1px;
+  gap: 0;
   cursor: pointer;
   transition: left 1.6s ease-in-out, top 1.6s ease-in-out, width 0.8s ease, height 0.8s ease;
 }
@@ -276,11 +276,12 @@ button:disabled:active { transform: none; }
   50% { opacity: 0.5; }
 }
 
-/* ---- Puppy (flat 2D pixel-dot grid) ---- */
+/* ---- Puppy (flat 2D pixel-dot grid, outlined pixel-art style) ---- */
 
 .dot { background: transparent; }
-.dot--body { background: var(--dot-color, #111); }
-.dot--eye { background: #fff; }
+.dot--body { background: var(--dot-color, #e6e6e6); }
+.dot--eye { background: #000; }
+.dot--outline { background: #000; }
 
 .pet-status {
   text-align: center;
@@ -458,13 +459,13 @@ button:disabled:active { transform: none; }
 .pet-picker-item:last-child { border-bottom: none; }
 
 .pet-picker-thumb {
-  --dot-size: 1.4px;
+  --dot-size: 1.6px;
   width: 40px;
   height: 40px;
   display: grid;
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
-  gap: 0.5px;
+  gap: 0;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;

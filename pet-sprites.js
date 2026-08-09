@@ -1,17 +1,20 @@
 // Hand-tuned pixel-dot sprites — no image assets, just an on/off grid.
-// grid values: 0 = off, 1 = body dot, 2 = eye/sparkle/bow dot
+// grid values: 0 = off, 1 = fill dot, 2 = eye/sparkle/bow dot, 3 = outline dot
+// (outline is a 1px black ring computed by dilating the silhouette outward —
+// see buildBitmap — so fill stays a light tint and the outline reads as the
+// bold black line of a low-res, limited-palette pixel-art sprite.)
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
 export const STAGE_ORDER = ["egg", "hatchling", "young", "teen", "juvenile", "adult"];
 export const STAGE_DOT_SIZE = { egg: 3, hatchling: 3.5, young: 4.5, teen: 5.5, juvenile: 6.5, adult: 7.5 };
 export const STAGE_SHADE = {
-  egg: "#d4d4d4",
-  hatchling: "#b3b3b3",
-  young: "#8a8a8a",
-  teen: "#666666",
-  juvenile: "#3a3a3a",
-  adult: "#111111",
+  egg: "#f0f0f0",
+  hatchling: "#e8e8e8",
+  young: "#dedede",
+  teen: "#d4d4d4",
+  juvenile: "#cacaca",
+  adult: "#c0c0c0",
 };
 
 // Which creature an egg hatches into is a surprise — every species shares the
@@ -20,9 +23,9 @@ export const STAGE_SHADE = {
 // proportions, and features across all 5 post-egg stages.
 export const SPECIES = ["bird", "bunny", "turtle"];
 export const SPECIES_SHADE = {
-  bird: "#111111",
-  bunny: "#333333",
-  turtle: "#555555",
+  bird: "#e2e2e2",
+  bunny: "#eeeeee",
+  turtle: "#d0d0d0",
 };
 
 export function pickRandomSpecies() {
@@ -302,5 +305,32 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     for (const off of profile.sparkle.colOffsets) setDot(grid, row, CX + off, 2);
   }
 
+  outlineSilhouette(grid);
   return grid;
+}
+
+// Dilates the silhouette by one dot in every direction (including diagonals,
+// so corners stay solid) and marks that ring as outline — the thick black
+// border that reads as a single bold line around an otherwise flat sprite.
+function outlineSilhouette(grid) {
+  const toOutline = [];
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (grid[row][col] !== 0) continue;
+      let touchesBody = false;
+      for (let dr = -1; dr <= 1 && !touchesBody; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const r = row + dr;
+          const c = col + dc;
+          if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) continue;
+          if (grid[r][c] === 1 || grid[r][c] === 2) {
+            touchesBody = true;
+            break;
+          }
+        }
+      }
+      if (touchesBody) toOutline.push([row, col]);
+    }
+  }
+  for (const [row, col] of toOutline) grid[row][col] = 3;
 }
