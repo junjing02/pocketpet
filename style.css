@@ -805,23 +805,29 @@ body:has(.landing) {
 
 /* Vertical timeline: one full-width row per species, stages flowing left to
    right with arrows, stacked down the page instead of squeezed side by
-   side — no shared trunk/indent to fit around, so every row gets the
-   panel's full width for the biggest cards that still fit without a
-   horizontal scroll (that's still there as a fallback on the narrowest
-   phones, via each row's own overflow-x). */
+   side. Every box is the same fixed size regardless of stage/species, so
+   all 3 rows are always exactly the same width — that means one shared
+   scroll region (not one per row) keeps every row's stages aligned in the
+   same columns, and a single swipe scrolls all 3 species at once instead
+   of needing 3 separate swipes to see everything. A right-edge fade hints
+   there's more without needing any UI chrome to say so. */
 .evolution-rows {
   --stage-h: 94px;
   display: flex;
   flex-direction: column;
   gap: 22px;
-}
-.evolution-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;
   scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.evolution-row {
+  display: flex;
+  flex: none;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
 }
 .evolution-arrow {
   flex: none;
@@ -867,9 +873,16 @@ body:has(.landing) {
   .evolution-panel { padding: 36px 32px 28px; }
   .evolution-header .evolution-stage { width: 140px; height: 140px; }
   .evolution-header .evolution-stage-grid { --dot-size: 5.2px; }
-  .evolution-rows { --stage-h: 120px; gap: 28px; }
+  .evolution-rows {
+    --stage-h: 120px;
+    gap: 28px;
+    align-items: center;
+    overflow-x: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .evolution-stage-grid { --dot-size: 4.4px; }
-  .evolution-row { overflow-x: visible; justify-content: center; gap: 16px; }
+  .evolution-row { gap: 16px; }
   .evolution-arrow { font-size: 18px; }
 }
 
