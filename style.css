@@ -329,8 +329,8 @@ button:disabled:active { transform: none; }
 
 .dot { background: transparent; }
 .dot--body { background: var(--dot-color, #e6e6e6); }
-.dot--eye { background: #000; }
-.dot--outline { background: #000; }
+.dot--eye { background: var(--fg); }
+.dot--outline { background: var(--fg); }
 
 .pet-status {
   text-align: center;
@@ -530,7 +530,9 @@ button:disabled:active { transform: none; }
 }
 .pet-picker-info span { color: var(--muted); font-size: 9px; }
 
-.pet-picker-select { flex: none; width: auto; font-size: 9px; padding: 8px 10px; }
+.pet-picker-actions { display: flex; flex-direction: column; gap: 4px; }
+.pet-picker-select,
+.pet-picker-release { flex: none; width: auto; font-size: 9px; padding: 6px 10px; }
 
 .timing-track {
   position: relative;
@@ -764,6 +766,48 @@ body:has(.landing) {
   border-radius: 50%;
   background: #111;
   transform: translate(-50%, -50%);
+}
+
+.evolution-labels {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.evolution-labels span {
+  width: 36px;
+  text-align: center;
+  font-size: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.evolution-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 32px;
+  overflow-x: auto;
+}
+.evolution-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.evolution-stage {
+  --dot-size: 1.3px;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
+  grid-auto-rows: var(--dot-size);
+  gap: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .play-link {

@@ -70,8 +70,8 @@
             <div class="help-row"><b>Growing up</b><span>Health 50+ and enough time passed evolves: egg → hatchling → young → teen → juvenile → adult — each stage looks completely different.</span></div>
             <div class="help-row"><b>Surprise egg</b><span>Every egg looks the same — you won't know which creature you got until it hatches.</span></div>
             <div class="help-row"><b>Daily bonus</b><span>Log in on consecutive days for a growing coin bonus, shown in the away-time recap.</span></div>
-            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 pets and switch between them with the ⇄ icon at the top.</span></div>
-            <div class="help-row"><b>Settings</b><span>Rename your pet, view Achievements, or enable low-stat notifications from the gear icon.</span></div>
+            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 pets from the ⇄ icon — that's also where you switch, rename, reset, or release a pet to free up a slot for a new surprise egg.</span></div>
+            <div class="help-row"><b>Settings</b><span>Change password, view Achievements, or enable low-stat notifications from the gear icon.</span></div>
           </div>
           <button type="button" id="btn-help-close" class="ghost">Close</button>
         </div>
@@ -154,16 +154,9 @@
 
       <div id="settings-menu" class="stack">
         <button type="button" id="btn-change-password" class="ghost">Change Password</button>
-        <button type="button" id="btn-rename-pet" class="ghost">Rename Pet</button>
         <button type="button" id="btn-achievements" class="ghost">Achievements</button>
         <button type="button" id="btn-toggle-notifications" class="ghost">Enable Notifications</button>
       </div>
-
-      <form id="rename-pet-form" class="stack" hidden>
-        <input id="rename-pet-input" type="text" placeholder="pet name" maxlength="20" required />
-        <button type="submit">Save Name</button>
-        <button type="button" id="btn-cancel-rename" class="ghost">Cancel</button>
-      </form>
 
       <form id="change-password-form" class="stack" hidden>
         <div class="password-field">
@@ -184,7 +177,6 @@
 
       <div id="settings-bottom-actions" class="stack settings-actions">
         <button type="button" id="btn-signout">Sign Out</button>
-        <button type="button" id="btn-reset-pet" class="danger">Reset Pet</button>
         <button type="button" id="btn-settings-back" class="ghost">Back</button>
       </div>
     </section>
@@ -204,8 +196,16 @@
 
       <div id="pet-picker-list"></div>
 
-      <div class="stack settings-actions">
+      <form id="rename-pet-form" class="stack" hidden>
+        <input id="rename-pet-input" type="text" placeholder="pet name" maxlength="20" required />
+        <button type="submit">Save Name</button>
+        <button type="button" id="btn-cancel-rename" class="ghost">Cancel</button>
+      </form>
+
+      <div id="pet-picker-menu" class="stack settings-actions">
         <button type="button" id="btn-hatch-another" class="ghost">Hatch New Pet</button>
+        <button type="button" id="btn-rename-pet" class="ghost">Rename Active Pet</button>
+        <button type="button" id="btn-reset-pet" class="danger">Reset Active Pet</button>
         <button type="button" id="btn-picker-back" class="ghost">Back</button>
       </div>
     </section>

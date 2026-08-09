@@ -398,9 +398,15 @@ function renderPetPicker(pets) {
         <b>${p.name}</b>
         <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}`}</span>
       </div>
-      <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
-        ${p.is_active ? "Active" : "Select"}
-      </button>
+      <div class="pet-picker-actions">
+        <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
+          ${p.is_active ? "Active" : "Select"}
+        </button>
+        <button type="button" class="pet-picker-release ghost" data-pet-id="${p.id}" data-active="${p.is_active}"
+          data-tooltip="Give this pet to a new home, freeing up a slot">
+          Release
+        </button>
+      </div>
     </div>`
     )
     .join("");
@@ -421,9 +427,35 @@ function renderPetPicker(pets) {
     });
   });
 
+  list.querySelectorAll(".pet-picker-release").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Give this pet to a new home? This can't be undone.")) return;
+      const petId = btn.dataset.petId;
+      const wasActive = btn.dataset.active === "true";
+      btn.disabled = true;
+      try {
+        await db.deletePet(petId);
+        const remaining = await db.fetchPets(currentUserId);
+        if (remaining.length === 0) {
+          screen("name-pet");
+          return;
+        }
+        if (wasActive) {
+          const updated = await db.setActivePet(currentUserId, remaining[0].id);
+          await activatePetAndRender(updated);
+          return;
+        }
+        renderPetPicker(remaining);
+      } catch (err) {
+        showMessage(err.message, true);
+        btn.disabled = false;
+      }
+    });
+  });
+
   $("btn-hatch-another").disabled = pets.length >= MAX_PETS;
   $("btn-hatch-another").dataset.tooltip =
-    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets` : "Hatch a new egg — your other pets keep going";
+    pets.length >= MAX_PETS ? `Max ${MAX_PETS} pets — release one to hatch another` : "Hatch a new egg — your other pets keep going";
 }
 
 function formatDuration(ms) {
@@ -880,17 +912,22 @@ function wireActions() {
     showSettingsMenu();
   }
 
-  function collapseRenameForm() {
+  function openPickerRenameForm() {
+    $("pet-picker-menu").hidden = true;
+    $("rename-pet-form").hidden = false;
+    $("rename-pet-input").value = currentPet.name;
+  }
+
+  function collapsePickerRenameForm() {
     $("rename-pet-form").reset();
     $("rename-pet-form").hidden = true;
-    showSettingsMenu();
+    $("pet-picker-menu").hidden = false;
   }
 
   $("btn-settings").addEventListener("click", () => {
     $("account-email").textContent = currentUserEmail || "";
     $("btn-toggle-notifications").textContent = notificationsEnabled() ? "Disable Notifications" : "Enable Notifications";
     collapsePasswordForm();
-    collapseRenameForm();
     screen("settings");
   });
   $("btn-settings-back").addEventListener("click", () => {
@@ -907,6 +944,7 @@ function wireActions() {
   $("btn-switch-pet-main").addEventListener("click", async () => {
     try {
       const pets = await db.fetchPets(currentUserId);
+      collapsePickerRenameForm();
       renderPetPicker(pets);
       screen("pet-picker");
     } catch (err) {
@@ -914,6 +952,7 @@ function wireActions() {
     }
   });
   $("btn-picker-back").addEventListener("click", () => {
+    collapsePickerRenameForm();
     screen("pet");
     render();
   });
@@ -945,21 +984,20 @@ function wireActions() {
   });
   $("btn-cancel-password").addEventListener("click", collapsePasswordForm);
 
-  $("btn-rename-pet").addEventListener("click", () => {
-    openSettingsForm("rename-pet-form");
-    $("rename-pet-input").value = currentPet.name;
-  });
-  $("btn-cancel-rename").addEventListener("click", collapseRenameForm);
+  $("btn-rename-pet").addEventListener("click", openPickerRenameForm);
+  $("btn-cancel-rename").addEventListener("click", collapsePickerRenameForm);
 
   $("rename-pet-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = $("rename-pet-input").value.trim();
     if (!name) return;
     currentPet.name = name;
-    collapseRenameForm();
+    collapsePickerRenameForm();
     try {
       await persist();
       showMessage("Name updated.");
+      const pets = await db.fetchPets(currentUserId);
+      renderPetPicker(pets);
     } catch (err) {
       showMessage(err.message, true);
     }
@@ -1002,7 +1040,7 @@ function wireActions() {
   });
 
   $("btn-reset-pet").addEventListener("click", async () => {
-    if (!confirm("Reset your pet back to a fresh egg? This cannot be undone.")) return;
+    if (!confirm("Reset your active pet back to a fresh egg? This cannot be undone.")) return;
     const fresh = createInitialPet(currentPet.name);
     fresh.id = currentPet.id;
     try {

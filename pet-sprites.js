@@ -7,7 +7,10 @@ export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
 export const STAGE_ORDER = ["egg", "hatchling", "young", "teen", "juvenile", "adult"];
-export const STAGE_DOT_SIZE = { egg: 3, hatchling: 3.5, young: 4.5, teen: 5.5, juvenile: 6.5, adult: 7.5 };
+// Scaled down from the original 3-7.5px range — the outline is always
+// exactly 1 dot wide, so shrinking every dot shrinks its absolute on-screen
+// thickness too, without touching the outline algorithm itself.
+export const STAGE_DOT_SIZE = { egg: 2.4, hatchling: 2.7, young: 3.5, teen: 4.3, juvenile: 5, adult: 5.8 };
 export const STAGE_SHADE = {
   egg: "#f0f0f0",
   hatchling: "#e8e8e8",

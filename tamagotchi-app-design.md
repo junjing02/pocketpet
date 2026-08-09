@@ -47,7 +47,7 @@ A pocket virtual pet as a simple web app: sign up/log in, name your pet, feed/pl
 - **Settings screen:** change password, rename pet, switch/hatch pets, toggle local notifications, view achievements, reset pet to a fresh egg, sign out
 - **Local notifications:** opt-in browser `Notification` nudge when a stat drops to ≤20 or the pet gets sick — client-only, only fires while the tab is open (no closed-app push; that's a bigger lift, see §11)
 - **In-app tutorial:** a small "?" toggle explaining the rules, plus a live "evolves in Xm" progress line
-- **Landing page:** static marketing page (`index.html`) with a pet preview and a Play button into the app (`app.html`)
+- **Landing page:** static marketing page (`index.html`) with a wandering pet preview, mini-game previews, a full evolution chart (every stage of every species, laid out as rows) below the games, and a Play button into the app (`app.html`)
 - **Auth:** Supabase email/password login, required (so the pet isn't tied to one browser)
 - **Persistence:** one row per pet in Supabase Postgres, scoped by Row Level Security
 - **Pixel-dot rendering:** pet drawn as a procedural dot-matrix bitmap, no image files
@@ -134,7 +134,7 @@ Browsers don't run JS while a tab is closed, so time passing is simulated on loa
 ## 7. Pixel-Dot Pet Rendering
 
 - Grid: 25×25 int matrix per frame, rendered as a CSS grid of flat 2D dots (0 = off, 1 = fill, 2 = eye/accessory, 3 = outline) — no gradients or shading, dots touch edge-to-edge (`gap: 0`) so the sprite reads as solid blocky pixel art rather than a dotted LCD matrix.
-- **Outlined pixel-art look:** `buildBitmap()` finishes every sprite with an `outlineSilhouette()` pass that dilates the shape by 1 dot in all 8 directions and marks that ring as outline (value 3, always solid black) — the classic thick-black-outline-plus-flat-fill look, done as a post-process so every hand-tuned profile gets it for free. Fill (`--dot-color`) is a light gray tint so the black outline always has contrast to read against, keeping the palette to essentially black outline + light fill + black eyes.
+- **Outlined pixel-art look:** `buildBitmap()` finishes every sprite with an `outlineSilhouette()` pass that dilates the shape by 1 dot in all 8 directions and marks that ring as outline (value 3, colored `var(--fg)` — the same near-black the rest of the UI uses for text/borders, not a separate pure `#000`) — the classic outline-plus-flat-fill look, done as a post-process so every hand-tuned profile gets it for free. Fill (`--dot-color`) is a light gray tint so the outline always has contrast to read against. `STAGE_DOT_SIZE` was tuned down (2.4-5.8px, was 3-7.5px) so the outline — always exactly 1 dot wide — stays a thin stroke in absolute pixels instead of reading as chunky at the larger stages, closer to the thin hairline borders used everywhere else in the UI.
 - Each life stage in `pet-sprites.js` is a hand-tuned profile entry (a `halfWidths` array draws a symmetric silhouette row by row) with its own shape, not a scaled copy of the previous stage — egg → hatchling → young → teen → juvenile → adult each reads as a different creature.
 - **Three species, one shared egg:** `PROFILES` is now nested per species (`bird`, `bunny`, `turtle`), each with its own hand-tuned hatchling/young/teen/juvenile/adult set — genuinely different proportions, not palette swaps (bird: tall, winged, beaked; bunny: round, tall-eared, tailed, no beak; turtle: wide flat shell dome, small forward-poking head, stubby legs). The egg stage uses one shared profile for every species, so the shape gives nothing away; `buildBitmap(stage, { species, ... })` only looks up a species-specific profile once `stage !== "egg"`. `species` is picked once via `pickRandomSpecies()` when the pet/egg is created and stored on the row, not re-rolled.
 - **Monochrome color-as-species-hint:** since the whole app is strict black/white/gray (no hues), each species also gets its own fixed light-gray fill tint (`SPECIES_SHADE`) applied via the existing `--dot-color` CSS variable — `app.js` only sets it once the pet is past the egg stage, so the tint can't leak the species early either. The outline stays solid black regardless of species.
@@ -202,14 +202,15 @@ alter table pets add column is_active boolean not null default true;
 **`supabase.js`:**
 - `fetchPets(userId)` replaces `fetchPet` — no `.maybeSingle()`, returns the array ordered by `created_at`.
 - `setActivePet(userId, petId)` — clears `is_active` on the user's other rows, sets it on the chosen one.
-- `createPet(userId, name)` — same call shape as before, but now also clears other rows' `is_active` first, so it's safe to call for a 2nd or 3rd pet without a separate code path.
+- `createPet(userId, name, species)` — same call shape as before, but now also clears other rows' `is_active` first, so it's safe to call for a 2nd or 3rd pet without a separate code path.
+- `deletePet(petId)` — hard-deletes a single row. No app-side "clear is_active first" dance needed like create/setActivePet; RLS already scopes the delete to rows the caller owns.
 
 **`app.js` / UI:**
 - `loadPetForUser` → `loadPetsForUser`: fetches all of a user's pets.
   - 0 pets → existing "name your egg" screen, unchanged.
   - 1+ pets → auto-loads whichever has `is_active = true` (falls back to the first row) straight into the normal pet screen — **no picker shown automatically**, even with multiple pets. Existing single-pet users see zero behavior change.
-- New "Your Pets" screen (`data-screen="pet-picker"`), reached via the ⇄ icon on the main pet screen's topbar: lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus pipeline for it, same as a normal load.
-- "Hatch New Pet" button on that screen, disabled past `MAX_PETS` (3) — client-side cap only, to bound row growth, not a security control.
+- The "Your Pets" screen (`data-screen="pet-picker"`), reached via the ⇄ icon on the main pet screen's topbar, is the single hub for everything pet-roster-related — it's where Rename and Reset moved to from Settings (both still only ever target the active pet, just relocated), plus:
+  - Lists every pet with a small live thumbnail (reuses `buildBitmap`/`petVariant`/`has_bow` — the exact same sprite code path as the main screen, just smaller dots), name, and stage. Selecting a non-active one calls `setActivePet` then re-runs the full decay/login-bonus pipeline for it, same as a normal load.
+  - **Release** (per pet card): calls `deletePet`, then re-fetches. If the released pet was active, auto-selects the oldest remaining one and runs the normal switch pipeline; if that was the *last* pet, drops straight to the "name your egg" screen. Otherwise just re-renders the list in place. This is the answer to "I'm stuck with the same 3 pets forever" — `MAX_PETS` is still enforced, but it's no longer a hard ceiling once you're willing to let one go.
+  - "Hatch New Pet" button, disabled past `MAX_PETS` (3) — client-side cap only, to bound row growth, not a security control.
 - Every place that already assumed a single `currentPet` (rendering, actions, achievements, the mini-game, notifications) needed **no changes** — `currentPet` just means "the active one," and switching pets goes through the same `activatePetAndRender()` helper the initial login uses.
-
-**Deliberately not built:** deleting a pet from the roster (only Reset — zero its stats — exists today), and there's no "are you sure" confirmation before hatching a new one, since it doesn't affect any existing pet.

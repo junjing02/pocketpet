@@ -80,6 +80,11 @@ export async function createPet(userId, name, species) {
   return data;
 }
 
+export async function deletePet(petId) {
+  const { error } = await requireClient().from("pets").delete().eq("id", petId);
+  if (error) throw error;
+}
+
 export async function setActivePet(userId, petId) {
   const client = requireClient();
   const { error: clearError } = await client.from("pets").update({ is_active: false }).eq("user_id", userId);

@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -60,3 +60,25 @@ function cycle() {
 }
 
 cycle();
+
+// Static full-evolution chart, one row per species — every stage laid out
+// side by side instead of watching them cycle one at a time.
+function renderEvolutionShowcase() {
+  const container = document.getElementById("evolution-rows");
+  if (!container) return;
+  container.innerHTML = SPECIES.map((species) => {
+    const cells = STAGE_ORDER.map((stage) => {
+      const bitmap = buildBitmap(stage, { species, eyesOpen: true });
+      let dots = "";
+      for (const row of bitmap) {
+        for (const v of row) {
+          dots += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
+        }
+      }
+      return `<div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${dots}</div>`;
+    }).join("");
+    return `<div class="evolution-row">${cells}</div>`;
+  }).join("");
+}
+
+renderEvolutionShowcase();
