@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
+import { buildBitmap, trimBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -67,15 +67,21 @@ cycle();
 // adult, flowing left to right with arrows, stacked down the page.
 const NON_EGG_STAGES = STAGE_ORDER.filter((s) => s !== "egg");
 
-function stageDotsHtml(stage, species) {
+// Each stage/species only occupies a small region of the fixed 25x25 grid,
+// hand-placed around a shared center column rather than centered in the
+// full grid — trim to just that region so the preview box only has to
+// center the trimmed result, instead of the creature sitting off-center
+// inside a mostly-empty 25x25 box.
+function stageGridHtml(stage, species) {
   const bitmap = buildBitmap(stage, { species, eyesOpen: true });
+  const { rows, width } = trimBitmap(bitmap);
   let dots = "";
-  for (const row of bitmap) {
+  for (const row of rows) {
     for (const v of row) {
       dots += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
     }
   }
-  return dots;
+  return { dots, width };
 }
 
 function renderEvolutionTimeline() {
@@ -83,19 +89,18 @@ function renderEvolutionTimeline() {
   const rows = document.getElementById("evolution-rows");
   if (!egg || !rows) return;
 
-  egg.style.setProperty("--grid-size", GRID_SIZE);
+  const eggSprite = stageGridHtml("egg");
   egg.style.setProperty("--dot-color", STAGE_SHADE.egg);
-  egg.innerHTML = stageDotsHtml("egg");
+  egg.innerHTML = `<div class="evolution-stage-grid" style="--grid-size:${eggSprite.width}">${eggSprite.dots}</div>`;
 
   rows.innerHTML = SPECIES.map((species) => {
     const cells = NON_EGG_STAGES.map((stage, i) => {
-      const stageLabel = stage[0].toUpperCase() + stage.slice(1);
+      const sprite = stageGridHtml(stage, species);
       const arrow = i > 0 ? `<span class="evolution-arrow">→</span>` : "";
       return `
         ${arrow}
-        <div class="evolution-cell">
-          <div class="evolution-stage" style="--grid-size:${GRID_SIZE};--dot-color:${SPECIES_SHADE[species]}">${stageDotsHtml(stage, species)}</div>
-          <span class="evolution-stage-label">${stageLabel}</span>
+        <div class="evolution-stage" style="--dot-color:${SPECIES_SHADE[species]}">
+          <div class="evolution-stage-grid" style="--grid-size:${sprite.width}">${sprite.dots}</div>
         </div>`;
     }).join("");
     return `<div class="evolution-row">${cells}</div>`;

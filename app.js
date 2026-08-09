@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js";
+import { buildBitmap, trimBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js";
 import * as db from "./supabase.js";
 
 const HOUR = 3600000;
@@ -378,22 +378,26 @@ function speciesLabel(pet) {
 
 function miniSpriteHtml(pet) {
   const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen: true, variant: petVariant(pet), hasBow: pet.has_bow });
+  const { rows, width } = trimBitmap(bitmap);
   let html = "";
-  for (const row of bitmap) {
+  for (const row of rows) {
     for (const v of row) {
       html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
     }
   }
-  return html;
+  return { html, width };
 }
 
 function renderPetPicker(pets) {
   const list = $("pet-picker-list");
   list.innerHTML = pets
-    .map(
-      (p) => `
+    .map((p) => {
+      const sprite = miniSpriteHtml(p);
+      return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="--grid-size:${GRID_SIZE};${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]}`}">${miniSpriteHtml(p)}</div>
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]}`}">
+        <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
+      </div>
       <div class="pet-picker-info">
         <b>${p.name}</b>
         <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}`}</span>
@@ -401,8 +405,8 @@ function renderPetPicker(pets) {
       <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
         ${p.is_active ? "Active" : "Select"}
       </button>
-    </div>`
-    )
+    </div>`;
+    })
     .join("");
 
   list.querySelectorAll(".pet-picker-select").forEach((btn) => {

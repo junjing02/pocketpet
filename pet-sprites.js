@@ -319,6 +319,33 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
   return grid;
 }
 
+// Every sprite is drawn on a fixed 25x25 grid, but each stage/species only
+// occupies a small, differently-positioned region of it (silhouettes are
+// hand-placed around a shared center column, not centered in the full
+// grid). Rendering the full 25x25 grid in a fixed-size box — as every
+// static preview does — makes the creature look off-center in that box.
+// This trims the grid down to just its occupied rows/columns so a preview
+// box only needs to center the trimmed result, not fight the dead space.
+export function trimBitmap(grid) {
+  let minRow = GRID_SIZE;
+  let maxRow = -1;
+  let minCol = GRID_SIZE;
+  let maxCol = -1;
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] === 0) continue;
+      if (r < minRow) minRow = r;
+      if (r > maxRow) maxRow = r;
+      if (c < minCol) minCol = c;
+      if (c > maxCol) maxCol = c;
+    }
+  }
+  if (maxRow < 0) return { rows: [], width: 0, height: 0 };
+  const rows = [];
+  for (let r = minRow; r <= maxRow; r++) rows.push(grid[r].slice(minCol, maxCol + 1));
+  return { rows, width: maxCol - minCol + 1, height: maxRow - minRow + 1 };
+}
+
 // Dilates the silhouette by one dot in every direction (including diagonals,
 // so corners stay solid) and marks that ring as outline — the thick black
 // border that reads as a single bold line around an otherwise flat sprite.

@@ -509,17 +509,22 @@ button:disabled:active { transform: none; }
 .pet-picker-item:last-child { border-bottom: none; }
 
 .pet-picker-thumb {
-  --dot-size: 1.6px;
   width: 40px;
   height: 40px;
-  display: grid;
-  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
-  grid-auto-rows: var(--dot-size);
-  gap: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 2px;
+}
+.pet-picker-thumb-grid {
+  --dot-size: 1.6px;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
+  grid-auto-rows: var(--dot-size);
+  gap: 0;
 }
 
 .pet-picker-info {
@@ -787,27 +792,15 @@ body:has(.landing) {
   margin-bottom: 24px;
 }
 .evolution-header .evolution-stage {
-  --dot-size: 4px;
   width: 110px;
   height: 110px;
 }
+.evolution-header .evolution-stage-grid { --dot-size: 4px; }
 .evolution-intro {
   font-size: 10px;
   color: var(--muted);
   text-align: center;
   margin: 10px 0 0;
-}
-
-.evolution-stage-label {
-  display: block;
-  height: 14px;
-  line-height: 14px;
-  text-align: center;
-  font-size: 8px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 6px;
 }
 
 /* Vertical timeline: one full-width row per species, stages flowing left to
@@ -824,13 +817,12 @@ body:has(.landing) {
 }
 .evolution-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;
   scroll-snap-type: x proximity;
 }
-.evolution-cell { flex: none; scroll-snap-align: start; }
 .evolution-arrow {
   flex: none;
   height: var(--stage-h);
@@ -840,32 +832,43 @@ body:has(.landing) {
   font-size: 14px;
   color: var(--muted);
 }
+/* .evolution-stage is a fixed-size box that just centers whatever the
+   (variably-sized, trimmed-to-content) grid inside it turns out to be —
+   the box stays a consistent size across every stage, the creature inside
+   it doesn't sit off-center just because it's small or oddly proportioned. */
 .evolution-stage {
-  --dot-size: 3px;
   width: var(--stage-h);
   height: var(--stage-h);
   flex: none;
-  display: grid;
-  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
-  grid-auto-rows: var(--dot-size);
-  gap: 0;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 4px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.evolution-cell:hover .evolution-stage {
+.evolution-stage:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.35);
+}
+.evolution-stage-grid {
+  --dot-size: 3px;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
+  grid-auto-rows: var(--dot-size);
+  gap: 0;
 }
 
 @media (min-width: 700px) {
   .shell.landing { width: min(760px, 92vw); }
   .evolution-panel { padding: 36px 32px 28px; }
-  .evolution-header .evolution-stage { width: 140px; height: 140px; --dot-size: 5.2px; }
+  .evolution-header .evolution-stage { width: 140px; height: 140px; }
+  .evolution-header .evolution-stage-grid { --dot-size: 5.2px; }
   .evolution-rows { --stage-h: 120px; gap: 28px; }
-  .evolution-stage { --dot-size: 4.4px; }
+  .evolution-stage-grid { --dot-size: 4.4px; }
   .evolution-row { overflow-x: visible; justify-content: center; gap: 16px; }
   .evolution-arrow { font-size: 18px; }
 }
