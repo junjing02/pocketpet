@@ -1,4 +1,4 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js";
 import * as db from "./supabase.js";
 
 const HOUR = 3600000;
@@ -281,7 +281,7 @@ function renderPuppy(pet, eyesOpen) {
   const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
   const host = $("pet-screen");
   host.style.setProperty("--grid-size", GRID_SIZE);
-  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[pet.life_stage] || STAGE_DOT_SIZE.egg}px`);
+  host.style.setProperty("--dot-size", `${DOT_SIZE}px`);
   // Species stays a surprise until it hatches — the egg shape is shared, so
   // don't leak a species-specific shade before there's a species to reveal.
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");

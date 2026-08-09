@@ -1,9 +1,10 @@
-import { buildBitmap, GRID_SIZE, STAGE_ORDER, STAGE_DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
+import { buildBitmap, GRID_SIZE, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
 const device = host.parentElement;
 host.style.setProperty("--grid-size", GRID_SIZE);
+host.style.setProperty("--dot-size", `${DOT_SIZE}px`);
 
 function placeRandomly() {
   const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
@@ -18,7 +19,6 @@ function centerHost() {
 }
 
 function showStage(stage, species) {
-  host.style.setProperty("--dot-size", `${STAGE_DOT_SIZE[stage]}px`);
   host.style.setProperty("--dot-color", STAGE_SHADE[stage]);
   const bitmap = buildBitmap(stage, { species, eyesOpen: true });
   let html = "";

@@ -7,10 +7,14 @@ export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
 export const STAGE_ORDER = ["egg", "hatchling", "young", "teen", "juvenile", "adult"];
-// Scaled down from the original 3-7.5px range — the outline is always
-// exactly 1 dot wide, so shrinking every dot shrinks its absolute on-screen
-// thickness too, without touching the outline algorithm itself.
-export const STAGE_DOT_SIZE = { egg: 2.4, hatchling: 2.7, young: 3.5, teen: 4.3, juvenile: 5, adult: 5.8 };
+// One fixed dot size for every stage, not a per-stage lookup — the outline
+// is always exactly 1 dot wide, so if dot size grew with the stage (like it
+// used to), the outline's absolute thickness grew right along with it,
+// making the border look thin on a hatchling and chunky on an adult. Growth
+// now comes entirely from each stage's silhouette using more cells (a
+// hatchling is ~9 wide, an adult ~23 — plenty of size difference on its
+// own), so the outline stroke stays the same width at every stage.
+export const DOT_SIZE = 5;
 export const STAGE_SHADE = {
   egg: "#f0f0f0",
   hatchling: "#e8e8e8",
