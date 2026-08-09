@@ -304,6 +304,8 @@ button:disabled:active { transform: none; }
 
 .modal-box {
   width: min(300px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
