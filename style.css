@@ -141,10 +141,22 @@ button:disabled:active { transform: none; }
   opacity: 0;
   transition: opacity 0.15s ease 0s;
 }
-[data-tooltip]:hover::after,
 [data-tooltip]:focus-visible::after {
   opacity: 1;
   transition: opacity 0.15s ease 1s;
+}
+/* Real hover only — on touch, tapping a button shouldn't count as "hovering"
+   it, or the tooltip pops immediately (and sticks, since touch has no
+   hover-exit). Touch gets its own hold-to-reveal handling below instead. */
+@media (hover: hover) and (pointer: fine) {
+  [data-tooltip]:hover::after {
+    opacity: 1;
+    transition: opacity 0.15s ease 1s;
+  }
+}
+[data-tooltip].tooltip--held::after {
+  opacity: 1;
+  transition: none;
 }
 
 .topbar {

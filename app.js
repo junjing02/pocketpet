@@ -748,6 +748,63 @@ async function runPlayGame(game) {
   }
 }
 
+const TOOLTIP_HOLD_MS = 550; // long enough to tell apart from a normal tap
+
+// Touch has no hover, so `[data-tooltip]:hover` either fires instantly on
+// tap or gets stuck on (no hover-exit event) — CSS scopes hover to real
+// pointers only (see style.css), and this gives touch its own hold-to-reveal
+// gesture: hold past TOOLTIP_HOLD_MS to peek the tooltip, release early for
+// a normal tap. A long-press that reveals the tooltip also swallows the
+// resulting click, so peeking doesn't accidentally trigger the action too.
+function wireTooltipTouch() {
+  const MOVE_TOLERANCE_PX = 12; // small jitter while holding still shouldn't cancel it
+  let timer = null;
+  let heldEl = null;
+  let suppressClick = false;
+  let startX = 0;
+  let startY = 0;
+
+  function cancel(e) {
+    clearTimeout(timer);
+    if (heldEl) {
+      if (suppressClick && e.type === "touchend") e.preventDefault();
+      heldEl.classList.remove("tooltip--held");
+    }
+    heldEl = null;
+    suppressClick = false;
+  }
+
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      const el = e.target.closest("[data-tooltip]");
+      if (!el) return;
+      heldEl = el;
+      suppressClick = false;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      timer = setTimeout(() => {
+        suppressClick = true;
+        el.classList.add("tooltip--held");
+      }, TOOLTIP_HOLD_MS);
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!heldEl) return;
+      const touch = e.touches[0];
+      const moved = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+      if (moved > MOVE_TOLERANCE_PX) cancel(e);
+    },
+    { passive: true }
+  );
+  document.addEventListener("touchend", cancel);
+  document.addEventListener("touchcancel", cancel);
+}
+
 function wireActions() {
   $("btn-buy-food").textContent = `Buy Snack (${SNACK_PRICE})`;
   $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
@@ -1134,6 +1191,7 @@ function wireAuth() {
 async function init() {
   wireAuth();
   wireActions();
+  wireTooltipTouch();
   screen("auth");
 
   if (!db.isConfigured) {
