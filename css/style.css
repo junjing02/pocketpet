@@ -574,6 +574,11 @@ button:disabled:active { transform: none; }
 
 .pet-picker-select { flex: none; width: auto; font-size: 9px; padding: 8px 10px; }
 
+/* Rename/Reset/Release all act on the active pet, so they sit side by side
+   as one compact row instead of 3 full-width stacked buttons. */
+.pet-picker-manage-row { display: flex; gap: 8px; }
+.pet-picker-manage-row button { font-size: 10px; padding: 8px 6px; }
+
 .timing-track {
   position: relative;
   width: 80%;

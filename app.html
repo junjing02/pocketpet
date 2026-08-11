@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PocketPet</title>
-  <link rel="stylesheet" href="css/style.css?v=8" />
+  <link rel="stylesheet" href="css/style.css?v=9" />
 </head>
 <body>
   <main class="shell">
@@ -205,16 +205,18 @@
 
       <div id="pet-picker-menu" class="stack settings-actions">
         <button type="button" id="btn-hatch-another" class="ghost">Hatch New Pet</button>
-        <button type="button" id="btn-rename-pet" class="ghost">Rename</button>
-        <button type="button" id="btn-reset-pet" class="danger">Reset</button>
-        <button type="button" id="btn-release-pet" class="danger"
-          data-tooltip="Give your active pet to a new home, freeing up a slot">Release</button>
+        <div class="pet-picker-manage-row">
+          <button type="button" id="btn-rename-pet" class="ghost">Rename</button>
+          <button type="button" id="btn-reset-pet" class="danger">Reset</button>
+          <button type="button" id="btn-release-pet" class="danger"
+            data-tooltip="Give your active pet to a new home, freeing up a slot">Release</button>
+        </div>
         <button type="button" id="btn-picker-back" class="ghost">Back</button>
       </div>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=8"></script>
+  <script type="module" src="js/app.js?v=9"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=8";
-import * as db from "./supabase.js?v=8";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=9";
+import * as db from "./supabase.js?v=9";
 
 const HOUR = 3600000;
 
