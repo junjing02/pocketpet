@@ -535,11 +535,25 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     }
   }
 
-  if (profile.eyes && eyesOpen) {
-    for (const dr of profile.eyes.rows || [0]) {
-      const row = profile.startRow + profile.eyes.rowOffset + dr;
-      setDot(grid, row, CX - profile.eyes.colOffset, 2);
-      setDot(grid, row, CX + profile.eyes.colOffset, 2);
+  if (profile.eyes) {
+    const rows = profile.eyes.rows || [0];
+    if (eyesOpen) {
+      for (const dr of rows) {
+        const row = profile.startRow + profile.eyes.rowOffset + dr;
+        setDot(grid, row, CX - profile.eyes.colOffset, 2);
+        setDot(grid, row, CX + profile.eyes.colOffset, 2);
+      }
+    } else {
+      // Closed eyes read as a short "-" dash (a closed eyelid crease)
+      // instead of just vanishing — centered on the open eye's own row.
+      // Capped so the two dashes never meet in the middle when the eyes
+      // themselves sit close together.
+      const halfDash = Math.min(1, profile.eyes.colOffset - 1);
+      const row = profile.startRow + profile.eyes.rowOffset + rows[Math.floor((rows.length - 1) / 2)];
+      for (const side of [-1, 1]) {
+        const cx = CX + side * profile.eyes.colOffset;
+        for (let off = -halfDash; off <= halfDash; off++) setDot(grid, row, cx + off, 2);
+      }
     }
   }
 
