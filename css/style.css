@@ -532,24 +532,26 @@ button:disabled:active { transform: none; }
 .bar { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--fg); width: 100%; transition: width 0.3s; }
 
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 .actions button { min-width: 70px; }
 
-/* Native color swatch — sized to match the icon buttons rather than
-   stretching to fill the row like the buttons beside it. */
+/* Native color swatch, styled to match the app's existing small circular
+   icon-button pattern (see .icon-btn) instead of introducing a new, bigger
+   square shape that doesn't match anything else on screen. */
 #bow-color-picker {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 50%;
+  overflow: hidden;
   background: none;
   cursor: pointer;
 }
-#bow-color-picker::-webkit-color-swatch-wrapper { padding: 2px; }
-#bow-color-picker::-webkit-color-swatch { border: none; border-radius: 3px; }
-#bow-color-picker::-moz-color-swatch { border: none; border-radius: 3px; }
+#bow-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+#bow-color-picker::-webkit-color-swatch { border: none; }
+#bow-color-picker::-moz-color-swatch { border: none; }
 
 .play-btn {
   display: block;
