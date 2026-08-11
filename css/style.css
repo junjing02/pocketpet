@@ -238,16 +238,10 @@ button:disabled:active { transform: none; }
   transform: translateX(-50%);
 }
 
-/* Playground decorations, independent of the sprite grid: bed appears only
-   while the pet sleeps, bowl flashes briefly after feeding, toy is a fixed
-   decoration. All three sit behind #pet-screen in paint order (they come
-   first in the HTML, and share the same default stacking). */
-.pet-bed {
-  position: absolute;
-  background: var(--track);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
+/* Playground decorations, independent of the sprite grid: bowl flashes
+   briefly after feeding, toy is a fixed decoration. Both sit behind
+   #pet-screen in paint order (they come first in the HTML, and share the
+   same default stacking). */
 .pet-bowl {
   position: absolute;
   width: 16px;

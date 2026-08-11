@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=20";
-import * as db from "./supabase.js?v=20";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=20";
+} from "./pet-sprites.js?v=21";
+import * as db from "./supabase.js?v=21";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=21";
 
 const HOUR = 3600000;
 
@@ -569,28 +569,6 @@ async function persist() {
   currentPet = await db.savePet(currentPet);
 }
 
-// Sits under the pet only while it's sleeping — sized and positioned off the
-// pet's own (already-trimmed) box, so it fits any species/stage without
-// needing per-sprite tuning. The pet doesn't wander while asleep, so a
-// static overlay tracking its current spot is enough, no transition needed.
-const BED_PAD_X = 10;
-const BED_PAD_TOP = 4;
-const BED_PAD_BOTTOM = 10;
-
-function positionBed(pet) {
-  const bed = $("pet-bed");
-  if (!pet || pet.life_stage === "egg" || !pet.is_sleeping) {
-    bed.hidden = true;
-    return;
-  }
-  const host = $("pet-screen");
-  bed.style.left = `${host.offsetLeft - BED_PAD_X}px`;
-  bed.style.top = `${host.offsetTop - BED_PAD_TOP}px`;
-  bed.style.width = `${host.offsetWidth + BED_PAD_X * 2}px`;
-  bed.style.height = `${host.offsetHeight + BED_PAD_TOP + BED_PAD_BOTTOM}px`;
-  bed.hidden = false;
-}
-
 const BOWL_SHOW_MS = 1800;
 const BOWL_FADE_MS = 300;
 const BOWL_WIDTH = 16; // matches .pet-bowl's CSS width — can't read offsetWidth while hidden
@@ -619,7 +597,6 @@ function showFoodBowl() {
 function render() {
   renderPuppy(currentPet, eyesOpen);
   renderStats(currentPet);
-  positionBed(currentPet);
   checkNotifications(currentPet);
 }
 

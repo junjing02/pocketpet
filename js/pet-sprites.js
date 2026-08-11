@@ -53,11 +53,13 @@ export const STAGE_WANDER_INTERVAL_MS = {
 // same egg shape (no spoilers) and only diverges starting at hatchling. Each
 // is a genuinely different silhouette, not a palette swap: different size,
 // proportions, and features across all 5 post-egg stages.
-export const SPECIES = ["bird", "bunny", "turtle"];
+export const SPECIES = ["bird", "bunny", "turtle", "cat", "hedgehog"];
 export const SPECIES_SHADE = {
   bird: "#e2e2e2",
   bunny: "#eeeeee",
   turtle: "#d0d0d0",
+  cat: "#e6e0d8",
+  hedgehog: "#dcd4c8",
 };
 
 export function pickRandomSpecies() {
@@ -308,7 +310,168 @@ const TURTLE_PROFILES = {
   },
 };
 
-const SPECIES_PROFILES = { bird: BIRD_PROFILES, bunny: BUNNY_PROFILES, turtle: TURTLE_PROFILES };
+// Cat: pointy triangular ears (unlike bunny's tall straight ones), whiskers-
+// free simple face, and a tail that curls at the tip by adulthood.
+const CAT_PROFILES = {
+  hatchling: {
+    startRow: 10,
+    halfWidths: [2, 3, 4, 4, 3, 2],
+    eyes: { rowOffset: 1, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
+  },
+  young: {
+    startRow: 7,
+    halfWidths: [1, 3, 4, 5, 5, 5, 4, 3],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    features: [
+      { rowOffset: -1, colOffsets: [-4, -3, 3, 4] }, // ear base
+      { rowOffset: -2, colOffsets: [-3, 4] }, // ear tip, leaning in
+      { rowOffset: 3, colOffsets: [-6] }, // tail
+    ],
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 8, colOffsets: [-2, 1] }],
+      [{ rowOffset: 8, colOffsets: [-1, 2] }],
+    ],
+  },
+  teen: {
+    startRow: 5,
+    halfWidths: [1, 3, 4, 5, 6, 6, 6, 5, 4],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    features: [
+      { rowOffset: -1, colOffsets: [-5, -4, 4, 5] },
+      { rowOffset: -2, colOffsets: [-4, 5] },
+      { rowOffset: -3, colOffsets: [-4, 5] },
+      { rowOffset: 4, colOffsets: [-7] },
+    ],
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 9, colOffsets: [-2, 1] }],
+      [{ rowOffset: 9, colOffsets: [-1, 2] }],
+    ],
+  },
+  juvenile: {
+    startRow: 4,
+    halfWidths: [2, 4, 6, 7, 8, 8, 8, 7, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    features: [
+      { rowOffset: -1, colOffsets: [-6, -5, 5, 6] },
+      { rowOffset: -2, colOffsets: [-6, -5, 5, 6] },
+      { rowOffset: -3, colOffsets: [-5, 6] },
+      { rowOffset: 5, colOffsets: [-9] },
+    ],
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 10, colOffsets: [-3, 2] }],
+      [{ rowOffset: 10, colOffsets: [-2, 3] }],
+    ],
+  },
+  adult: {
+    startRow: 4,
+    halfWidths: [2, 5, 7, 8, 9, 9, 9, 9, 8, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    features: [
+      { rowOffset: -1, colOffsets: [-7, -6, 6, 7] },
+      { rowOffset: -2, colOffsets: [-7, -6, 6, 7] },
+      { rowOffset: -3, colOffsets: [-6, 7] },
+      { rowOffset: -4, colOffsets: [-6, 7] },
+      { rowOffset: 6, colOffsets: [11, 12] }, // curled tail tip
+    ],
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 11, colOffsets: [-4, 3] }],
+      [{ rowOffset: 11, colOffsets: [-3, 4] }],
+    ],
+    sparkle: { rowOffset: 0, colOffsets: [8] },
+  },
+};
+
+// Hedgehog: a row of small staggered spikes along the back is what reads as
+// "hedgehog" — a single flat row of spikes gets bridged solid by the
+// outline dilation, so they're built two rows deep with alternating columns
+// to keep visible gaps between points.
+function hedgehogSpikes(row, halfSpan, count) {
+  const cols = count <= 1 ? [0] : Array.from({ length: count }, (_, i) => Math.round(-halfSpan + ((2 * halfSpan) / (count - 1)) * i));
+  return [
+    { rowOffset: row - 1, colOffsets: cols.filter((_, i) => i % 2 === 0) },
+    { rowOffset: row - 1, colOffsets: cols.filter((_, i) => i % 2 === 1) },
+    { rowOffset: row, colOffsets: cols },
+  ];
+}
+
+const HEDGEHOG_PROFILES = {
+  hatchling: {
+    startRow: 10,
+    halfWidths: [2, 3, 4, 4, 3, 2],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    features: hedgehogSpikes(-1, 3, 3),
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+  },
+  young: {
+    startRow: 7,
+    halfWidths: [1, 3, 4, 5, 5, 5, 4, 3],
+    eyes: { rowOffset: 3, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    features: [...hedgehogSpikes(-1, 4, 5), { rowOffset: 2, colOffsets: [-6, 6] }],
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 8, colOffsets: [-2, 1] }],
+      [{ rowOffset: 8, colOffsets: [-1, 2] }],
+    ],
+  },
+  teen: {
+    startRow: 5,
+    halfWidths: [1, 3, 4, 5, 6, 6, 6, 5, 4],
+    eyes: { rowOffset: 3, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    features: [...hedgehogSpikes(-1, 5, 6), { rowOffset: 2, colOffsets: [-7, 7] }],
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 9, colOffsets: [-2, 1] }],
+      [{ rowOffset: 9, colOffsets: [-1, 2] }],
+    ],
+  },
+  juvenile: {
+    startRow: 4,
+    halfWidths: [2, 4, 6, 7, 8, 8, 8, 7, 6, 4],
+    eyes: { rowOffset: 3, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 6, colOffsets: [0] },
+    features: [...hedgehogSpikes(-1, 7, 7), { rowOffset: 3, colOffsets: [-9, 9] }],
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 10, colOffsets: [-3, 2] }],
+      [{ rowOffset: 10, colOffsets: [-2, 3] }],
+    ],
+  },
+  adult: {
+    startRow: 4,
+    halfWidths: [2, 5, 7, 8, 9, 9, 9, 9, 8, 6, 4],
+    eyes: { rowOffset: 3, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 6, colOffsets: [0] },
+    features: [...hedgehogSpikes(-1, 8, 8), { rowOffset: 3, colOffsets: [-10, 10] }],
+    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+    limbFrames: [
+      [{ rowOffset: 11, colOffsets: [-4, 3] }],
+      [{ rowOffset: 11, colOffsets: [-3, 4] }],
+    ],
+    sparkle: { rowOffset: 0, colOffsets: [8] },
+  },
+};
+
+const SPECIES_PROFILES = {
+  bird: BIRD_PROFILES,
+  bunny: BUNNY_PROFILES,
+  turtle: TURTLE_PROFILES,
+  cat: CAT_PROFILES,
+  hedgehog: HEDGEHOG_PROFILES,
+};
 
 function emptyGrid() {
   return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
