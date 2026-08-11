@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=23";
-import * as db from "./supabase.js?v=23";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=23";
+} from "./pet-sprites.js?v=24";
+import * as db from "./supabase.js?v=24";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=24";
 
 const HOUR = 3600000;
 
