@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=17";
-import * as db from "./supabase.js?v=17";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=17";
+} from "./pet-sprites.js?v=18";
+import * as db from "./supabase.js?v=18";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=18";
 
 const HOUR = 3600000;
 
@@ -34,7 +34,6 @@ const SLEEP_DECAY_MULTIPLIER = 0.5;
 const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
-const SUNGLASSES_PRICE = 30;
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
@@ -111,7 +110,6 @@ export function createInitialPet(name) {
     last_login_date: null,
     login_streak: 0,
     has_bow: false,
-    has_sunglasses: false,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -233,13 +231,6 @@ export function buyBow(pet) {
   return pet;
 }
 
-export function buySunglasses(pet) {
-  if (pet.has_sunglasses || pet.coins < SUNGLASSES_PRICE) return pet;
-  pet.coins -= SUNGLASSES_PRICE;
-  pet.has_sunglasses = true;
-  return pet;
-}
-
 export function play(pet) {
   if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
@@ -358,7 +349,6 @@ function renderPuppy(pet, eyesOpen) {
     frame,
     variant: petVariant(pet),
     hasBow: pet.has_bow,
-    hasSunglasses: pet.has_sunglasses,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -435,8 +425,6 @@ function renderStats(pet) {
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
   $("btn-buy-bow").disabled = pet.has_bow || pet.coins < BOW_PRICE;
   $("btn-buy-bow").textContent = pet.has_bow ? "Bow Owned" : `Buy Bow (${BOW_PRICE})`;
-  $("btn-buy-sunglasses").disabled = pet.has_sunglasses || pet.coins < SUNGLASSES_PRICE;
-  $("btn-buy-sunglasses").textContent = pet.has_sunglasses ? "Sunglasses Owned" : `Buy Sunglasses (${SUNGLASSES_PRICE})`;
 }
 
 function renderAchievements(pet) {
@@ -472,7 +460,6 @@ function miniSpriteHtml(pet) {
     eyesOpen: true,
     variant: petVariant(pet),
     hasBow: pet.has_bow,
-    hasSunglasses: pet.has_sunglasses,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
@@ -1090,7 +1077,6 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
-  $("btn-buy-sunglasses").dataset.tooltip = "Cosmetic only, no stat effect";
 
   $("btn-feed").addEventListener("click", () => {
     runAction(feed, { sound: "feed" });
@@ -1117,7 +1103,6 @@ function wireActions() {
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false, sound: "coin" }));
   $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false, sound: "coin" }));
-  $("btn-buy-sunglasses").addEventListener("click", () => runAction(buySunglasses, { bounce: false, sound: "coin" }));
 
   wireDragPet();
   $("pet-device").addEventListener("click", (e) => {

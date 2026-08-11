@@ -123,7 +123,6 @@ export async function savePet(pet) {
       last_login_date: pet.last_login_date,
       login_streak: pet.login_streak,
       has_bow: pet.has_bow,
-      has_sunglasses: pet.has_sunglasses,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

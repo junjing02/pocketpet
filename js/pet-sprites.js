@@ -289,7 +289,7 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasSunglasses = false } = {}) {
+export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false } = {}) {
   const profile = stage === "egg" ? EGG_PROFILE : (SPECIES_PROFILES[species] || BIRD_PROFILES)[stage] || EGG_PROFILE;
   const grid = emptyGrid();
 
@@ -326,16 +326,7 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     }
   }
 
-  // Sunglasses are derived from each stage's existing eye position rather
-  // than hand-placed per species/stage — a solid bar spanning past both eyes
-  // at the eyes' own row, one dot wider on each side for a "frame". Drawn
-  // regardless of eyesOpen (glasses don't blink) and replaces the plain eye
-  // dots entirely when worn.
-  if (profile.eyes && hasSunglasses) {
-    const row = profile.startRow + profile.eyes.rowOffset;
-    const halfSpan = profile.eyes.colOffset + 1;
-    for (let off = -halfSpan; off <= halfSpan; off++) setDot(grid, row, CX + off, 2);
-  } else if (profile.eyes && eyesOpen) {
+  if (profile.eyes && eyesOpen) {
     const row = profile.startRow + profile.eyes.rowOffset;
     setDot(grid, row, CX - profile.eyes.colOffset, 2);
     setDot(grid, row, CX + profile.eyes.colOffset, 2);
