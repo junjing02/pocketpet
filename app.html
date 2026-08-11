@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PocketPet</title>
-  <link rel="stylesheet" href="css/style.css?v=9" />
+  <link rel="stylesheet" href="css/style.css?v=10" />
 </head>
 <body>
   <main class="shell">
@@ -61,18 +61,13 @@
         <div class="modal-box">
           <p class="modal-title">How to Play</p>
           <div class="help-panel">
-            <div class="help-row"><b>Egg</b><span>Just needs time to hatch, no feeding, playing, or sleeping yet.</span></div>
-            <div class="help-row"><b>Care</b><span>Feed, Play, and Clean keep Hunger, Happy, and Clean above 0. Sleep restores Energy.</span></div>
-            <div class="help-row"><b>Playground</b><span>Tap your pet to poke it, tap empty space to send it walking there, or drag it anywhere directly.</span></div>
-            <div class="help-row"><b>Health</b><span>Drops only from neglect, and recovers on its own once every stat is above 0 again.</span></div>
-            <div class="help-row"><b>Sick</b><span>Health hitting 0 makes your pet sick (shown by a queasy swelling look, and it barely wanders on its own). That needs Medicine, care alone won't cure it.</span></div>
-            <div class="help-row"><b>Needs a hand</b><span>Any stat at 20 or below shows on the pet itself (shaking when hungry, drooping when sad, itching when dirty, nodding off when tired), so you don't have to watch the bars. Too tired also means it won't wander or walk anywhere on its own, though you can still drag it around.</span></div>
-            <div class="help-row"><b>Economy</b><span>Food is limited. Play opens a mini-game that earns coins to spend on Snacks, Meals, or a cosmetic Bow (no stat effect, just looks nice).</span></div>
-            <div class="help-row"><b>Growing up</b><span>Health 50+ and enough time passed evolves: egg → hatchling → young → teen → juvenile → adult. Each stage looks completely different.</span></div>
-            <div class="help-row"><b>Surprise egg</b><span>Every egg looks the same. You won't know which creature you got until it hatches.</span></div>
-            <div class="help-row"><b>Daily bonus</b><span>Log in on consecutive days for a growing coin bonus, shown in the away-time recap.</span></div>
-            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 pets from the ⇄ icon. Switch which one's active there, or rename/reset/release whichever one is currently active to free up a slot for a new surprise egg.</span></div>
-            <div class="help-row"><b>Settings</b><span>Change password, view Achievements, or enable low-stat notifications from the gear icon.</span></div>
+            <div class="help-row"><b>Growing up</b><span>Hatch a surprise egg and raise it through 6 stages. Health 50+ is needed to evolve.</span></div>
+            <div class="help-row"><b>Care</b><span>Feed, Play, Clean, and Sleep keep your pet's stats up. Neglect drops Health, and hitting 0 makes it sick (needs Medicine).</span></div>
+            <div class="help-row"><b>Needs a hand</b><span>Low stats show right on the pet: shaking, itching, drooping, or too tired to move, so you don't have to watch the bars.</span></div>
+            <div class="help-row"><b>Playground</b><span>Tap to poke it, tap elsewhere to call it over, or drag it around.</span></div>
+            <div class="help-row"><b>Economy</b><span>Play mini-games for coins. Spend them on food or a cosmetic Bow.</span></div>
+            <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 from the ⇄ icon. Switch, rename, reset, or release one there.</span></div>
+            <div class="help-row"><b>Daily bonus</b><span>Log in daily for a growing coin bonus.</span></div>
           </div>
           <button type="button" id="btn-help-close" class="ghost">Close</button>
         </div>
@@ -149,7 +144,10 @@
     </section>
 
     <section class="screen" data-screen="settings" hidden>
-      <h2 class="section-title">Settings</h2>
+      <div class="screen-header">
+        <h2 class="section-title">Settings</h2>
+        <button type="button" id="btn-settings-back" class="icon-btn" aria-label="Close">✕</button>
+      </div>
 
       <p class="account-line">Signed in as <b id="account-email"></b></p>
 
@@ -178,7 +176,6 @@
 
       <div id="settings-bottom-actions" class="stack settings-actions">
         <button type="button" id="btn-signout">Sign Out</button>
-        <button type="button" id="btn-settings-back" class="ghost">Back</button>
       </div>
     </section>
 
@@ -193,7 +190,10 @@
     </section>
 
     <section class="screen" data-screen="pet-picker" hidden>
-      <h2 class="section-title">Your Pets</h2>
+      <div class="screen-header">
+        <h2 class="section-title">Your Pets</h2>
+        <button type="button" id="btn-picker-back" class="icon-btn" aria-label="Close">✕</button>
+      </div>
 
       <div id="pet-picker-list"></div>
 
@@ -211,12 +211,11 @@
           <button type="button" id="btn-release-pet" class="danger"
             data-tooltip="Give your active pet to a new home, freeing up a slot">Release</button>
         </div>
-        <button type="button" id="btn-picker-back" class="ghost">Back</button>
       </div>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=9"></script>
+  <script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>
