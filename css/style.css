@@ -238,10 +238,9 @@ button:disabled:active { transform: none; }
   transform: translateX(-50%);
 }
 
-/* Playground decorations, independent of the sprite grid: bowl flashes
-   briefly after feeding, toy is a fixed decoration. Both sit behind
-   #pet-screen in paint order (they come first in the HTML, and share the
-   same default stacking). */
+/* A little dish that flashes briefly after feeding — sits behind #pet-screen
+   in paint order (it comes first in the HTML, and shares the same default
+   stacking). */
 .pet-bowl {
   position: absolute;
   width: 16px;
@@ -253,16 +252,6 @@ button:disabled:active { transform: none; }
   transition: opacity 0.3s ease;
 }
 .pet-bowl--fade { opacity: 0; }
-.pet-toy {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--track);
-  border: 1px solid var(--line);
-}
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
@@ -422,6 +411,7 @@ button:disabled:active { transform: none; }
 .dot--body { background: var(--dot-color, #e6e6e6); }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
+.dot--bow { background: #d1477a; }
 
 .pet-status {
   text-align: center;

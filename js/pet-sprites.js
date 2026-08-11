@@ -1,8 +1,10 @@
 // Hand-tuned pixel-dot sprites — no image assets, just an on/off grid.
-// grid values: 0 = off, 1 = fill dot, 2 = eye/sparkle/bow dot, 3 = outline dot
-// (outline is a 1px black ring computed by dilating the silhouette outward —
-// see buildBitmap — so fill stays a light tint and the outline reads as the
-// bold black line of a low-res, limited-palette pixel-art sprite.)
+// grid values: 0 = off, 1 = fill dot, 2 = eye/sparkle dot, 3 = outline dot,
+// 4 = bow dot (its own color, so it actually stands out instead of blending
+// in as 2 plain black dots) (outline is a 1px black ring computed by
+// dilating the silhouette outward — see buildBitmap — so fill stays a light
+// tint and the outline reads as the bold black line of a low-res,
+// limited-palette pixel-art sprite.)
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -507,8 +509,13 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
   }
 
   if (profile.bow && hasBow) {
+    // A small flared ribbon — a narrow knot row above a wider wing row —
+    // instead of 2 isolated dots, so it actually reads as a bow. Every
+    // profile's bow.colOffsets was just [-1, 1], so the shape is fixed here
+    // rather than duplicated per species/stage.
     const row = profile.startRow + profile.bow.rowOffset;
-    for (const off of profile.bow.colOffsets) setDot(grid, row, CX + off, 2);
+    for (const off of [-1, 1]) setDot(grid, row - 1, CX + off, 4);
+    for (const off of [-2, -1, 0, 1, 2]) setDot(grid, row, CX + off, 4);
   }
 
   if (profile.mouth) {
@@ -607,7 +614,7 @@ function outlineSilhouette(grid) {
           const r = row + dr;
           const c = col + dc;
           if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) continue;
-          if (grid[r][c] === 1 || grid[r][c] === 2) {
+          if (grid[r][c] === 1 || grid[r][c] === 2 || grid[r][c] === 4) {
             touchesBody = true;
             break;
           }

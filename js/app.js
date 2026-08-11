@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=25";
-import * as db from "./supabase.js?v=25";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=25";
+} from "./pet-sprites.js?v=26";
+import * as db from "./supabase.js?v=26";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=26";
 
 const HOUR = 3600000;
 
@@ -110,6 +110,7 @@ export function createInitialPet(name) {
     last_login_date: null,
     login_streak: 0,
     has_bow: false,
+    bow_worn: false,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -228,6 +229,13 @@ export function buyBow(pet) {
   if (pet.has_bow || pet.coins < BOW_PRICE) return pet;
   pet.coins -= BOW_PRICE;
   pet.has_bow = true;
+  pet.bow_worn = true; // wear it right away so the purchase is immediately visible
+  return pet;
+}
+
+export function toggleBow(pet) {
+  if (!pet.has_bow) return pet;
+  pet.bow_worn = !pet.bow_worn;
   return pet;
 }
 
@@ -359,7 +367,7 @@ function renderPuppy(pet, eyesOpen) {
     eyesOpen,
     frame,
     variant: petVariant(pet),
-    hasBow: pet.has_bow,
+    hasBow: pet.has_bow && pet.bow_worn,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -377,7 +385,7 @@ function renderPuppy(pet, eyesOpen) {
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
     }
   }
   host.innerHTML = html;
@@ -434,8 +442,13 @@ function renderStats(pet) {
   $("btn-medicine").disabled = pet.is_sleeping;
   $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
-  $("btn-buy-bow").disabled = pet.has_bow || pet.coins < BOW_PRICE;
-  $("btn-buy-bow").textContent = pet.has_bow ? "Bow Owned" : `Buy Bow (${BOW_PRICE})`;
+  if (pet.has_bow) {
+    $("btn-buy-bow").disabled = false;
+    $("btn-buy-bow").textContent = pet.bow_worn ? "Take Off Bow" : "Put On Bow";
+  } else {
+    $("btn-buy-bow").disabled = pet.coins < BOW_PRICE;
+    $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
+  }
 }
 
 function renderAchievements(pet) {
@@ -470,13 +483,13 @@ function miniSpriteHtml(pet) {
     species: speciesOf(pet),
     eyesOpen: true,
     variant: petVariant(pet),
-    hasBow: pet.has_bow,
+    hasBow: pet.has_bow && pet.bow_worn,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
     }
   }
   return { html, width };
@@ -1111,7 +1124,10 @@ function wireActions() {
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine, { sound: "medicine" }));
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false, sound: "coin" }));
-  $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false, sound: "coin" }));
+  $("btn-buy-bow").addEventListener("click", () => {
+    if (currentPet.has_bow) runAction(toggleBow, { bounce: false, sound: "poke" });
+    else runAction(buyBow, { bounce: false, sound: "coin" });
+  });
 
   wireDragPet();
   $("pet-device").addEventListener("click", (e) => {
