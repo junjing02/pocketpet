@@ -69,212 +69,242 @@ const EGG_PROFILE = {
   halfWidths: [1, 3, 4, 5, 6, 6, 6, 6, 6, 5, 4, 3, 1],
 };
 
-// Bird: a wet-looking featureless hatchling, a round fluffy young bird, a
-// gawky tall teen with lopsided wing stubs, a proportionate juvenile growing
-// real wings, and a full majestic adult with a fanned tail.
+// Bird: round and chick-like at every stage — big two-dot eyes, a stub
+// beak, a single wispy tuft feather, and wings that grow in and flap
+// (animFrames) as it ages, with a fanned tail by adulthood.
 const BIRD_PROFILES = {
   hatchling: {
     startRow: 10,
-    halfWidths: [1, 2, 3, 3, 2, 1],
-    eyes: { rowOffset: 2, colOffset: 1 },
+    halfWidths: [2, 3, 4, 4, 3, 2],
+    eyes: { rowOffset: 1, colOffset: 2, rows: [0, 1] },
+    beak: { rowOffset: 6, colOffsets: [-1, 0, 1] },
+    tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
   young: {
-    startRow: 8,
-    halfWidths: [2, 3, 4, 4, 3, 2],
-    eyes: { rowOffset: 1, colOffset: 1 },
+    startRow: 7,
+    halfWidths: [1, 3, 4, 5, 5, 5, 4, 3],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    beak: { rowOffset: 6, colOffsets: [-1, 0] },
+    animFrames: [
+      [{ rowOffset: 4, colOffsets: [-6, 6] }],
+      [{ rowOffset: 3, colOffsets: [-6, 6] }],
+    ],
     limbFrames: [
-      [{ rowOffset: 7, colOffsets: [-2, 1] }],
-      [{ rowOffset: 7, colOffsets: [-1, 2] }],
+      [{ rowOffset: 8, colOffsets: [-2, 1] }],
+      [{ rowOffset: 8, colOffsets: [-1, 2] }],
     ],
   },
   teen: {
-    // Tall/uniform-width column instead of round — the "awkward teenager" shape
-    startRow: 6,
-    halfWidths: [2, 3, 3, 3, 3, 3, 2],
-    eyes: { rowOffset: 1, colOffset: 1 },
-    tuft: { rowOffset: -1, colOffsets: [-1] }, // off-center, scruffy
-    bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    beak: { rowOffset: 7, colOffsets: [0, 1] },
-    features: [
-      { rowOffset: 3, colOffsets: [-5] }, // lopsided wing stub, one side only sticks out here
-      { rowOffset: 4, colOffsets: [6] }, // the other wing stub, different row — asymmetric on purpose
+    startRow: 5,
+    halfWidths: [1, 3, 4, 5, 6, 6, 6, 5, 4],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    beak: { rowOffset: 9, colOffsets: [-1, 0, 1] },
+    tuft: { rowOffset: -2, colOffsets: [0] },
+    bow: { rowOffset: -3, colOffsets: [-1, 1] },
+    animFrames: [
+      [{ rowOffset: 4, colOffsets: [-7, 7] }, { rowOffset: 5, colOffsets: [-7, 7] }],
+      [{ rowOffset: 3, colOffsets: [-7, 7] }, { rowOffset: 4, colOffsets: [-7, 7] }],
     ],
     limbFrames: [
-      [{ rowOffset: 8, colOffsets: [-3, 2] }], // big gangly feet
-      [{ rowOffset: 8, colOffsets: [-2, 3] }],
+      [{ rowOffset: 9, colOffsets: [-2, 1] }],
+      [{ rowOffset: 9, colOffsets: [-1, 2] }],
     ],
   },
   juvenile: {
-    startRow: 5,
-    halfWidths: [3, 5, 6, 6, 6, 5, 3],
-    eyes: { rowOffset: 1, colOffset: 3 },
-    tuft: { rowOffset: -1, colOffsets: [0] },
-    bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    beak: { rowOffset: 7, colOffsets: [-1, 0, 1] },
-    features: [
-      { rowOffset: 2, colOffsets: [-8, 8] }, // real, symmetric wings now
-      { rowOffset: 2, colOffsets: [9] }, // small tail nub
+    startRow: 4,
+    halfWidths: [2, 4, 6, 7, 8, 8, 8, 7, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    beak: { rowOffset: 10, colOffsets: [-1, 0, 1] },
+    tuft: { rowOffset: -2, colOffsets: [0] },
+    bow: { rowOffset: -3, colOffsets: [-1, 1] },
+    animFrames: [
+      [{ rowOffset: 3, colOffsets: [-9, 9] }, { rowOffset: 4, colOffsets: [-10, 10] }],
+      [{ rowOffset: 2, colOffsets: [-9, 9] }, { rowOffset: 3, colOffsets: [-10, 10] }],
     ],
     limbFrames: [
-      [{ rowOffset: 8, colOffsets: [-4, 2] }],
-      [{ rowOffset: 8, colOffsets: [-2, 4] }],
+      [{ rowOffset: 10, colOffsets: [-3, 2] }],
+      [{ rowOffset: 10, colOffsets: [-2, 3] }],
     ],
   },
   adult: {
-    startRow: 5,
-    halfWidths: [3, 5, 7, 7, 7, 7, 5, 3],
-    eyes: { rowOffset: 1, colOffset: 3 },
-    tuft: { rowOffset: -1, colOffsets: [-1, 1] }, // crest
-    bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
+    startRow: 4,
+    halfWidths: [2, 5, 7, 8, 9, 9, 9, 9, 8, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    beak: { rowOffset: 11, colOffsets: [-1, 0, 1] },
+    tuft: { rowOffset: -2, colOffsets: [0] },
+    bow: { rowOffset: -3, colOffsets: [-1, 1] },
     features: [
-      { rowOffset: 3, colOffsets: [-9, 9] }, // full wings
-      { rowOffset: 5, colOffsets: [11] }, // fanned tail feather
+      { rowOffset: 6, colOffsets: [12] }, // fanned tail feather, stays put while wings flap
+    ],
+    animFrames: [
+      [{ rowOffset: 3, colOffsets: [-10, 10] }, { rowOffset: 4, colOffsets: [-11, 11] }],
+      [{ rowOffset: 2, colOffsets: [-10, 10] }, { rowOffset: 3, colOffsets: [-11, 11] }],
     ],
     limbFrames: [
-      [{ rowOffset: 9, colOffsets: [-4, 2] }],
-      [{ rowOffset: 9, colOffsets: [-2, 4] }],
+      [{ rowOffset: 11, colOffsets: [-4, 3] }],
+      [{ rowOffset: 11, colOffsets: [-3, 4] }],
     ],
     // Only drawn when raised with consistently good care (see petVariant() in app.js)
-    sparkle: { rowOffset: 0, colOffsets: [7] },
+    sparkle: { rowOffset: 0, colOffsets: [8] },
   },
 };
 
-// Bunny: round chubby body, no beak, tall ears that grow with every stage,
-// a small tail poof out back — a much wider, softer silhouette than the bird.
+// Bunny: round chubby body, big eyes, a tail poof, and tall ears that grow
+// with every stage and wiggle outward on alternating walk frames.
+function bunnyEars(rowOffset, height, halfSpan) {
+  const upright = [];
+  const wiggle = [];
+  for (let i = 0; i < height; i++) {
+    const row = rowOffset - i;
+    upright.push({ rowOffset: row, colOffsets: [-halfSpan, halfSpan] });
+    const flare = i === 0 ? 1 : 0;
+    wiggle.push({ rowOffset: row, colOffsets: [-halfSpan - flare, halfSpan + flare] });
+  }
+  return [upright, wiggle];
+}
+
 const BUNNY_PROFILES = {
   hatchling: {
     startRow: 10,
-    halfWidths: [1, 2, 3, 3, 2, 1],
-    eyes: { rowOffset: 2, colOffset: 1 },
+    halfWidths: [2, 3, 4, 4, 3, 2],
+    eyes: { rowOffset: 1, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
     features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
-    bow: { rowOffset: -2, colOffsets: [-1, 1] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
   young: {
     startRow: 7,
-    halfWidths: [2, 3, 4, 4, 4, 3, 2],
-    eyes: { rowOffset: 2, colOffset: 2 },
-    features: [
-      { rowOffset: -1, colOffsets: [-3, 3] }, // ear base
-      { rowOffset: -2, colOffsets: [-3, 3] }, // ear tip
-      { rowOffset: 3, colOffsets: [-6] }, // tail poof
-    ],
-    bow: { rowOffset: -3, colOffsets: [-3, 3] },
+    halfWidths: [1, 3, 4, 5, 5, 5, 4, 3],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    animFrames: bunnyEars(-1, 2, 3),
+    features: [{ rowOffset: 3, colOffsets: [-6] }], // tail poof
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 7, colOffsets: [-2, 1] }],
-      [{ rowOffset: 7, colOffsets: [-1, 2] }],
+      [{ rowOffset: 8, colOffsets: [-2, 1] }],
+      [{ rowOffset: 8, colOffsets: [-1, 2] }],
     ],
   },
   teen: {
     startRow: 5,
-    halfWidths: [2, 3, 4, 5, 5, 5, 4, 3, 2],
-    eyes: { rowOffset: 2, colOffset: 2 },
-    features: [
-      { rowOffset: -1, colOffsets: [-4, 4] },
-      { rowOffset: -2, colOffsets: [-4, 4] },
-      { rowOffset: -3, colOffsets: [-4, 4] }, // long, gawky ears
-      { rowOffset: 4, colOffsets: [-7] }, // tail poof
-    ],
-    bow: { rowOffset: -4, colOffsets: [-4, 4] },
+    halfWidths: [1, 3, 4, 5, 6, 6, 6, 5, 4],
+    eyes: { rowOffset: 2, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 4, colOffsets: [0] },
+    animFrames: bunnyEars(-1, 3, 4),
+    features: [{ rowOffset: 4, colOffsets: [-7] }], // tail poof
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 9, colOffsets: [-3, 2] }],
-      [{ rowOffset: 9, colOffsets: [-2, 3] }],
+      [{ rowOffset: 9, colOffsets: [-2, 1] }],
+      [{ rowOffset: 9, colOffsets: [-1, 2] }],
     ],
   },
   juvenile: {
-    startRow: 5,
-    halfWidths: [3, 5, 6, 7, 7, 7, 6, 5, 3],
-    eyes: { rowOffset: 2, colOffset: 4 },
-    features: [
-      { rowOffset: -1, colOffsets: [-5, 5] },
-      { rowOffset: -2, colOffsets: [-5, 5] },
-      { rowOffset: -3, colOffsets: [-5, 5] },
-      { rowOffset: -4, colOffsets: [-5, 5] },
-      { rowOffset: 5, colOffsets: [9] }, // tail poof
-    ],
-    bow: { rowOffset: -5, colOffsets: [-5, 5] },
+    startRow: 4,
+    halfWidths: [2, 4, 6, 7, 8, 8, 8, 7, 6, 4],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    animFrames: bunnyEars(-1, 4, 5),
+    features: [{ rowOffset: 5, colOffsets: [-9] }], // tail poof
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 9, colOffsets: [-4, 3] }],
-      [{ rowOffset: 9, colOffsets: [-3, 4] }],
+      [{ rowOffset: 10, colOffsets: [-3, 2] }],
+      [{ rowOffset: 10, colOffsets: [-2, 3] }],
     ],
   },
   adult: {
-    startRow: 6,
-    halfWidths: [3, 5, 7, 8, 8, 8, 8, 6, 4],
-    eyes: { rowOffset: 2, colOffset: 5 },
-    features: [
-      { rowOffset: -1, colOffsets: [-6, 6] },
-      { rowOffset: -2, colOffsets: [-6, 6] },
-      { rowOffset: -3, colOffsets: [-6, 6] },
-      { rowOffset: -4, colOffsets: [-6, 6] },
-      { rowOffset: -5, colOffsets: [-6, 6] }, // tall, full-grown ears
-      { rowOffset: 6, colOffsets: [10] }, // tail poof
-    ],
-    bow: { rowOffset: -6, colOffsets: [-6, 6] },
+    startRow: 5,
+    halfWidths: [2, 5, 7, 8, 9, 9, 9, 9, 8, 6],
+    eyes: { rowOffset: 2, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 5, colOffsets: [0] },
+    animFrames: bunnyEars(-1, 5, 6),
+    features: [{ rowOffset: 6, colOffsets: [-10] }], // tail poof
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 9, colOffsets: [-5, 4] }],
-      [{ rowOffset: 9, colOffsets: [-4, 5] }],
+      [{ rowOffset: 10, colOffsets: [-4, 3] }],
+      [{ rowOffset: 10, colOffsets: [-3, 4] }],
     ],
     sparkle: { rowOffset: 1, colOffsets: [8] },
   },
 };
 
-// Turtle: wide, flat shell dome with a small head poking out front and
-// stubby legs peeking from under the shell edge — short and broad instead
-// of tall, the opposite proportions of the bird and bunny.
+// Turtle: a wide flat-topped shell with a genuinely rounded head hanging
+// below it — built as a short stack of narrowing/widening rows (not one
+// flat strip) so a visible "neck" separates head from shell, with legs
+// peeking out at the sides.
+function turtleHead(rowOffset, widths) {
+  return widths.map((w, i) => ({ rowOffset: rowOffset + i, colOffsets: rangeSym(w) }));
+}
+
+function rangeSym(halfWidth) {
+  const out = [];
+  for (let off = -halfWidth; off <= halfWidth; off++) out.push(off);
+  return out;
+}
+
 const TURTLE_PROFILES = {
   hatchling: {
     startRow: 11,
-    halfWidths: [2, 4, 4, 2],
-    features: [{ rowOffset: 4, colOffsets: [-2, -1, 0, 1, 2] }], // small head
-    eyes: { rowOffset: 4, colOffset: 1 },
+    halfWidths: [2, 4, 4, 1],
+    features: turtleHead(4, [1, 2, 1]),
+    eyes: { rowOffset: 5, colOffset: 1, rows: [0] },
+    mouth: { rowOffset: 6, colOffsets: [0] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
   },
   young: {
     startRow: 9,
-    halfWidths: [2, 4, 5, 5, 4, 2],
-    features: [
-      { rowOffset: 6, colOffsets: [-3, -2, -1, 0, 1, 2, 3] }, // head pokes out further
-    ],
-    eyes: { rowOffset: 6, colOffset: 1 },
+    halfWidths: [2, 4, 5, 5, 3, 1],
+    features: turtleHead(6, [1, 3, 3, 1]),
+    eyes: { rowOffset: 7, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 9, colOffsets: [0] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 5, colOffsets: [-6, 6] }],
-      [{ rowOffset: 5, colOffsets: [-5, 5] }],
+      [{ rowOffset: 4, colOffsets: [-6, 6] }],
+      [{ rowOffset: 4, colOffsets: [-5, 5] }],
     ],
   },
   teen: {
     startRow: 8,
-    halfWidths: [3, 5, 6, 7, 6, 5, 3],
-    features: [{ rowOffset: 7, colOffsets: [-4, -3, -2, -1, 0, 1, 2, 3, 4] }], // longer head
-    eyes: { rowOffset: 7, colOffset: 2 },
+    halfWidths: [3, 5, 6, 7, 5, 2],
+    features: turtleHead(7, [1, 4, 4, 2]),
+    eyes: { rowOffset: 8, colOffset: 2, rows: [0, 1] },
+    mouth: { rowOffset: 10, colOffsets: [0] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 6, colOffsets: [-8, 8] }],
-      [{ rowOffset: 6, colOffsets: [-7, 9] }],
+      [{ rowOffset: 5, colOffsets: [-8, 8] }],
+      [{ rowOffset: 5, colOffsets: [-7, 9] }],
     ],
   },
   juvenile: {
     startRow: 7,
-    halfWidths: [3, 6, 7, 8, 8, 7, 6, 3],
-    features: [{ rowOffset: 8, colOffsets: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5] }],
-    eyes: { rowOffset: 8, colOffset: 3 },
+    halfWidths: [3, 6, 7, 8, 6, 3],
+    features: turtleHead(7, [2, 5, 5, 2]),
+    eyes: { rowOffset: 8, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 10, colOffsets: [0] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 7, colOffsets: [-9, 9] }],
-      [{ rowOffset: 7, colOffsets: [-8, 10] }],
+      [{ rowOffset: 6, colOffsets: [-9, 9] }],
+      [{ rowOffset: 6, colOffsets: [-8, 10] }],
     ],
   },
   adult: {
     startRow: 6,
-    halfWidths: [3, 7, 9, 10, 10, 10, 9, 7, 3],
-    features: [{ rowOffset: 9, colOffsets: [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6] }], // big head, fully out
-    eyes: { rowOffset: 9, colOffset: 4 },
+    halfWidths: [3, 7, 9, 10, 10, 8, 4],
+    features: turtleHead(8, [2, 6, 6, 3]),
+    eyes: { rowOffset: 9, colOffset: 3, rows: [0, 1] },
+    mouth: { rowOffset: 11, colOffsets: [0] },
+    bow: { rowOffset: -1, colOffsets: [-1, 1] },
     limbFrames: [
-      [{ rowOffset: 8, colOffsets: [-10, 10] }],
-      [{ rowOffset: 8, colOffsets: [-9, 11] }],
+      [{ rowOffset: 7, colOffsets: [-10, 10] }],
+      [{ rowOffset: 7, colOffsets: [-9, 11] }],
     ],
-    sparkle: { rowOffset: 2, colOffsets: [8] },
+    sparkle: { rowOffset: 1, colOffsets: [8] },
   },
 };
 
@@ -318,6 +348,11 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     for (const off of profile.bow.colOffsets) setDot(grid, row, CX + off, 2);
   }
 
+  if (profile.mouth) {
+    const row = profile.startRow + profile.mouth.rowOffset;
+    for (const off of profile.mouth.colOffsets) setDot(grid, row, CX + off, 2);
+  }
+
   if (profile.limbFrames) {
     const limbs = profile.limbFrames[frame % profile.limbFrames.length];
     for (const limb of limbs) {
@@ -326,10 +361,23 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     }
   }
 
+  // Secondary motion beyond the legs (wing flaps, ear wiggles) — same
+  // frame-indexed shape as limbFrames, kept separate since not every
+  // species has something here (turtles just walk).
+  if (profile.animFrames) {
+    const parts = profile.animFrames[frame % profile.animFrames.length];
+    for (const part of parts) {
+      const row = profile.startRow + part.rowOffset;
+      for (const off of part.colOffsets) setDot(grid, row, CX + off, 1);
+    }
+  }
+
   if (profile.eyes && eyesOpen) {
-    const row = profile.startRow + profile.eyes.rowOffset;
-    setDot(grid, row, CX - profile.eyes.colOffset, 2);
-    setDot(grid, row, CX + profile.eyes.colOffset, 2);
+    for (const dr of profile.eyes.rows || [0]) {
+      const row = profile.startRow + profile.eyes.rowOffset + dr;
+      setDot(grid, row, CX - profile.eyes.colOffset, 2);
+      setDot(grid, row, CX + profile.eyes.colOffset, 2);
+    }
   }
 
   if (profile.sparkle && variant === "pristine") {
