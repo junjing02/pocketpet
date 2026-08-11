@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=7";
-import * as db from "./supabase.js?v=7";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=8";
+import * as db from "./supabase.js?v=8";
 
 const HOUR = 3600000;
 
@@ -340,7 +340,7 @@ function renderPuppy(pet, eyesOpen) {
     status.hidden = false;
   } else if (mood) {
     status.textContent = mood.label;
-    status.className = "pet-status pet-status--mood";
+    status.className = `pet-status pet-status--mood ${mood.cls}`;
     status.hidden = false;
   } else {
     status.hidden = true;

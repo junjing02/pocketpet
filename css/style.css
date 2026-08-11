@@ -236,14 +236,20 @@ button:disabled:active { transform: none; }
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
 .pet-screen.pet--sick { animation: sick-swell 2.2s ease-in-out infinite; }
-.pet-screen.pet--sick .dot--body { opacity: 0.5; }
+.pet-screen.pet--sick .dot--body { background: #93a86a; opacity: 0.6; }
 
 /* Unmet-need cues — only one is ever active at a time (see LOW_STAT_MOODS
-   priority in app.js), so they don't need to be combined visually. */
+   priority in app.js), so they don't need to be combined visually. Each
+   also tints the fill a bit (outline/eyes stay solid black regardless) so
+   the *type* of problem reads at a glance, not just that something's off. */
 .pet-screen.pet--hungry { animation: hungry-shake 0.5s ease-in-out infinite; }
+.pet-screen.pet--hungry .dot--body { background: #d99a4e; }
 .pet-screen.pet--tired { animation: tired-nod 2.2s ease-in-out infinite; }
+.pet-screen.pet--tired .dot--body { background: #8d97c9; }
 .pet-screen.pet--dirty { animation: dirty-itch 0.6s ease-in-out infinite; }
+.pet-screen.pet--dirty .dot--body { background: #a3835a; }
 .pet-screen.pet--sad { animation: sad-droop 2.6s ease-in-out infinite; }
+.pet-screen.pet--sad .dot--body { background: #9aa8b8; }
 
 @keyframes bounce {
   0% { transform: translateY(0); }
@@ -366,9 +372,13 @@ button:disabled:active { transform: none; }
   letter-spacing: 0.15em;
   margin: 10px 0 0;
 }
-.pet-status--sick { animation: blink 1s steps(2, jump-none) infinite; }
+.pet-status--sick { animation: blink 1s steps(2, jump-none) infinite; color: #6f8049; }
 .pet-status--sleeping { color: var(--muted); }
 .pet-status--mood { color: var(--muted); }
+.pet-status--mood.pet--hungry { color: #b97a2e; }
+.pet-status--mood.pet--tired { color: #5f68ab; }
+.pet-status--mood.pet--dirty { color: #83612f; }
+.pet-status--mood.pet--sad { color: #6c7c8c; }
 
 @keyframes blink {
   50% { opacity: 0.2; }
