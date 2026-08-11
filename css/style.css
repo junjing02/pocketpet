@@ -238,6 +238,38 @@ button:disabled:active { transform: none; }
   transform: translateX(-50%);
 }
 
+/* Playground decorations, independent of the sprite grid: bed appears only
+   while the pet sleeps, bowl flashes briefly after feeding, toy is a fixed
+   decoration. All three sit behind #pet-screen in paint order (they come
+   first in the HTML, and share the same default stacking). */
+.pet-bed {
+  position: absolute;
+  background: var(--track);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.pet-bowl {
+  position: absolute;
+  width: 16px;
+  height: 9px;
+  background: var(--track);
+  border: 1px solid var(--line);
+  border-radius: 0 0 8px 8px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+.pet-bowl--fade { opacity: 0; }
+.pet-toy {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--track);
+  border: 1px solid var(--line);
+}
+
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
 .pet-screen.pet--sick { animation: sick-swell 2.2s ease-in-out infinite; }

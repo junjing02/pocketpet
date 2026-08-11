@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=15";
-import * as db from "./supabase.js?v=15";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=15";
+} from "./pet-sprites.js?v=16";
+import * as db from "./supabase.js?v=16";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=16";
 
 const HOUR = 3600000;
 
@@ -34,6 +34,7 @@ const SLEEP_DECAY_MULTIPLIER = 0.5;
 const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
+const SUNGLASSES_PRICE = 30;
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
@@ -110,6 +111,7 @@ export function createInitialPet(name) {
     last_login_date: null,
     login_streak: 0,
     has_bow: false,
+    has_sunglasses: false,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -231,6 +233,13 @@ export function buyBow(pet) {
   return pet;
 }
 
+export function buySunglasses(pet) {
+  if (pet.has_sunglasses || pet.coins < SUNGLASSES_PRICE) return pet;
+  pet.coins -= SUNGLASSES_PRICE;
+  pet.has_sunglasses = true;
+  return pet;
+}
+
 export function play(pet) {
   if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
@@ -343,7 +352,14 @@ function movePetTowards(clickX, clickY) {
 
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
-  const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen, frame, variant: petVariant(pet), hasBow: pet.has_bow });
+  const bitmap = buildBitmap(pet.life_stage, {
+    species: speciesOf(pet),
+    eyesOpen,
+    frame,
+    variant: petVariant(pet),
+    hasBow: pet.has_bow,
+    hasSunglasses: pet.has_sunglasses,
+  });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
   // the host element's own size matches what's visible — keeps wandering
@@ -419,6 +435,8 @@ function renderStats(pet) {
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
   $("btn-buy-bow").disabled = pet.has_bow || pet.coins < BOW_PRICE;
   $("btn-buy-bow").textContent = pet.has_bow ? "Bow Owned" : `Buy Bow (${BOW_PRICE})`;
+  $("btn-buy-sunglasses").disabled = pet.has_sunglasses || pet.coins < SUNGLASSES_PRICE;
+  $("btn-buy-sunglasses").textContent = pet.has_sunglasses ? "Sunglasses Owned" : `Buy Sunglasses (${SUNGLASSES_PRICE})`;
 }
 
 function renderAchievements(pet) {
@@ -449,7 +467,13 @@ function speciesLabel(pet) {
 }
 
 function miniSpriteHtml(pet) {
-  const bitmap = buildBitmap(pet.life_stage, { species: speciesOf(pet), eyesOpen: true, variant: petVariant(pet), hasBow: pet.has_bow });
+  const bitmap = buildBitmap(pet.life_stage, {
+    species: speciesOf(pet),
+    eyesOpen: true,
+    variant: petVariant(pet),
+    hasBow: pet.has_bow,
+    hasSunglasses: pet.has_sunglasses,
+  });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
@@ -558,9 +582,57 @@ async function persist() {
   currentPet = await db.savePet(currentPet);
 }
 
+// Sits under the pet only while it's sleeping — sized and positioned off the
+// pet's own (already-trimmed) box, so it fits any species/stage without
+// needing per-sprite tuning. The pet doesn't wander while asleep, so a
+// static overlay tracking its current spot is enough, no transition needed.
+const BED_PAD_X = 10;
+const BED_PAD_TOP = 4;
+const BED_PAD_BOTTOM = 10;
+
+function positionBed(pet) {
+  const bed = $("pet-bed");
+  if (!pet || pet.life_stage === "egg" || !pet.is_sleeping) {
+    bed.hidden = true;
+    return;
+  }
+  const host = $("pet-screen");
+  bed.style.left = `${host.offsetLeft - BED_PAD_X}px`;
+  bed.style.top = `${host.offsetTop - BED_PAD_TOP}px`;
+  bed.style.width = `${host.offsetWidth + BED_PAD_X * 2}px`;
+  bed.style.height = `${host.offsetHeight + BED_PAD_TOP + BED_PAD_BOTTOM}px`;
+  bed.hidden = false;
+}
+
+const BOWL_SHOW_MS = 1800;
+const BOWL_FADE_MS = 300;
+const BOWL_WIDTH = 16; // matches .pet-bowl's CSS width — can't read offsetWidth while hidden
+let bowlHideTimer = null;
+
+// A little dish that appears near the pet right after feeding and fades
+// out on its own — purely decorative, reinforces the action rather than
+// signaling anything new.
+function showFoodBowl() {
+  if (!currentPet || currentPet.life_stage === "egg") return;
+  const bowl = $("pet-bowl");
+  const host = $("pet-screen");
+  bowl.style.left = `${host.offsetLeft + host.offsetWidth / 2 - BOWL_WIDTH / 2}px`;
+  bowl.style.top = `${host.offsetTop + host.offsetHeight + 4}px`;
+  bowl.classList.remove("pet-bowl--fade");
+  bowl.hidden = false;
+  clearTimeout(bowlHideTimer);
+  bowlHideTimer = setTimeout(() => {
+    bowl.classList.add("pet-bowl--fade");
+    bowlHideTimer = setTimeout(() => {
+      bowl.hidden = true;
+    }, BOWL_FADE_MS);
+  }, BOWL_SHOW_MS);
+}
+
 function render() {
   renderPuppy(currentPet, blinkOn);
   renderStats(currentPet);
+  positionBed(currentPet);
   checkNotifications(currentPet);
 }
 
@@ -1006,9 +1078,16 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
+  $("btn-buy-sunglasses").dataset.tooltip = "Cosmetic only, no stat effect";
 
-  $("btn-feed").addEventListener("click", () => runAction(feed, { sound: "feed" }));
-  $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal, { sound: "feed" }));
+  $("btn-feed").addEventListener("click", () => {
+    runAction(feed, { sound: "feed" });
+    showFoodBowl();
+  });
+  $("btn-feed-meal").addEventListener("click", () => {
+    runAction(feedMeal, { sound: "feed" });
+    showFoodBowl();
+  });
   $("btn-play").addEventListener("click", openGamePicker);
   $("btn-game-cancel").addEventListener("click", closeGameModal);
   document.querySelectorAll(".game-picker-btn").forEach((btn) => {
@@ -1026,6 +1105,7 @@ function wireActions() {
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
   $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false, sound: "coin" }));
   $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false, sound: "coin" }));
+  $("btn-buy-sunglasses").addEventListener("click", () => runAction(buySunglasses, { bounce: false, sound: "coin" }));
 
   wireDragPet();
   $("pet-device").addEventListener("click", (e) => {

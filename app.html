@@ -8,7 +8,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <meta name="theme-color" content="#111111" />
-  <link rel="stylesheet" href="css/style.css?v=15" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
 </head>
 <body>
   <main class="shell">
@@ -69,7 +69,7 @@
             <div class="help-row"><b>Care</b><span>Feed, Play, Clean, and Sleep keep your pet's stats up. Neglect drops Health, and hitting 0 makes it sick (needs Medicine).</span></div>
             <div class="help-row"><b>Needs a hand</b><span>Low stats show right on the pet: shaking, itching, drooping, or too tired to move, so you don't have to watch the bars.</span></div>
             <div class="help-row"><b>Playground</b><span>Tap to poke it, tap elsewhere to call it over, or drag it around.</span></div>
-            <div class="help-row"><b>Economy</b><span>Play mini-games for coins. Spend them on food or a cosmetic Bow.</span></div>
+            <div class="help-row"><b>Economy</b><span>Play mini-games for coins. Spend them on food or cosmetics like a Bow or Sunglasses.</span></div>
             <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 from the ⇄ icon. Switch, rename, reset, or release one there.</span></div>
             <div class="help-row"><b>Daily bonus</b><span>Log in daily for a growing coin bonus.</span></div>
           </div>
@@ -80,6 +80,9 @@
       <div class="pet-layout">
         <div class="pet-visual">
           <div id="pet-device" class="device">
+            <div class="pet-toy" aria-hidden="true"></div>
+            <div id="pet-bed" class="pet-bed" hidden></div>
+            <div id="pet-bowl" class="pet-bowl" hidden></div>
             <div id="pet-screen" class="pet-screen"></div>
           </div>
           <p id="pet-status" class="pet-status" hidden></p>
@@ -125,6 +128,7 @@
             <button id="btn-buy-food">Buy Snack (5)</button>
             <button id="btn-buy-meal">Buy Meal (15)</button>
             <button id="btn-buy-bow">Buy Bow (25)</button>
+            <button id="btn-buy-sunglasses">Buy Sunglasses (30)</button>
           </div>
         </div>
       </div>
@@ -221,6 +225,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=15"></script>
+  <script type="module" src="js/app.js?v=16"></script>
 </body>
 </html>
