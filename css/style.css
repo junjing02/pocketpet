@@ -535,6 +535,22 @@ button:disabled:active { transform: none; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 .actions button { min-width: 70px; }
 
+/* Labels the "use it" (Care) row apart from the "spend coins" (Shop) row —
+   same button styling made them blend into one undifferentiated block. */
+.action-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.action-group-label--shop {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--track);
+}
+
 /* Native color swatch, styled to match the app's existing small circular
    icon-button pattern (see .icon-btn) instead of introducing a new, bigger
    square shape that doesn't match anything else on screen. */
