@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=19";
-import * as db from "./supabase.js?v=19";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=19";
+} from "./pet-sprites.js?v=20";
+import * as db from "./supabase.js?v=20";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=20";
 
 const HOUR = 3600000;
 
@@ -267,7 +267,7 @@ const $ = (id) => document.getElementById(id);
 let currentPet = null;
 let currentUserId = null;
 let currentUserEmail = null;
-let blinkOn = true;
+let eyesOpen = true;
 let walkFrame = 0;
 let gameActive = false;
 let draggingPet = false;
@@ -617,7 +617,7 @@ function showFoodBowl() {
 }
 
 function render() {
-  renderPuppy(currentPet, blinkOn);
+  renderPuppy(currentPet, eyesOpen);
   renderStats(currentPet);
   positionBed(currentPet);
   checkNotifications(currentPet);
@@ -726,6 +726,28 @@ function scheduleIdleQuirk() {
   setTimeout(() => {
     playIdleQuirk();
     scheduleIdleQuirk();
+  }, delay);
+}
+
+// A real blink is a quick flicker, not eyes-closed-for-seconds — hold the
+// closed frame for BLINK_CLOSED_MS, then reopen. eyesOpen is shared with the
+// walk-frame interval so both stay in sync instead of fighting over state.
+const BLINK_MIN_MS = 2600;
+const BLINK_MAX_MS = 5000;
+const BLINK_CLOSED_MS = 150;
+
+function scheduleBlink() {
+  const delay = BLINK_MIN_MS + Math.random() * (BLINK_MAX_MS - BLINK_MIN_MS);
+  setTimeout(() => {
+    if (currentPet && !currentPet.is_sleeping) {
+      eyesOpen = false;
+      renderPuppy(currentPet, eyesOpen);
+      setTimeout(() => {
+        eyesOpen = true;
+        if (currentPet && !currentPet.is_sleeping) renderPuppy(currentPet, eyesOpen);
+      }, BLINK_CLOSED_MS);
+    }
+    scheduleBlink();
   }, delay);
 }
 
@@ -1321,19 +1343,18 @@ function wireActions() {
 
   setInterval(() => {
     if (!currentPet) return;
-    blinkOn = !blinkOn;
-    renderPuppy(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
     $("pet-progress").textContent = stageProgressText(currentPet);
   }, 2500);
 
   setInterval(() => {
     if (!currentPet || currentPet.is_sleeping) return;
     walkFrame = walkFrame === 0 ? 1 : 0;
-    renderPuppy(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
+    renderPuppy(currentPet, eyesOpen);
   }, 450);
 
   scheduleWander();
   scheduleIdleQuirk();
+  scheduleBlink();
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one
