@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=16";
-import * as db from "./supabase.js?v=16";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=16";
+} from "./pet-sprites.js?v=17";
+import * as db from "./supabase.js?v=17";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=17";
 
 const HOUR = 3600000;
 
@@ -749,6 +749,13 @@ function scheduleIdleQuirk() {
 // moved before release.
 let suppressNextPetClick = false;
 
+// A real click/tap is almost never perfectly stationary between press and
+// release (mouse jitter, finger wobble) — without a tolerance, that tiny
+// movement alone was enough to mark it as a drag, which suppresses the
+// click that would otherwise poke the pet. Same fix already applied to the
+// tooltip's touch-hold system for the same reason.
+const DRAG_MOVE_TOLERANCE_PX = 6;
+
 function wireDragPet() {
   const host = $("pet-screen");
   const device = $("pet-device");
@@ -756,12 +763,16 @@ function wireDragPet() {
   let moved = false;
   let grabOffsetX = 0;
   let grabOffsetY = 0;
+  let downX = 0;
+  let downY = 0;
 
   host.addEventListener("pointerdown", (e) => {
     if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
     dragging = true;
     draggingPet = true;
     moved = false;
+    downX = e.clientX;
+    downY = e.clientY;
     const rect = device.getBoundingClientRect();
     // offsetLeft/offsetTop reflect the pet's live, currently-rendered spot
     // even mid-wander (left/top transitions force a reflow, so this reads
@@ -782,6 +793,7 @@ function wireDragPet() {
 
   host.addEventListener("pointermove", (e) => {
     if (!dragging) return;
+    if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
     moved = true;
     const rect = device.getBoundingClientRect();
     const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
