@@ -186,7 +186,11 @@ button:disabled:active { transform: none; }
   position: relative;
   height: 250px;
   margin-bottom: 24px;
-  overflow: hidden;
+  /* Not overflow:hidden — the pet's own wander bounds already keep it inside
+     this box, and clipping here was cutting off the hover tooltip whenever
+     the pet sat near an edge (its pill needs room to render outside the
+     pet's own small box). */
+  overflow: visible;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
