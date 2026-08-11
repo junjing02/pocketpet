@@ -235,7 +235,7 @@ button:disabled:active { transform: none; }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
-.pet-screen.pet--sick { animation: shiver 1.3s ease-in-out infinite; }
+.pet-screen.pet--sick { animation: sick-swell 2.2s ease-in-out infinite; }
 .pet-screen.pet--sick .dot--body { opacity: 0.5; }
 
 /* Unmet-need cues — only one is ever active at a time (see LOW_STAT_MOODS
@@ -261,9 +261,10 @@ button:disabled:active { transform: none; }
   100% { transform: rotate(0deg); }
 }
 
-@keyframes shiver {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(1px); }
+@keyframes sick-swell {
+  0%, 100% { transform: scale(1) translateX(0); }
+  35% { transform: scale(1.06) translateX(1px); }
+  70% { transform: scale(0.97) translateX(-1px); }
 }
 
 @keyframes hungry-shake {

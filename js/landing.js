@@ -1,4 +1,4 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js?v=6";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js?v=7";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");

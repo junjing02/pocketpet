@@ -1,5 +1,5 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=6";
-import * as db from "./supabase.js?v=6";
+import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=7";
+import * as db from "./supabase.js?v=7";
 
 const HOUR = 3600000;
 
@@ -253,12 +253,35 @@ function centerPetScreen(host) {
   host.style.top = `${Math.max(0, (device.clientHeight - host.offsetHeight) / 2)}px`;
 }
 
+// Too exhausted to move under its own power (still fine to be dragged,
+// since that's you carrying it rather than it walking).
+function isTooTiredToWalk(pet) {
+  return pet.energy <= LOW_STAT_THRESHOLD;
+}
+
+// Sick pets stay mostly put instead of roaming — most wander ticks are
+// skipped, and the rare one that isn't is a small shuffle from wherever it
+// already is, not a full jump across the playground.
+const SICK_WANDER_CHANCE = 0.2;
+const SICK_SHUFFLE_PX = 24;
+
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet) return;
+  if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
   const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
   const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
+
+  if (currentPet.is_sick) {
+    if (Math.random() > SICK_WANDER_CHANCE) return;
+    const x = Math.min(maxX, Math.max(0, host.offsetLeft + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
+    const y = Math.min(maxY, Math.max(0, host.offsetTop + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
+    host.style.left = `${x}px`;
+    host.style.top = `${y}px`;
+    return;
+  }
+
   host.style.left = `${Math.random() * maxX}px`;
   host.style.top = `${Math.random() * maxY}px`;
 }
@@ -267,6 +290,7 @@ function wanderPet() {
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+  if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
   const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
