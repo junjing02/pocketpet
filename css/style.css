@@ -411,7 +411,7 @@ button:disabled:active { transform: none; }
 .dot--body { background: var(--dot-color, #e6e6e6); }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
-.dot--bow { background: #d1477a; }
+.dot--bow { background: var(--bow-color, #d1477a); }
 
 .pet-status {
   text-align: center;
@@ -534,6 +534,22 @@ button:disabled:active { transform: none; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 .actions button { min-width: 70px; }
+
+/* Native color swatch — sized to match the icon buttons rather than
+   stretching to fill the row like the buttons beside it. */
+#bow-color-picker {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+#bow-color-picker::-webkit-color-swatch-wrapper { padding: 2px; }
+#bow-color-picker::-webkit-color-swatch { border: none; border-radius: 3px; }
+#bow-color-picker::-moz-color-swatch { border: none; border-radius: 3px; }
 
 .play-btn {
   display: block;

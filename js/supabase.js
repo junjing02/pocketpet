@@ -124,6 +124,7 @@ export async function savePet(pet) {
       login_streak: pet.login_streak,
       has_bow: pet.has_bow,
       bow_worn: pet.bow_worn,
+      bow_color: pet.bow_color,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

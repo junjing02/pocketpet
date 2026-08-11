@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=26";
-import * as db from "./supabase.js?v=26";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=26";
+} from "./pet-sprites.js?v=27";
+import * as db from "./supabase.js?v=27";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=27";
 
 const HOUR = 3600000;
 
@@ -34,6 +34,7 @@ const SLEEP_DECAY_MULTIPLIER = 0.5;
 const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
+const DEFAULT_BOW_COLOR = "#d1477a";
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
@@ -111,6 +112,7 @@ export function createInitialPet(name) {
     login_streak: 0,
     has_bow: false,
     bow_worn: false,
+    bow_color: DEFAULT_BOW_COLOR,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -236,6 +238,12 @@ export function buyBow(pet) {
 export function toggleBow(pet) {
   if (!pet.has_bow) return pet;
   pet.bow_worn = !pet.bow_worn;
+  return pet;
+}
+
+export function setBowColor(pet, color) {
+  if (!pet.has_bow) return pet;
+  pet.bow_color = color;
   return pet;
 }
 
@@ -382,6 +390,7 @@ function renderPuppy(pet, eyesOpen) {
   // don't leak a species-specific shade before there's a species to reveal.
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
+  host.style.setProperty("--bow-color", pet.bow_color || DEFAULT_BOW_COLOR);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
@@ -445,9 +454,12 @@ function renderStats(pet) {
   if (pet.has_bow) {
     $("btn-buy-bow").disabled = false;
     $("btn-buy-bow").textContent = pet.bow_worn ? "Take Off Bow" : "Put On Bow";
+    $("bow-color-picker").hidden = false;
+    $("bow-color-picker").value = pet.bow_color || DEFAULT_BOW_COLOR;
   } else {
     $("btn-buy-bow").disabled = pet.coins < BOW_PRICE;
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
+    $("bow-color-picker").hidden = true;
   }
 }
 
@@ -502,7 +514,7 @@ function renderPetPicker(pets) {
       const sprite = miniSpriteHtml(p);
       return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]}`}">
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR}">
         <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
       </div>
       <div class="pet-picker-info">
@@ -1127,6 +1139,20 @@ function wireActions() {
   $("btn-buy-bow").addEventListener("click", () => {
     if (currentPet.has_bow) runAction(toggleBow, { bounce: false, sound: "poke" });
     else runAction(buyBow, { bounce: false, sound: "coin" });
+  });
+  // "input" fires continuously while the picker is open — update the
+  // preview live but don't hit the database on every drag step. "change"
+  // fires once the user commits a color, which is when it's actually saved.
+  $("bow-color-picker").addEventListener("input", (e) => {
+    setBowColor(currentPet, e.target.value);
+    renderPuppy(currentPet, eyesOpen);
+  });
+  $("bow-color-picker").addEventListener("change", async () => {
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
   });
 
   wireDragPet();
