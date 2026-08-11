@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=21";
-import * as db from "./supabase.js?v=21";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=21";
+} from "./pet-sprites.js?v=22";
+import * as db from "./supabase.js?v=22";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=22";
 
 const HOUR = 3600000;
 
@@ -595,7 +595,7 @@ function showFoodBowl() {
 }
 
 function render() {
-  renderPuppy(currentPet, eyesOpen);
+  renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   checkNotifications(currentPet);
 }
