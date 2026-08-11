@@ -8,7 +8,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <meta name="theme-color" content="#111111" />
-  <link rel="stylesheet" href="css/style.css?v=29" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
 </head>
 <body>
   <main class="shell">
@@ -123,12 +123,14 @@
             <button id="btn-play" class="play-btn">Play</button>
           </div>
 
-          <p class="action-group-label action-group-label--shop">Shop</p>
+          <div class="action-divider"></div>
           <div class="actions">
             <button id="btn-buy-food">Buy Snack (5)</button>
             <button id="btn-buy-meal">Buy Meal (15)</button>
-            <button id="btn-buy-bow">Buy Bow (25)</button>
-            <input type="color" id="bow-color-picker" value="#d1477a" aria-label="Bow color" data-tooltip="Bow color" hidden />
+            <div class="bow-btn-wrap">
+              <button id="btn-buy-bow">Buy Bow (25)</button>
+              <input type="color" id="bow-color-picker" value="#d1477a" aria-label="Bow color" data-tooltip="Bow color" hidden />
+            </div>
           </div>
         </div>
       </div>
@@ -225,6 +227,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=29"></script>
+  <script type="module" src="js/app.js?v=30"></script>
 </body>
 </html>

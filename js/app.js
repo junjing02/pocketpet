@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=29";
-import * as db from "./supabase.js?v=29";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=29";
+} from "./pet-sprites.js?v=30";
+import * as db from "./supabase.js?v=30";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=30";
 
 const HOUR = 3600000;
 
@@ -447,7 +447,7 @@ function renderStats(pet) {
   $("btn-feed").disabled = pet.food_count <= 0 || pet.is_sleeping;
   $("btn-feed-meal").disabled = pet.meal_count <= 0 || pet.is_sleeping;
   $("btn-clean").disabled = pet.is_sleeping;
-  $("btn-play").disabled = pet.is_sleeping;
+  $("btn-play").disabled = pet.is_sleeping || pet.energy < 10;
   $("btn-medicine").disabled = pet.is_sleeping;
   $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
   $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
