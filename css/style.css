@@ -126,7 +126,7 @@ button:disabled:active { transform: none; }
   bottom: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%);
-  background: #111;
+  background: rgba(40, 40, 40, 0.82);
   color: #fff;
   font-size: 8px;
   font-weight: 400;

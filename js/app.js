@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=14";
-import * as db from "./supabase.js?v=14";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=14";
+} from "./pet-sprites.js?v=15";
+import * as db from "./supabase.js?v=15";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=15";
 
 const HOUR = 3600000;
 
@@ -65,18 +65,18 @@ function lowStatMood(pet) {
 // see wireTooltipTouch and the CSS rules for it). Priority matches the
 // status badge above: sick > sleeping > low stat > content.
 const MOOD_TOOLTIP = {
-  hunger: "I'm hungry! Feed me a Snack or Meal.",
-  energy: "I'm exhausted, I can barely move. Let me Sleep?",
-  hygiene: "I feel gross, could you Clean me?",
-  happiness: "I'm feeling down... play with me?",
+  hunger: "Hungry! Feed me?",
+  energy: "Too tired to move. Sleep?",
+  hygiene: "Feeling gross. Clean me?",
+  happiness: "Feeling down. Play?",
 };
 
 function petTooltipMessage(pet, mood) {
-  if (pet.life_stage === "egg") return "Shh, still hatching. Just needs a little more time.";
-  if (pet.is_sick) return "I don't feel well... give me Medicine?";
-  if (pet.is_sleeping) return "Zzz... let me rest, I'm recovering Energy.";
+  if (pet.life_stage === "egg") return "Shh, still hatching...";
+  if (pet.is_sick) return "Not feeling well. Medicine?";
+  if (pet.is_sleeping) return "Zzz... resting.";
   if (mood) return MOOD_TOOLTIP[mood.key];
-  return "I'm doing great! Poke me or take me for a walk.";
+  return "Doing great! Poke me.";
 }
 
 const ACHIEVEMENTS = [
