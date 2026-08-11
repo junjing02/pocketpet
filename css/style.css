@@ -220,8 +220,8 @@ button:disabled:active { transform: none; }
    in-app pet screen, both trimmed to their actual silhouette (see
    trimBitmap() in landing.js/app.js), so this lands right under their feet
    and moves/resizes with them automatically as they wander and grow. */
-#landing-pet::after,
-#pet-screen::after {
+#landing-pet::before,
+#pet-screen::before {
   content: "";
   position: absolute;
   left: 50%;

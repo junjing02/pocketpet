@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=12";
-import * as db from "./supabase.js?v=12";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=12";
+} from "./pet-sprites.js?v=13";
+import * as db from "./supabase.js?v=13";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=13";
 
 const HOUR = 3600000;
 
@@ -928,7 +928,7 @@ async function runPlayGame(game) {
   if (coinsEarned > 0) playSound("coin");
   render();
   if (!currentPet.is_sleeping) bouncePet();
-  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!`);
+  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!`, false, 3500);
   try {
     await persist();
   } catch (err) {
@@ -1288,10 +1288,24 @@ async function loadPetsForUser(userId, email) {
   }
 }
 
-function showMessage(text, isError = false) {
+let messageToken = 0;
+
+// autoHideMs (optional) clears the message after a delay — used for
+// transient confirmations like a mini-game result, which shouldn't linger
+// forever. The token guards against clearing a *newer* message that replaced
+// this one before the timeout fired.
+function showMessage(text, isError = false, autoHideMs = 0) {
   const el = $("error");
   el.textContent = text;
   el.classList.toggle("error--bad", isError);
+  const token = ++messageToken;
+  if (autoHideMs) {
+    setTimeout(() => {
+      if (messageToken !== token) return;
+      el.textContent = "";
+      el.classList.remove("error--bad");
+    }, autoHideMs);
+  }
 }
 
 // Supabase intentionally returns the same generic error for "wrong password"
