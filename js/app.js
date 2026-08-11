@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=24";
-import * as db from "./supabase.js?v=24";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=24";
+} from "./pet-sprites.js?v=25";
+import * as db from "./supabase.js?v=25";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=25";
 
 const HOUR = 3600000;
 
@@ -294,25 +294,37 @@ function isTooTiredToWalk(pet) {
 const SICK_WANDER_CHANCE = 0.2;
 const SICK_SHUFFLE_PX = 24;
 
+// Keeps a small gap between the pet and the playground's own wall instead of
+// letting it wander/drag flush up against the edge. Shared by every place
+// that computes where the pet is allowed to go.
+const PLAYGROUND_MARGIN_PX = 8;
+
+function wanderBounds(host, device) {
+  const minX = PLAYGROUND_MARGIN_PX;
+  const minY = PLAYGROUND_MARGIN_PX;
+  const maxX = Math.max(minX, device.clientWidth - host.offsetWidth - PLAYGROUND_MARGIN_PX);
+  const maxY = Math.max(minY, device.clientHeight - host.offsetHeight - PLAYGROUND_MARGIN_PX);
+  return { minX, minY, maxX, maxY };
+}
+
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
-  const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
-  const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
+  const { minX, minY, maxX, maxY } = wanderBounds(host, device);
 
   if (currentPet.is_sick) {
     if (Math.random() > SICK_WANDER_CHANCE) return;
-    const x = Math.min(maxX, Math.max(0, host.offsetLeft + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
-    const y = Math.min(maxY, Math.max(0, host.offsetTop + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
+    const x = Math.min(maxX, Math.max(minX, host.offsetLeft + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
+    const y = Math.min(maxY, Math.max(minY, host.offsetTop + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
     host.style.left = `${x}px`;
     host.style.top = `${y}px`;
     return;
   }
 
-  host.style.left = `${Math.random() * maxX}px`;
-  host.style.top = `${Math.random() * maxY}px`;
+  host.style.left = `${minX + Math.random() * (maxX - minX)}px`;
+  host.style.top = `${minY + Math.random() * (maxY - minY)}px`;
 }
 
 // Younger pets wander more often (and move there faster, via --move-duration
@@ -333,10 +345,9 @@ function movePetTowards(clickX, clickY) {
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
-  const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
-  const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
-  const targetX = Math.min(maxX, Math.max(0, clickX - host.offsetWidth / 2));
-  const targetY = Math.min(maxY, Math.max(0, clickY - host.offsetHeight / 2));
+  const { minX, minY, maxX, maxY } = wanderBounds(host, device);
+  const targetX = Math.min(maxX, Math.max(minX, clickX - host.offsetWidth / 2));
+  const targetY = Math.min(maxY, Math.max(minY, clickY - host.offsetHeight / 2));
   host.style.left = `${targetX}px`;
   host.style.top = `${targetY}px`;
 }
@@ -782,10 +793,9 @@ function wireDragPet() {
     if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
     moved = true;
     const rect = device.getBoundingClientRect();
-    const maxX = Math.max(0, device.clientWidth - host.offsetWidth);
-    const maxY = Math.max(0, device.clientHeight - host.offsetHeight);
-    host.style.left = `${Math.min(maxX, Math.max(0, e.clientX - rect.left - grabOffsetX))}px`;
-    host.style.top = `${Math.min(maxY, Math.max(0, e.clientY - rect.top - grabOffsetY))}px`;
+    const { minX, minY, maxX, maxY } = wanderBounds(host, device);
+    host.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - grabOffsetX))}px`;
+    host.style.top = `${Math.min(maxY, Math.max(minY, e.clientY - rect.top - grabOffsetY))}px`;
   });
 
   function endDrag() {
