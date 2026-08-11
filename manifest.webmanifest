@@ -1,0 +1,14 @@
+{
+  "name": "PocketPet",
+  "short_name": "PocketPet",
+  "description": "A tiny pixel pet that grows, plays, and remembers you.",
+  "start_url": "app.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f4f4",
+  "theme_color": "#111111",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

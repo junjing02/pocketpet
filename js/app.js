@@ -1,5 +1,15 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, SPECIES_SHADE, pickRandomSpecies } from "./pet-sprites.js?v=11";
-import * as db from "./supabase.js?v=11";
+import {
+  buildBitmap,
+  trimBitmap,
+  STAGE_ORDER,
+  DOT_SIZE,
+  SPECIES_SHADE,
+  pickRandomSpecies,
+  STAGE_MOVE_DURATION_S,
+  STAGE_WANDER_INTERVAL_MS,
+} from "./pet-sprites.js?v=12";
+import * as db from "./supabase.js?v=12";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=12";
 
 const HOUR = 3600000;
 
@@ -48,6 +58,25 @@ const LOW_STAT_MOODS = [
 function lowStatMood(pet) {
   if (pet.is_sick || pet.is_sleeping || pet.life_stage === "egg") return null;
   return LOW_STAT_MOODS.find((m) => pet[m.key] <= LOW_STAT_THRESHOLD) || null;
+}
+
+// First-person status + suggestion, shown as a hover tooltip on the pet
+// itself (reuses the existing [data-tooltip] hover/hold-to-peek system —
+// see wireTooltipTouch and the CSS rules for it). Priority matches the
+// status badge above: sick > sleeping > low stat > content.
+const MOOD_TOOLTIP = {
+  hunger: "I'm hungry! Feed me a Snack or Meal.",
+  energy: "I'm exhausted, I can barely move. Let me Sleep?",
+  hygiene: "I feel gross, could you Clean me?",
+  happiness: "I'm feeling down... play with me?",
+};
+
+function petTooltipMessage(pet, mood) {
+  if (pet.life_stage === "egg") return "Shh, still hatching. Just needs a little more time.";
+  if (pet.is_sick) return "I don't feel well... give me Medicine?";
+  if (pet.is_sleeping) return "Zzz... let me rest, I'm recovering Energy.";
+  if (mood) return MOOD_TOOLTIP[mood.key];
+  return "I'm doing great! Poke me or take me for a walk.";
 }
 
 const ACHIEVEMENTS = [
@@ -286,6 +315,17 @@ function wanderPet() {
   host.style.top = `${Math.random() * maxY}px`;
 }
 
+// Younger pets wander more often (and move there faster, via --move-duration
+// set in renderPuppy) than older ones — re-reads the current pet's stage on
+// every tick instead of a fixed interval, so pacing updates live as it grows.
+function scheduleWander() {
+  const interval = currentPet ? STAGE_WANDER_INTERVAL_MS[currentPet.life_stage] || 3000 : 3000;
+  setTimeout(() => {
+    wanderPet();
+    scheduleWander();
+  }, interval);
+}
+
 // Click-to-walk: tapping empty space in the playground (not the pet itself)
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
@@ -312,6 +352,7 @@ function renderPuppy(pet, eyesOpen) {
   const { rows, width } = trimBitmap(bitmap);
   host.style.setProperty("--grid-size", width);
   host.style.setProperty("--dot-size", `${DOT_SIZE}px`);
+  host.style.setProperty("--move-duration", `${STAGE_MOVE_DURATION_S[pet.life_stage] ?? 1.6}s`);
   // Species stays a surprise until it hatches — the egg shape is shared, so
   // don't leak a species-specific shade before there's a species to reveal.
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
@@ -327,6 +368,7 @@ function renderPuppy(pet, eyesOpen) {
   host.classList.toggle("pet--sick", pet.is_sick);
   const mood = lowStatMood(pet);
   for (const m of LOW_STAT_MOODS) host.classList.toggle(m.cls, mood === m);
+  host.dataset.tooltip = petTooltipMessage(pet, mood);
   if (pet.life_stage === "egg") centerPetScreen(host);
 
   const status = $("pet-status");
@@ -482,6 +524,9 @@ function stageProgressText(pet) {
 }
 
 function showRecap(recap, loginBonus) {
+  const stageChange = recap.find((r) => r.stat === "life_stage");
+  if (stageChange) playSound(stageChange.to === "hatchling" ? "hatch" : "evolve");
+
   const el = $("recap");
   const items = recap.map((r) => {
     if (r.stat !== "life_stage") return `${STAT_LABELS[r.stat]} ${r.delta > 0 ? "+" : ""}${r.delta}`;
@@ -533,6 +578,25 @@ function notificationsEnabled() {
   );
 }
 
+// Routes through the Service Worker's showNotification when one is active
+// (works better for an installed PWA — proper OS notification, tap-to-focus
+// via the notificationclick handler in sw.js), falling back to a plain
+// Notification otherwise. Still entirely client-side: no push server, so
+// this only fires while the app/service worker is alive, not after the
+// browser itself is fully closed.
+async function notifyUser(title, body) {
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { body, icon: "icons/icon.svg" });
+      return;
+    } catch {
+      // fall through to a plain Notification below
+    }
+  }
+  new Notification(title, { body });
+}
+
 function checkNotifications(pet) {
   if (!notificationsEnabled() || !pet) return;
   const checks = [
@@ -545,7 +609,7 @@ function checkNotifications(pet) {
     if (pet[key] <= LOW_STAT_THRESHOLD) {
       if (!notifiedLow.has(key)) {
         notifiedLow.add(key);
-        new Notification("PocketPet", { body: `${label} is low. ${pet.name} needs you.` });
+        notifyUser("PocketPet", `${label} is low. ${pet.name} needs you.`);
       }
     } else {
       notifiedLow.delete(key);
@@ -554,7 +618,7 @@ function checkNotifications(pet) {
   if (pet.is_sick) {
     if (!notifiedLow.has("sick")) {
       notifiedLow.add("sick");
-      new Notification("PocketPet", { body: `${pet.name} is sick! Give Medicine.` });
+      notifyUser("PocketPet", `${pet.name} is sick! Give Medicine.`);
     }
   } else {
     notifiedLow.delete("sick");
@@ -576,6 +640,34 @@ function pokePet() {
   host.classList.remove("pet--poke");
   void host.offsetWidth;
   host.classList.add("pet--poke");
+  playSound("poke");
+}
+
+const IDLE_QUIRK_CLASSES = ["pet--idle-glance", "pet--idle-stretch", "pet--idle-hop"];
+
+// Random little flourishes (glance around, stretch, hop in place) so the pet
+// still reads as alive when you're not actively poking or feeding it. Skips
+// whenever a stronger animation already owns the pet's motion (sleeping,
+// sick, a mood cue, a game, egg, or mid-drag) so nothing fights visually.
+function playIdleQuirk() {
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || currentPet.is_sick) return;
+  if (gameActive || draggingPet || lowStatMood(currentPet)) return;
+  const host = $("pet-screen");
+  const cls = IDLE_QUIRK_CLASSES[Math.floor(Math.random() * IDLE_QUIRK_CLASSES.length)];
+  host.classList.remove(...IDLE_QUIRK_CLASSES);
+  void host.offsetWidth; // restart the animation if one is still finishing
+  host.classList.add(cls);
+}
+
+const IDLE_QUIRK_MIN_MS = 5000;
+const IDLE_QUIRK_MAX_MS = 12000;
+
+function scheduleIdleQuirk() {
+  const delay = IDLE_QUIRK_MIN_MS + Math.random() * (IDLE_QUIRK_MAX_MS - IDLE_QUIRK_MIN_MS);
+  setTimeout(() => {
+    playIdleQuirk();
+    scheduleIdleQuirk();
+  }, delay);
 }
 
 // Also purely cosmetic (no stat effect, same reasoning as pokePet): lets
@@ -599,8 +691,19 @@ function wireDragPet() {
     draggingPet = true;
     moved = false;
     const rect = device.getBoundingClientRect();
-    grabOffsetX = e.clientX - rect.left - host.offsetLeft;
-    grabOffsetY = e.clientY - rect.top - host.offsetTop;
+    // offsetLeft/offsetTop reflect the pet's live, currently-rendered spot
+    // even mid-wander (left/top transitions force a reflow, so this reads
+    // the interpolated value, not the wander's destination). Pin left/top
+    // to that exact spot *before* the "pet--dragging" class below disables
+    // the transition — otherwise disabling it mid-flight snaps the pet
+    // straight to the wander's destination instead of staying put, which is
+    // the little glitch/jump you'd see clicking it while it's moving.
+    const currentLeft = host.offsetLeft;
+    const currentTop = host.offsetTop;
+    host.style.left = `${currentLeft}px`;
+    host.style.top = `${currentTop}px`;
+    grabOffsetX = e.clientX - rect.left - currentLeft;
+    grabOffsetY = e.clientY - rect.top - currentTop;
     host.setPointerCapture(e.pointerId);
     host.classList.add("pet--dragging");
   });
@@ -627,10 +730,11 @@ function wireDragPet() {
   host.addEventListener("pointercancel", endDrag);
 }
 
-async function runAction(fn, { bounce = true } = {}) {
+async function runAction(fn, { bounce = true, sound } = {}) {
   fn(currentPet);
   render();
   if (bounce && !currentPet.is_sleeping) bouncePet();
+  if (sound) playSound(sound);
   try {
     await persist();
   } catch (err) {
@@ -821,6 +925,7 @@ async function runPlayGame(game) {
   const coinsEarned = hits * COINS_PER_HIT;
   currentPet.coins += coinsEarned;
   currentPet.total_coins_earned = (currentPet.total_coins_earned || 0) + coinsEarned;
+  if (coinsEarned > 0) playSound("coin");
   render();
   if (!currentPet.is_sleeping) bouncePet();
   showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!`);
@@ -902,8 +1007,8 @@ function wireActions() {
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
 
-  $("btn-feed").addEventListener("click", () => runAction(feed));
-  $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal));
+  $("btn-feed").addEventListener("click", () => runAction(feed, { sound: "feed" }));
+  $("btn-feed-meal").addEventListener("click", () => runAction(feedMeal, { sound: "feed" }));
   $("btn-play").addEventListener("click", openGamePicker);
   $("btn-game-cancel").addEventListener("click", closeGameModal);
   document.querySelectorAll(".game-picker-btn").forEach((btn) => {
@@ -912,12 +1017,15 @@ function wireActions() {
       runPlayGame(game);
     });
   });
-  $("btn-clean").addEventListener("click", () => runAction(clean));
-  $("btn-sleep").addEventListener("click", () => runAction(toggleSleep, { bounce: false }));
-  $("btn-medicine").addEventListener("click", () => runAction(giveMedicine));
-  $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false }));
-  $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false }));
-  $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false }));
+  $("btn-clean").addEventListener("click", () => runAction(clean, { sound: "clean" }));
+  $("btn-sleep").addEventListener("click", () => {
+    const goingToSleep = !currentPet.is_sleeping;
+    runAction(toggleSleep, { bounce: false, sound: goingToSleep ? "sleep" : "wake" });
+  });
+  $("btn-medicine").addEventListener("click", () => runAction(giveMedicine, { sound: "medicine" }));
+  $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
+  $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false, sound: "coin" }));
+  $("btn-buy-bow").addEventListener("click", () => runAction(buyBow, { bounce: false, sound: "coin" }));
 
   wireDragPet();
   $("pet-device").addEventListener("click", (e) => {
@@ -983,6 +1091,7 @@ function wireActions() {
   $("btn-settings").addEventListener("click", () => {
     $("account-email").textContent = currentUserEmail || "";
     $("btn-toggle-notifications").textContent = notificationsEnabled() ? "Disable Notifications" : "Enable Notifications";
+    $("btn-toggle-sound").textContent = soundEnabled() ? "Disable Sound" : "Enable Sound";
     collapsePasswordForm();
     screen("settings");
   });
@@ -1033,6 +1142,13 @@ function wireActions() {
     localStorage.setItem(NOTIFY_KEY, "1");
     $("btn-toggle-notifications").textContent = "Disable Notifications";
     showMessage("Notifications on. We'll nudge you if a stat gets low while this tab is open.");
+  });
+
+  $("btn-toggle-sound").addEventListener("click", () => {
+    const enabling = !soundEnabled();
+    setSoundEnabled(enabling);
+    $("btn-toggle-sound").textContent = enabling ? "Disable Sound" : "Enable Sound";
+    if (enabling) playSound("poke"); // quick sample so the toggle itself confirms audibly
   });
 
   $("btn-change-password").addEventListener("click", () => {
@@ -1139,7 +1255,8 @@ function wireActions() {
     renderPuppy(currentPet, blinkOn && !currentPet.is_sleeping ? blinkOn : false);
   }, 450);
 
-  setInterval(wanderPet, 3000);
+  scheduleWander();
+  scheduleIdleQuirk();
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one
@@ -1326,3 +1443,9 @@ async function init() {
 }
 
 init();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}

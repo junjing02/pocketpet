@@ -27,6 +27,28 @@ export const STAGE_SHADE = {
   adult: "#c0c0c0",
 };
 
+// Real young animals are more active than grown ones — a hatchling darts
+// around quickly and often, an adult ambles and rests more. These tune both
+// how long a single move takes (CSS transition duration) and how often a
+// new move is triggered, so the slowdown reads as the pet visibly aging,
+// not just growing bigger. Egg never moves at all (see wanderPet in app.js).
+export const STAGE_MOVE_DURATION_S = {
+  egg: 0,
+  hatchling: 0.7,
+  young: 0.85,
+  teen: 1.1,
+  juvenile: 1.4,
+  adult: 1.8,
+};
+export const STAGE_WANDER_INTERVAL_MS = {
+  egg: 0,
+  hatchling: 1400,
+  young: 1700,
+  teen: 2300,
+  juvenile: 3200,
+  adult: 4200,
+};
+
 // Which creature an egg hatches into is a surprise — every species shares the
 // same egg shape (no spoilers) and only diverges starting at hatchling. Each
 // is a genuinely different silhouette, not a palette swap: different size,

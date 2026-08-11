@@ -1,4 +1,13 @@
-import { buildBitmap, trimBitmap, STAGE_ORDER, DOT_SIZE, STAGE_SHADE, SPECIES, SPECIES_SHADE } from "./pet-sprites.js?v=11";
+import {
+  buildBitmap,
+  trimBitmap,
+  STAGE_ORDER,
+  DOT_SIZE,
+  STAGE_SHADE,
+  SPECIES,
+  SPECIES_SHADE,
+  STAGE_MOVE_DURATION_S,
+} from "./pet-sprites.js?v=12";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
@@ -19,6 +28,7 @@ function centerHost() {
 
 function showStage(stage, species) {
   host.style.setProperty("--dot-color", STAGE_SHADE[stage]);
+  host.style.setProperty("--move-duration", `${STAGE_MOVE_DURATION_S[stage] ?? 1.6}s`);
   const bitmap = buildBitmap(stage, { species, eyesOpen: true });
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
   // the host element's own size matches what's visible — needed both for
@@ -113,3 +123,9 @@ function renderEvolutionTimeline() {
 }
 
 renderEvolutionTimeline();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
