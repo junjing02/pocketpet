@@ -507,12 +507,14 @@ button:disabled:active { transform: none; }
 }
 
 .screen-header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 20px;
 }
-.screen-header .section-title { text-align: left; margin: 0; }
+.screen-header .section-title { margin: 0; }
+.screen-header .icon-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 
 .settings-actions { margin-top: 20px; }
 
