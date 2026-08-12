@@ -261,13 +261,15 @@ button:disabled:active { transform: none; }
 
 /* A draggable bed prop — stays on the playground permanently once bought
    (unlike the bowl's brief flash), wherever the user last dragged it. Flat
-   fill + 1px line, same treatment as .pet-bowl and every button/panel in
-   the app — no gradient or shadow, unlike the earlier "cushion" version.
-   Oval (wider than tall) so it reads as a mat rather than a plain circle.
-   Sized bigger than even the adult stage's own silhouette (~66-80px) so
-   the mat still shows all the way around the pet once it's lying on it.
-   Sits behind #pet-screen in paint order so the pet reads as lying on top
-   of it once it walks over and sleeps there. */
+   fill + 1px lines only, same treatment as .pet-bowl and every button/panel
+   in the app — no gradient or shadow, unlike the earlier "cushion" version.
+   2 concentric inset rings read as a woven rug/mat texture without adding
+   any new color or fill — still just thin lines, matching every other
+   line-based detail in the app. Oval (wider than tall) so it reads as a
+   mat rather than a plain circle. Sized bigger than even the adult stage's
+   own silhouette (~66-80px) so the mat still shows all the way around the
+   pet once it's lying on it. Sits behind #pet-screen in paint order so the
+   pet reads as lying on top of it once it walks over and sleeps there. */
 .pet-bed {
   position: absolute;
   width: 92px;
@@ -278,6 +280,16 @@ button:disabled:active { transform: none; }
   cursor: grab;
   touch-action: none;
 }
+.pet-bed::before,
+.pet-bed::after {
+  content: "";
+  position: absolute;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  opacity: 0.3;
+}
+.pet-bed::before { inset: 7px; }
+.pet-bed::after { inset: 15px; }
 .pet-bed--dragging { cursor: grabbing; }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
