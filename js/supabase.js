@@ -125,6 +125,12 @@ export async function savePet(pet) {
       has_bow: pet.has_bow,
       bow_worn: pet.bow_worn,
       bow_color: pet.bow_color,
+      has_bandana: pet.has_bandana,
+      bandana_worn: pet.bandana_worn,
+      bandana_color: pet.bandana_color,
+      has_bed: pet.has_bed,
+      bed_x: pet.bed_x,
+      bed_y: pet.bed_y,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

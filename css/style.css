@@ -253,6 +253,33 @@ button:disabled:active { transform: none; }
 }
 .pet-bowl--fade { opacity: 0; }
 
+/* A draggable bed prop — stays on the playground permanently once bought
+   (unlike the bowl's brief flash), wherever the user last dragged it.
+   Sits behind #pet-screen in paint order so the pet reads as lying on top
+   of it once it walks over and sleeps there. */
+.pet-bed {
+  position: absolute;
+  width: 34px;
+  height: 18px;
+  background: var(--track);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+}
+.pet-bed::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 11px;
+  height: 11px;
+  background: var(--fg);
+  opacity: 0.12;
+  border-radius: 3px;
+}
+.pet-bed--dragging { cursor: grabbing; }
+
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
 .pet-screen.pet--poke { animation: poke 0.4s ease; }
 .pet-screen.pet--sick { animation: sick-swell 2.2s ease-in-out infinite; }
@@ -412,6 +439,7 @@ button:disabled:active { transform: none; }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
+.dot--bandana { background: var(--bandana-color, #3a82a8); }
 
 .pet-status {
   text-align: center;
@@ -551,20 +579,20 @@ button:disabled:active { transform: none; }
   border-top: 1px solid var(--track);
 }
 
-/* Bow button hosts the color swatch as a small overlay inset into its own
-   right edge, so the swatch reads as part of the button rather than a
-   separate control next to it. Kept on its own full-width row (like
-   .play-btn) instead of sharing the flex row with Buy Snack/Buy Meal —
-   its longer toggle text ("Take Off Bow" + swatch) wouldn't size evenly
-   against them there. */
-.bow-btn-wrap { position: relative; margin-bottom: 14px; }
-.bow-btn-wrap button { display: block; width: 100%; }
-.bow-btn-wrap:has(#bow-color-picker:not([hidden])) button { padding-right: 30px; }
+/* Bow/bandana buttons each host their color swatch as a small overlay inset
+   into their own right edge, so the swatch reads as part of the button
+   rather than a separate control next to it. Kept on its own full-width row
+   (like .play-btn) instead of sharing the flex row with Buy Snack/Buy Meal —
+   the longer toggle text ("Take Off Bow"/"Take Off Bandana" + swatch)
+   wouldn't size evenly against them there. */
+.accessory-btn-wrap { position: relative; margin-bottom: 14px; }
+.accessory-btn-wrap button { display: block; width: 100%; }
+.accessory-btn-wrap:has(input[type="color"]:not([hidden])) button { padding-right: 30px; }
 
 /* Native color swatch, styled to match the app's existing small circular
    icon-button pattern (see .icon-btn) instead of introducing a new, bigger
    square shape that doesn't match anything else on screen. */
-#bow-color-picker {
+.accessory-btn-wrap input[type="color"] {
   position: absolute;
   right: 6px;
   top: 50%;
@@ -578,9 +606,9 @@ button:disabled:active { transform: none; }
   background: none;
   cursor: pointer;
 }
-#bow-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
-#bow-color-picker::-webkit-color-swatch { border: none; }
-#bow-color-picker::-moz-color-swatch { border: none; }
+.accessory-btn-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.accessory-btn-wrap input[type="color"]::-webkit-color-swatch { border: none; }
+.accessory-btn-wrap input[type="color"]::-moz-color-swatch { border: none; }
 
 .play-btn {
   display: block;

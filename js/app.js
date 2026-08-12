@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=31";
-import * as db from "./supabase.js?v=31";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=31";
+} from "./pet-sprites.js?v=32";
+import * as db from "./supabase.js?v=32";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=32";
 
 const HOUR = 3600000;
 
@@ -35,6 +35,11 @@ const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
 const DEFAULT_BOW_COLOR = "#d1477a";
+const BANDANA_PRICE = 20;
+const DEFAULT_BANDANA_COLOR = "#3a82a8";
+const BED_PRICE = 30;
+const DEFAULT_BED_X = 0.7;
+const DEFAULT_BED_Y = 0.7;
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
@@ -113,6 +118,12 @@ export function createInitialPet(name) {
     has_bow: false,
     bow_worn: false,
     bow_color: DEFAULT_BOW_COLOR,
+    has_bandana: false,
+    bandana_worn: false,
+    bandana_color: DEFAULT_BANDANA_COLOR,
+    has_bed: false,
+    bed_x: DEFAULT_BED_X,
+    bed_y: DEFAULT_BED_Y,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -247,6 +258,35 @@ export function setBowColor(pet, color) {
   return pet;
 }
 
+export function buyBandana(pet) {
+  if (pet.has_bandana || pet.coins < BANDANA_PRICE) return pet;
+  pet.coins -= BANDANA_PRICE;
+  pet.has_bandana = true;
+  pet.bandana_worn = true; // wear it right away so the purchase is immediately visible
+  return pet;
+}
+
+export function toggleBandana(pet) {
+  if (!pet.has_bandana) return pet;
+  pet.bandana_worn = !pet.bandana_worn;
+  return pet;
+}
+
+export function setBandanaColor(pet, color) {
+  if (!pet.has_bandana) return pet;
+  pet.bandana_color = color;
+  return pet;
+}
+
+export function buyBed(pet) {
+  if (pet.has_bed || pet.coins < BED_PRICE) return pet;
+  pet.coins -= BED_PRICE;
+  pet.has_bed = true;
+  if (pet.bed_x == null) pet.bed_x = DEFAULT_BED_X;
+  if (pet.bed_y == null) pet.bed_y = DEFAULT_BED_Y;
+  return pet;
+}
+
 export function play(pet) {
   if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
@@ -287,6 +327,7 @@ let eyesOpen = true;
 let walkFrame = 0;
 let gameActive = false;
 let draggingPet = false;
+let walkingToBed = false;
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -324,7 +365,7 @@ function wanderBounds(host, device) {
 }
 
 function wanderPet() {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -357,7 +398,7 @@ function scheduleWander() {
 // Click-to-walk: tapping empty space in the playground (not the pet itself)
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -376,6 +417,7 @@ function renderPuppy(pet, eyesOpen) {
     frame,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
+    hasBandana: pet.has_bandana && pet.bandana_worn,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -391,10 +433,11 @@ function renderPuppy(pet, eyesOpen) {
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   host.style.setProperty("--bow-color", pet.bow_color || DEFAULT_BOW_COLOR);
+  host.style.setProperty("--bandana-color", pet.bandana_color || DEFAULT_BANDANA_COLOR);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--bandana" : ""}"></i>`;
     }
   }
   host.innerHTML = html;
@@ -435,7 +478,8 @@ function renderStats(pet) {
   $("pet-name").textContent = pet.name;
   $("pet-stage").textContent = isEgg ? pet.life_stage : `${speciesLabel(pet)} · ${pet.life_stage}`;
   $("btn-medicine").hidden = !pet.is_sick;
-  $("btn-sleep").textContent = pet.is_sleeping ? "Wake" : "Sleep";
+  $("btn-sleep").textContent = walkingToBed ? "Walking…" : pet.is_sleeping ? "Wake" : "Sleep";
+  $("btn-sleep").disabled = walkingToBed;
   $("pet-progress").textContent = stageProgressText(pet);
 
   $("egg-note").hidden = !isEgg;
@@ -460,6 +504,23 @@ function renderStats(pet) {
     $("btn-buy-bow").disabled = pet.coins < BOW_PRICE;
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
     $("bow-color-picker").hidden = true;
+  }
+  if (pet.has_bandana) {
+    $("btn-buy-bandana").disabled = false;
+    $("btn-buy-bandana").textContent = pet.bandana_worn ? "Take Off Bandana" : "Put On Bandana";
+    $("bandana-color-picker").hidden = false;
+    $("bandana-color-picker").value = pet.bandana_color || DEFAULT_BANDANA_COLOR;
+  } else {
+    $("btn-buy-bandana").disabled = pet.coins < BANDANA_PRICE;
+    $("btn-buy-bandana").textContent = `Buy Bandana (${BANDANA_PRICE})`;
+    $("bandana-color-picker").hidden = true;
+  }
+  if (pet.has_bed) {
+    $("btn-buy-bed").hidden = true;
+  } else {
+    $("btn-buy-bed").hidden = false;
+    $("btn-buy-bed").disabled = pet.coins < BED_PRICE;
+    $("btn-buy-bed").textContent = `Buy Bed (${BED_PRICE})`;
   }
 }
 
@@ -496,12 +557,13 @@ function miniSpriteHtml(pet) {
     eyesOpen: true,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
+    hasBandana: pet.has_bandana && pet.bandana_worn,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--bandana" : ""}"></i>`;
     }
   }
   return { html, width };
@@ -514,7 +576,7 @@ function renderPetPicker(pets) {
       const sprite = miniSpriteHtml(p);
       return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR}">
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--bandana-color:${p.bandana_color || DEFAULT_BANDANA_COLOR}">
         <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
       </div>
       <div class="pet-picker-info">
@@ -630,9 +692,28 @@ function showFoodBowl() {
   }, BOWL_SHOW_MS);
 }
 
+// Positions the bed from its saved fraction (0..1) of the playground's
+// usable area — not raw pixels, since the device's own width is responsive
+// (see .pet-visual's breakpoint), so a stored pixel position would drift out
+// of place on a different screen size. Recomputed on every render, same
+// approach as wanderBounds().
+function renderBed(pet) {
+  const bed = $("pet-bed");
+  if (!pet.has_bed || pet.life_stage === "egg") {
+    bed.hidden = true;
+    return;
+  }
+  bed.hidden = false;
+  const device = $("pet-device");
+  const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+  bed.style.left = `${minX + (pet.bed_x ?? DEFAULT_BED_X) * (maxX - minX)}px`;
+  bed.style.top = `${minY + (pet.bed_y ?? DEFAULT_BED_Y) * (maxY - minY)}px`;
+}
+
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
+  renderBed(currentPet);
   checkNotifications(currentPet);
 }
 
@@ -789,7 +870,7 @@ function wireDragPet() {
   let downY = 0;
 
   host.addEventListener("pointerdown", (e) => {
-    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive) return;
+    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
     dragging = true;
     draggingPet = true;
     moved = false;
@@ -833,6 +914,86 @@ function wireDragPet() {
 
   host.addEventListener("pointerup", endDrag);
   host.addEventListener("pointercancel", endDrag);
+}
+
+// Bed dragging is simpler than the pet's — no click/poke to disambiguate
+// from a drag, no wander to fight with, just "grab it, move it, save where
+// it landed" (as a fraction, see renderBed).
+function wireDragBed() {
+  const bed = $("pet-bed");
+  const device = $("pet-device");
+  let dragging = false;
+  let moved = false;
+  let downX = 0;
+  let downY = 0;
+
+  bed.addEventListener("pointerdown", (e) => {
+    if (!currentPet || !currentPet.has_bed) return;
+    dragging = true;
+    moved = false;
+    downX = e.clientX;
+    downY = e.clientY;
+    bed.setPointerCapture(e.pointerId);
+    bed.classList.add("pet-bed--dragging");
+  });
+
+  bed.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
+    moved = true;
+    const rect = device.getBoundingClientRect();
+    const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+    bed.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - bed.offsetWidth / 2))}px`;
+    bed.style.top = `${Math.min(maxY, Math.max(minY, e.clientY - rect.top - bed.offsetHeight / 2))}px`;
+  });
+
+  async function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    bed.classList.remove("pet-bed--dragging");
+    // A real drag shouldn't also send the pet walking toward the release
+    // point — reuses the same flag the pet's own drag uses to swallow the
+    // click the browser fires on release (see wireDragPet above).
+    if (moved) suppressNextPetClick = true;
+    if (!moved) return; // plain tap, nothing moved — leave bed_x/bed_y untouched
+    const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+    currentPet.bed_x = maxX > minX ? (bed.offsetLeft - minX) / (maxX - minX) : 0.5;
+    currentPet.bed_y = maxY > minY ? (bed.offsetTop - minY) / (maxY - minY) : 0.5;
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  }
+
+  bed.addEventListener("pointerup", endDrag);
+  bed.addEventListener("pointercancel", endDrag);
+}
+
+// Sends the pet walking to the bed's current spot first, then puts it to
+// sleep once it actually arrives (matching the CSS move transition's own
+// duration) instead of just snapping is_sleeping on wherever it already was.
+function walkToBedThenSleep() {
+  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || currentPet.is_sleeping) return;
+  const petId = currentPet.id;
+  const host = $("pet-screen");
+  const bed = $("pet-bed");
+  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
+  const targetX = Math.min(maxX, Math.max(minX, bed.offsetLeft + bed.offsetWidth / 2 - host.offsetWidth / 2));
+  const targetY = Math.min(maxY, Math.max(minY, bed.offsetTop + bed.offsetHeight / 2 - host.offsetHeight / 2));
+  walkingToBed = true;
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+  renderStats(currentPet); // reflects the "Walking…" sleep-button state right away
+  const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
+  setTimeout(() => {
+    walkingToBed = false;
+    if (!currentPet || currentPet.id !== petId || currentPet.is_sleeping) {
+      render();
+      return;
+    }
+    runAction(toggleSleep, { bounce: false, sound: "sleep" });
+  }, duration + 50);
 }
 
 async function runAction(fn, { bounce = true, sound } = {}) {
@@ -1111,6 +1272,8 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
+  $("btn-buy-bandana").dataset.tooltip = "Cosmetic only, no stat effect";
+  $("btn-buy-bed").dataset.tooltip = "Drag it anywhere. Sleep sends your pet there";
 
   $("btn-feed").addEventListener("click", () => {
     runAction(feed, { sound: "feed" });
@@ -1130,8 +1293,13 @@ function wireActions() {
   });
   $("btn-clean").addEventListener("click", () => runAction(clean, { sound: "clean" }));
   $("btn-sleep").addEventListener("click", () => {
-    const goingToSleep = !currentPet.is_sleeping;
-    runAction(toggleSleep, { bounce: false, sound: goingToSleep ? "sleep" : "wake" });
+    if (walkingToBed) return;
+    if (currentPet.is_sleeping) {
+      runAction(toggleSleep, { bounce: false, sound: "wake" });
+      return;
+    }
+    if (currentPet.has_bed) walkToBedThenSleep();
+    else runAction(toggleSleep, { bounce: false, sound: "sleep" });
   });
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine, { sound: "medicine" }));
   $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
@@ -1154,8 +1322,25 @@ function wireActions() {
       showMessage(err.message, true);
     }
   });
+  $("btn-buy-bandana").addEventListener("click", () => {
+    if (currentPet.has_bandana) runAction(toggleBandana, { bounce: false, sound: "poke" });
+    else runAction(buyBandana, { bounce: false, sound: "coin" });
+  });
+  $("bandana-color-picker").addEventListener("input", (e) => {
+    setBandanaColor(currentPet, e.target.value);
+    renderPuppy(currentPet, eyesOpen);
+  });
+  $("bandana-color-picker").addEventListener("change", async () => {
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
+  $("btn-buy-bed").addEventListener("click", () => runAction(buyBed, { bounce: false, sound: "coin" }));
 
   wireDragPet();
+  wireDragBed();
   $("pet-device").addEventListener("click", (e) => {
     if (suppressNextPetClick) {
       suppressNextPetClick = false;
