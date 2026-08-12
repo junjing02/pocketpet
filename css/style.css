@@ -254,37 +254,35 @@ button:disabled:active { transform: none; }
 .pet-bowl--fade { opacity: 0; }
 
 /* A draggable bed prop — stays on the playground permanently once bought
-   (unlike the bowl's brief flash), wherever the user last dragged it. Oval
-   (wider than tall) so it reads as a mat the pet sits ON, not a perfectly
-   round cutout — a flat single-tone circle against the similarly-light
-   device background just read as a hole. The radial gradient + drop shadow
-   give it a raised-cushion look instead. Sized bigger than even the adult
-   stage's own silhouette (~66-80px) so the mat still shows all the way
-   around the pet once it's lying on it. Sits behind #pet-screen in paint
-   order so the pet reads as lying on top of it once it walks over and
-   sleeps there. */
+   (unlike the bowl's brief flash), wherever the user last dragged it. Flat
+   fill + 1px line + modest border-radius, same treatment as .pet-bowl and
+   every button/panel in the app — a gradient+shadow "cushion" look stood
+   out against that flat, no-shadow style everywhere else. A simple
+   mattress rectangle with a pillow square reads as a bed without needing
+   the extra rendering flourish. Sized bigger than even the adult stage's
+   own silhouette (~66-80px) so the mat still shows all the way around the
+   pet once it's lying on it. Sits behind #pet-screen in paint order so the
+   pet reads as lying on top of it once it walks over and sleeps there. */
 .pet-bed {
   position: absolute;
-  width: 96px;
-  height: 58px;
-  background: radial-gradient(ellipse at 42% 32%, #f3f3f3 0%, var(--track) 55%, #d2d2d2 100%);
+  width: 84px;
+  height: 48px;
+  background: var(--track);
   border: 1px solid var(--line);
-  border-radius: 50%;
-  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
   cursor: grab;
   touch-action: none;
 }
 .pet-bed::before {
   content: "";
   position: absolute;
-  left: 13px;
-  top: 11px;
-  width: 34px;
-  height: 15px;
-  background: var(--fg);
-  opacity: 0.14;
+  left: 6px;
+  top: 6px;
+  width: 26px;
+  height: 36px;
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 5px;
 }
 .pet-bed--dragging { cursor: grabbing; }
 
@@ -447,7 +445,6 @@ button:disabled:active { transform: none; }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
-.dot--cape { background: var(--cape-color, #3a82a8); }
 
 .pet-status {
   text-align: center;
@@ -587,12 +584,11 @@ button:disabled:active { transform: none; }
   border-top: 1px solid var(--track);
 }
 
-/* Bow/cape buttons each host their color swatch as a small overlay inset
-   into their own right edge, so the swatch reads as part of the button
-   rather than a separate control next to it. The two share their own row
-   (flex:1 each, so they split it evenly) instead of sitting in the Buy
-   Snack/Buy Meal/Buy Bed row — their longer toggle text ("Take Off Bow"/
-   "Take Off Cape" + swatch) wouldn't size evenly against those. */
+/* The bow button hosts its color swatch as a small overlay inset into its
+   own right edge, so the swatch reads as part of the button rather than a
+   separate control next to it. Kept on its own row instead of sitting in
+   the Buy Snack/Buy Meal/Buy Bed row — its longer toggle text ("Take Off
+   Bow" + swatch) wouldn't size evenly against those. */
 .accessory-btn-wrap { position: relative; flex: 1; }
 .accessory-btn-wrap button { display: block; width: 100%; }
 .accessory-btn-wrap:has(input[type="color"]:not([hidden])) button { padding-right: 30px; }

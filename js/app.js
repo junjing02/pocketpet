@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=39";
-import * as db from "./supabase.js?v=39";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=39";
+} from "./pet-sprites.js?v=40";
+import * as db from "./supabase.js?v=40";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=40";
 
 const HOUR = 3600000;
 
@@ -39,8 +39,6 @@ const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
 const DEFAULT_BOW_COLOR = "#d1477a";
-const CAPE_PRICE = 20;
-const DEFAULT_CAPE_COLOR = "#3a82a8";
 const BED_PRICE = 30;
 const DEFAULT_BED_X = 0.7;
 const DEFAULT_BED_Y = 0.7;
@@ -122,9 +120,6 @@ export function createInitialPet(name) {
     has_bow: false,
     bow_worn: false,
     bow_color: DEFAULT_BOW_COLOR,
-    has_cape: false,
-    cape_worn: false,
-    cape_color: DEFAULT_CAPE_COLOR,
     has_bed: false,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
@@ -263,26 +258,6 @@ export function setBowColor(pet, color) {
   return pet;
 }
 
-export function buyCape(pet) {
-  if (pet.has_cape || pet.coins < CAPE_PRICE) return pet;
-  pet.coins -= CAPE_PRICE;
-  pet.has_cape = true;
-  pet.cape_worn = true; // wear it right away so the purchase is immediately visible
-  return pet;
-}
-
-export function toggleCape(pet) {
-  if (!pet.has_cape) return pet;
-  pet.cape_worn = !pet.cape_worn;
-  return pet;
-}
-
-export function setCapeColor(pet, color) {
-  if (!pet.has_cape) return pet;
-  pet.cape_color = color;
-  return pet;
-}
-
 export function buyBed(pet) {
   if (pet.has_bed || pet.coins < BED_PRICE) return pet;
   pet.coins -= BED_PRICE;
@@ -381,26 +356,6 @@ function bedBounds(bed, device) {
   return { ...base, minY: Math.max(base.minY, floorMinY) };
 }
 
-// The cape's cloth reacts to the pet's own movement — trails opposite the
-// direction of travel, like real fabric caught in the air (pet moves left
-// -> wind blows the cape right). Stored as the WIND direction itself
-// (already the opposite of travel), stable between moves rather than
-// reset to neutral, so a purely-vertical hop doesn't blank out the
-// horizontal lean from the last move. Only whichever screens actually
-// move the pet under its own power (wander, click-to-walk, walk-to-bed)
-// update this — not dragging, which is being carried, not walking.
-let capeWindX = 0;
-let capeWindY = 0;
-
-function setPetTarget(host, targetX, targetY) {
-  const dx = targetX - host.offsetLeft;
-  const dy = targetY - host.offsetTop;
-  if (Math.abs(dx) > 1) capeWindX = dx > 0 ? -1 : 1;
-  if (Math.abs(dy) > 1) capeWindY = dy > 0 ? -1 : 1;
-  host.style.left = `${targetX}px`;
-  host.style.top = `${targetY}px`;
-}
-
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
@@ -412,11 +367,13 @@ function wanderPet() {
     if (Math.random() > SICK_WANDER_CHANCE) return;
     const x = Math.min(maxX, Math.max(minX, host.offsetLeft + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
     const y = Math.min(maxY, Math.max(minY, host.offsetTop + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
-    setPetTarget(host, x, y);
+    host.style.left = `${x}px`;
+    host.style.top = `${y}px`;
     return;
   }
 
-  setPetTarget(host, minX + Math.random() * (maxX - minX), minY + Math.random() * (maxY - minY));
+  host.style.left = `${minX + Math.random() * (maxX - minX)}px`;
+  host.style.top = `${minY + Math.random() * (maxY - minY)}px`;
 }
 
 // Younger pets wander more often (and move there faster, via --move-duration
@@ -440,7 +397,8 @@ function movePetTowards(clickX, clickY) {
   const { minX, minY, maxX, maxY } = wanderBounds(host, device);
   const targetX = Math.min(maxX, Math.max(minX, clickX - host.offsetWidth / 2));
   const targetY = Math.min(maxY, Math.max(minY, clickY - host.offsetHeight / 2));
-  setPetTarget(host, targetX, targetY);
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
 }
 
 function renderPuppy(pet, eyesOpen) {
@@ -451,11 +409,6 @@ function renderPuppy(pet, eyesOpen) {
     frame,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasCape: pet.has_cape && pet.cape_worn,
-    // No wind while asleep and not moving — the cape settles to a neutral
-    // hang, same "freeze to resting state" treatment as frame above.
-    capeWindX: pet.is_sleeping ? 0 : capeWindX,
-    capeWindY: pet.is_sleeping ? 0 : capeWindY,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -471,11 +424,10 @@ function renderPuppy(pet, eyesOpen) {
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   host.style.setProperty("--bow-color", pet.bow_color || DEFAULT_BOW_COLOR);
-  host.style.setProperty("--cape-color", pet.cape_color || DEFAULT_CAPE_COLOR);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--cape" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
     }
   }
   host.innerHTML = html;
@@ -543,16 +495,6 @@ function renderStats(pet) {
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
     $("bow-color-picker").hidden = true;
   }
-  if (pet.has_cape) {
-    $("btn-buy-cape").disabled = false;
-    $("btn-buy-cape").textContent = pet.cape_worn ? "Take Off Cape" : "Put On Cape";
-    $("cape-color-picker").hidden = false;
-    $("cape-color-picker").value = pet.cape_color || DEFAULT_CAPE_COLOR;
-  } else {
-    $("btn-buy-cape").disabled = pet.coins < CAPE_PRICE;
-    $("btn-buy-cape").textContent = `Buy Cape (${CAPE_PRICE})`;
-    $("cape-color-picker").hidden = true;
-  }
   if (pet.has_bed) {
     $("btn-buy-bed").hidden = true;
   } else {
@@ -595,13 +537,12 @@ function miniSpriteHtml(pet) {
     eyesOpen: true,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasCape: pet.has_cape && pet.cape_worn,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--cape" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}"></i>`;
     }
   }
   return { html, width };
@@ -614,7 +555,7 @@ function renderPetPicker(pets) {
       const sprite = miniSpriteHtml(p);
       return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--cape-color:${p.cape_color || DEFAULT_CAPE_COLOR}">
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR}">
         <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
       </div>
       <div class="pet-picker-info">
@@ -1026,7 +967,8 @@ function walkToBedThenSleep() {
   const targetX = Math.min(maxX, Math.max(minX, bedCenterX - host.offsetWidth / 2));
   const targetY = Math.min(maxY, Math.max(minY, bedCenterY + bed.offsetHeight * 0.15 - host.offsetHeight));
   walkingToBed = true;
-  setPetTarget(host, targetX, targetY);
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
   renderStats(currentPet); // reflects the "Walking…" sleep-button state right away
   const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
   setTimeout(() => {
@@ -1315,7 +1257,6 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
-  $("btn-buy-cape").dataset.tooltip = "Cosmetic only, no stat effect";
   $("btn-buy-bed").dataset.tooltip = "Drag it anywhere. Sleep sends your pet there";
 
   $("btn-feed").addEventListener("click", () => {
@@ -1359,21 +1300,6 @@ function wireActions() {
     renderPuppy(currentPet, eyesOpen);
   });
   $("bow-color-picker").addEventListener("change", async () => {
-    try {
-      await persist();
-    } catch (err) {
-      showMessage(err.message, true);
-    }
-  });
-  $("btn-buy-cape").addEventListener("click", () => {
-    if (currentPet.has_cape) runAction(toggleCape, { bounce: false, sound: "poke" });
-    else runAction(buyCape, { bounce: false, sound: "coin" });
-  });
-  $("cape-color-picker").addEventListener("input", (e) => {
-    setCapeColor(currentPet, e.target.value);
-    renderPuppy(currentPet, eyesOpen);
-  });
-  $("cape-color-picker").addEventListener("change", async () => {
     try {
       await persist();
     } catch (err) {
