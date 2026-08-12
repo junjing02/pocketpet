@@ -1,6 +1,6 @@
 // Hand-tuned pixel-dot sprites — no image assets, just an on/off grid.
 // grid values: 0 = off, 1 = fill dot, 2 = eye/sparkle dot, 3 = outline dot,
-// 4 = bow dot, 5 = bandana dot (each accessory gets its own color, so it
+// 4 = bow dot, 5 = scarf dot (each accessory gets its own color, so it
 // actually stands out instead of blending in as plain black dots) (outline
 // is a 1px black ring computed by dilating the silhouette outward — see
 // buildBitmap — so fill stays a light tint and the outline reads as the
@@ -84,7 +84,7 @@ const BIRD_PROFILES = {
     beak: { rowOffset: 6, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 4 },
+    scarf: { rowOffset: 4 },
   },
   young: {
     startRow: 7,
@@ -94,7 +94,7 @@ const BIRD_PROFILES = {
     beak: { rowOffset: 8, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -1, colOffsets: [0] },
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     animFrames: [
       [{ rowOffset: 4, colOffsets: [-6, 6] }],
       [{ rowOffset: 3, colOffsets: [-6, 6] }],
@@ -112,7 +112,7 @@ const BIRD_PROFILES = {
     beak: { rowOffset: 9, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -2, colOffsets: [0] },
     bow: { rowOffset: -3, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     animFrames: [
       [{ rowOffset: 4, colOffsets: [-7, 7] }, { rowOffset: 5, colOffsets: [-7, 7] }],
       [{ rowOffset: 3, colOffsets: [-7, 7] }, { rowOffset: 4, colOffsets: [-7, 7] }],
@@ -130,7 +130,7 @@ const BIRD_PROFILES = {
     beak: { rowOffset: 10, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -2, colOffsets: [0] },
     bow: { rowOffset: -3, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     animFrames: [
       [{ rowOffset: 3, colOffsets: [-9, 9] }, { rowOffset: 4, colOffsets: [-10, 10] }],
       [{ rowOffset: 2, colOffsets: [-9, 9] }, { rowOffset: 3, colOffsets: [-10, 10] }],
@@ -148,7 +148,7 @@ const BIRD_PROFILES = {
     beak: { rowOffset: 11, colOffsets: [-1, 0, 1] },
     tuft: { rowOffset: -2, colOffsets: [0] },
     bow: { rowOffset: -3, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     features: [
       { rowOffset: 6, colOffsets: [12] }, // fanned tail feather, stays put while wings flap
     ],
@@ -187,7 +187,7 @@ const BUNNY_PROFILES = {
     mouth: { rowOffset: 4, colOffsets: [0] },
     features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 4 },
+    scarf: { rowOffset: 4 },
   },
   young: {
     startRow: 7,
@@ -197,7 +197,7 @@ const BUNNY_PROFILES = {
     animFrames: bunnyEars(-1, 2, 3),
     features: [{ rowOffset: 3, colOffsets: [-6] }], // tail poof
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 8, colOffsets: [-2, 1] }],
       [{ rowOffset: 8, colOffsets: [-1, 2] }],
@@ -211,7 +211,7 @@ const BUNNY_PROFILES = {
     animFrames: bunnyEars(-1, 3, 4),
     features: [{ rowOffset: 4, colOffsets: [-7] }], // tail poof
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 9, colOffsets: [-2, 1] }],
       [{ rowOffset: 9, colOffsets: [-1, 2] }],
@@ -225,7 +225,7 @@ const BUNNY_PROFILES = {
     animFrames: bunnyEars(-1, 4, 5),
     features: [{ rowOffset: 5, colOffsets: [-9] }], // tail poof
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 10, colOffsets: [-3, 2] }],
       [{ rowOffset: 10, colOffsets: [-2, 3] }],
@@ -239,7 +239,7 @@ const BUNNY_PROFILES = {
     animFrames: bunnyEars(-1, 5, 6),
     features: [{ rowOffset: 6, colOffsets: [-10] }], // tail poof
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 10, colOffsets: [-4, 3] }],
       [{ rowOffset: 10, colOffsets: [-3, 4] }],
@@ -270,7 +270,7 @@ const TURTLE_PROFILES = {
     eyes: { rowOffset: 5, colOffset: 1, rows: [0] },
     mouth: { rowOffset: 6, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 3 },
+    scarf: { rowOffset: 3 },
   },
   young: {
     startRow: 9,
@@ -279,7 +279,7 @@ const TURTLE_PROFILES = {
     eyes: { rowOffset: 7, colOffset: 2, rows: [0, 1] },
     mouth: { rowOffset: 9, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 5 },
+    scarf: { rowOffset: 5 },
     limbFrames: [
       [{ rowOffset: 4, colOffsets: [-6, 6] }],
       [{ rowOffset: 4, colOffsets: [-5, 5] }],
@@ -292,7 +292,7 @@ const TURTLE_PROFILES = {
     eyes: { rowOffset: 8, colOffset: 2, rows: [0, 1] },
     mouth: { rowOffset: 10, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 5, colOffsets: [-8, 8] }],
       [{ rowOffset: 5, colOffsets: [-7, 9] }],
@@ -305,7 +305,7 @@ const TURTLE_PROFILES = {
     eyes: { rowOffset: 8, colOffset: 3, rows: [0, 1] },
     mouth: { rowOffset: 10, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 6, colOffsets: [-9, 9] }],
       [{ rowOffset: 6, colOffsets: [-8, 10] }],
@@ -318,7 +318,7 @@ const TURTLE_PROFILES = {
     eyes: { rowOffset: 9, colOffset: 3, rows: [0, 1] },
     mouth: { rowOffset: 11, colOffsets: [0] },
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 7, colOffsets: [-10, 10] }],
       [{ rowOffset: 7, colOffsets: [-9, 11] }],
@@ -337,7 +337,7 @@ const CAT_PROFILES = {
     mouth: { rowOffset: 4, colOffsets: [0] },
     features: [{ rowOffset: -1, colOffsets: [-2, 2] }], // tiny ear buds
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 4 },
+    scarf: { rowOffset: 4 },
   },
   young: {
     startRow: 7,
@@ -350,7 +350,7 @@ const CAT_PROFILES = {
       { rowOffset: 3, colOffsets: [-6] }, // tail
     ],
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 8, colOffsets: [-2, 1] }],
       [{ rowOffset: 8, colOffsets: [-1, 2] }],
@@ -368,7 +368,7 @@ const CAT_PROFILES = {
       { rowOffset: 4, colOffsets: [-7] },
     ],
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 9, colOffsets: [-2, 1] }],
       [{ rowOffset: 9, colOffsets: [-1, 2] }],
@@ -386,7 +386,7 @@ const CAT_PROFILES = {
       { rowOffset: 5, colOffsets: [-9] },
     ],
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 10, colOffsets: [-3, 2] }],
       [{ rowOffset: 10, colOffsets: [-2, 3] }],
@@ -405,7 +405,7 @@ const CAT_PROFILES = {
       { rowOffset: 6, colOffsets: [11, 12] }, // curled tail tip
     ],
     bow: { rowOffset: -1, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 11, colOffsets: [-4, 3] }],
       [{ rowOffset: 11, colOffsets: [-3, 4] }],
@@ -435,7 +435,7 @@ const HEDGEHOG_PROFILES = {
     mouth: { rowOffset: 5, colOffsets: [0] },
     features: hedgehogSpikes(-1, 3, 3),
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 4 },
+    scarf: { rowOffset: 4 },
   },
   young: {
     startRow: 7,
@@ -444,7 +444,7 @@ const HEDGEHOG_PROFILES = {
     mouth: { rowOffset: 5, colOffsets: [0] },
     features: [...hedgehogSpikes(-1, 4, 5), { rowOffset: 2, colOffsets: [-6, 6] }],
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 6 },
+    scarf: { rowOffset: 6 },
     limbFrames: [
       [{ rowOffset: 8, colOffsets: [-2, 1] }],
       [{ rowOffset: 8, colOffsets: [-1, 2] }],
@@ -457,7 +457,7 @@ const HEDGEHOG_PROFILES = {
     mouth: { rowOffset: 5, colOffsets: [0] },
     features: [...hedgehogSpikes(-1, 5, 6), { rowOffset: 2, colOffsets: [-7, 7] }],
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 7 },
+    scarf: { rowOffset: 7 },
     limbFrames: [
       [{ rowOffset: 9, colOffsets: [-2, 1] }],
       [{ rowOffset: 9, colOffsets: [-1, 2] }],
@@ -470,7 +470,7 @@ const HEDGEHOG_PROFILES = {
     mouth: { rowOffset: 6, colOffsets: [0] },
     features: [...hedgehogSpikes(-1, 7, 7), { rowOffset: 3, colOffsets: [-9, 9] }],
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 8 },
+    scarf: { rowOffset: 8 },
     limbFrames: [
       [{ rowOffset: 10, colOffsets: [-3, 2] }],
       [{ rowOffset: 10, colOffsets: [-2, 3] }],
@@ -483,7 +483,7 @@ const HEDGEHOG_PROFILES = {
     mouth: { rowOffset: 6, colOffsets: [0] },
     features: [...hedgehogSpikes(-1, 8, 8), { rowOffset: 3, colOffsets: [-10, 10] }],
     bow: { rowOffset: -2, colOffsets: [-1, 1] },
-    bandana: { rowOffset: 8 },
+    scarf: { rowOffset: 8 },
     limbFrames: [
       [{ rowOffset: 11, colOffsets: [-4, 3] }],
       [{ rowOffset: 11, colOffsets: [-3, 4] }],
@@ -509,7 +509,7 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasBandana = false } = {}) {
+export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasScarf = false } = {}) {
   const profile = stage === "egg" ? EGG_PROFILE : (SPECIES_PROFILES[species] || BIRD_PROFILES)[stage] || EGG_PROFILE;
   const grid = emptyGrid();
 
@@ -543,12 +543,20 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     for (const off of [-2, -1, 0, 1, 2]) setDot(grid, row, CX + off, 4);
   }
 
-  if (profile.bandana && hasBandana) {
-    // A flat neck band, own value/color — sits below the mouth (or, for
-    // turtle, right where the head meets the shell) so it never competes
-    // with the bow, which stays up on the head.
-    const row = profile.startRow + profile.bandana.rowOffset;
-    for (const off of [-2, -1, 0, 1, 2]) setDot(grid, row, CX + off, 5);
+  if (profile.scarf && hasScarf) {
+    // A narrow neck band (sits below the mouth, or for turtle right where
+    // the head meets the shell — same spot the old flat bandana used, just
+    // narrower so it doesn't read as a second mouth) plus 2 dangling tails.
+    // Tails sit 1 column clear of the band's own edge on each side — flush
+    // against it merged into an odd L-shape with the band. The tails swap
+    // which one is long vs short each walk frame, which is what reads as
+    // them swinging as the pet moves (frozen on frame 0 while asleep, same
+    // as every other frame-driven part).
+    const row = profile.startRow + profile.scarf.rowOffset;
+    for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
+    const [leftLen, rightLen] = frame % 2 === 0 ? [4, 2] : [2, 4];
+    for (let dr = 1; dr <= leftLen; dr++) setDot(grid, row + dr, CX - 2, 5);
+    for (let dr = 1; dr <= rightLen; dr++) setDot(grid, row + dr, CX + 2, 5);
   }
 
   if (profile.mouth) {

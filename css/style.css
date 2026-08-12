@@ -254,29 +254,33 @@ button:disabled:active { transform: none; }
 .pet-bowl--fade { opacity: 0; }
 
 /* A draggable bed prop — stays on the playground permanently once bought
-   (unlike the bowl's brief flash), wherever the user last dragged it.
-   Sits behind #pet-screen in paint order so the pet reads as lying on top
-   of it once it walks over and sleeps there. */
+   (unlike the bowl's brief flash), wherever the user last dragged it. Sized
+   bigger than even the adult stage's own silhouette (~66-80px) so the round
+   mat still shows all the way around the pet once it's lying on it, instead
+   of being fully hidden underneath. Sits behind #pet-screen in paint order
+   so the pet reads as lying on top of it once it walks over and sleeps
+   there. */
 .pet-bed {
   position: absolute;
-  width: 34px;
-  height: 18px;
+  width: 80px;
+  height: 80px;
   background: var(--track);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: grab;
   touch-action: none;
 }
 .pet-bed::before {
   content: "";
   position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 11px;
-  height: 11px;
+  left: 10px;
+  top: 9px;
+  width: 32px;
+  height: 20px;
   background: var(--fg);
   opacity: 0.12;
-  border-radius: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 .pet-bed--dragging { cursor: grabbing; }
 
@@ -439,7 +443,7 @@ button:disabled:active { transform: none; }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
-.dot--bandana { background: var(--bandana-color, #3a82a8); }
+.dot--scarf { background: var(--scarf-color, #3a82a8); }
 
 .pet-status {
   text-align: center;
@@ -561,7 +565,7 @@ button:disabled:active { transform: none; }
 .bar i { display: block; height: 100%; background: var(--fg); width: 100%; transition: width 0.3s; }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
-.actions button { min-width: 70px; }
+.actions button { min-width: 70px; flex: 1; }
 
 /* Labels the "use it" (Care) row apart from the "spend coins" (Shop) row —
    same button styling made them blend into one undifferentiated block. */
@@ -579,13 +583,13 @@ button:disabled:active { transform: none; }
   border-top: 1px solid var(--track);
 }
 
-/* Bow/bandana buttons each host their color swatch as a small overlay inset
+/* Bow/scarf buttons each host their color swatch as a small overlay inset
    into their own right edge, so the swatch reads as part of the button
-   rather than a separate control next to it. Kept on its own full-width row
-   (like .play-btn) instead of sharing the flex row with Buy Snack/Buy Meal —
-   the longer toggle text ("Take Off Bow"/"Take Off Bandana" + swatch)
-   wouldn't size evenly against them there. */
-.accessory-btn-wrap { position: relative; margin-bottom: 14px; }
+   rather than a separate control next to it. The two share their own row
+   (flex:1 each, so they split it evenly) instead of sitting in the Buy
+   Snack/Buy Meal/Buy Bed row — their longer toggle text ("Take Off Bow"/
+   "Take Off Scarf" + swatch) wouldn't size evenly against those. */
+.accessory-btn-wrap { position: relative; flex: 1; }
 .accessory-btn-wrap button { display: block; width: 100%; }
 .accessory-btn-wrap:has(input[type="color"]:not([hidden])) button { padding-right: 30px; }
 

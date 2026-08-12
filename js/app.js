@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=32";
-import * as db from "./supabase.js?v=32";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=32";
+} from "./pet-sprites.js?v=33";
+import * as db from "./supabase.js?v=33";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=33";
 
 const HOUR = 3600000;
 
@@ -35,8 +35,8 @@ const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
 const DEFAULT_BOW_COLOR = "#d1477a";
-const BANDANA_PRICE = 20;
-const DEFAULT_BANDANA_COLOR = "#3a82a8";
+const SCARF_PRICE = 20;
+const DEFAULT_SCARF_COLOR = "#3a82a8";
 const BED_PRICE = 30;
 const DEFAULT_BED_X = 0.7;
 const DEFAULT_BED_Y = 0.7;
@@ -118,9 +118,9 @@ export function createInitialPet(name) {
     has_bow: false,
     bow_worn: false,
     bow_color: DEFAULT_BOW_COLOR,
-    has_bandana: false,
-    bandana_worn: false,
-    bandana_color: DEFAULT_BANDANA_COLOR,
+    has_scarf: false,
+    scarf_worn: false,
+    scarf_color: DEFAULT_SCARF_COLOR,
     has_bed: false,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
@@ -258,23 +258,23 @@ export function setBowColor(pet, color) {
   return pet;
 }
 
-export function buyBandana(pet) {
-  if (pet.has_bandana || pet.coins < BANDANA_PRICE) return pet;
-  pet.coins -= BANDANA_PRICE;
-  pet.has_bandana = true;
-  pet.bandana_worn = true; // wear it right away so the purchase is immediately visible
+export function buyScarf(pet) {
+  if (pet.has_scarf || pet.coins < SCARF_PRICE) return pet;
+  pet.coins -= SCARF_PRICE;
+  pet.has_scarf = true;
+  pet.scarf_worn = true; // wear it right away so the purchase is immediately visible
   return pet;
 }
 
-export function toggleBandana(pet) {
-  if (!pet.has_bandana) return pet;
-  pet.bandana_worn = !pet.bandana_worn;
+export function toggleScarf(pet) {
+  if (!pet.has_scarf) return pet;
+  pet.scarf_worn = !pet.scarf_worn;
   return pet;
 }
 
-export function setBandanaColor(pet, color) {
-  if (!pet.has_bandana) return pet;
-  pet.bandana_color = color;
+export function setScarfColor(pet, color) {
+  if (!pet.has_scarf) return pet;
+  pet.scarf_color = color;
   return pet;
 }
 
@@ -417,7 +417,7 @@ function renderPuppy(pet, eyesOpen) {
     frame,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasBandana: pet.has_bandana && pet.bandana_worn,
+    hasScarf: pet.has_scarf && pet.scarf_worn,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -433,11 +433,11 @@ function renderPuppy(pet, eyesOpen) {
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   host.style.setProperty("--bow-color", pet.bow_color || DEFAULT_BOW_COLOR);
-  host.style.setProperty("--bandana-color", pet.bandana_color || DEFAULT_BANDANA_COLOR);
+  host.style.setProperty("--scarf-color", pet.scarf_color || DEFAULT_SCARF_COLOR);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--bandana" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--scarf" : ""}"></i>`;
     }
   }
   host.innerHTML = html;
@@ -505,15 +505,15 @@ function renderStats(pet) {
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
     $("bow-color-picker").hidden = true;
   }
-  if (pet.has_bandana) {
-    $("btn-buy-bandana").disabled = false;
-    $("btn-buy-bandana").textContent = pet.bandana_worn ? "Take Off Bandana" : "Put On Bandana";
-    $("bandana-color-picker").hidden = false;
-    $("bandana-color-picker").value = pet.bandana_color || DEFAULT_BANDANA_COLOR;
+  if (pet.has_scarf) {
+    $("btn-buy-scarf").disabled = false;
+    $("btn-buy-scarf").textContent = pet.scarf_worn ? "Take Off Scarf" : "Put On Scarf";
+    $("scarf-color-picker").hidden = false;
+    $("scarf-color-picker").value = pet.scarf_color || DEFAULT_SCARF_COLOR;
   } else {
-    $("btn-buy-bandana").disabled = pet.coins < BANDANA_PRICE;
-    $("btn-buy-bandana").textContent = `Buy Bandana (${BANDANA_PRICE})`;
-    $("bandana-color-picker").hidden = true;
+    $("btn-buy-scarf").disabled = pet.coins < SCARF_PRICE;
+    $("btn-buy-scarf").textContent = `Buy Scarf (${SCARF_PRICE})`;
+    $("scarf-color-picker").hidden = true;
   }
   if (pet.has_bed) {
     $("btn-buy-bed").hidden = true;
@@ -557,13 +557,13 @@ function miniSpriteHtml(pet) {
     eyesOpen: true,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasBandana: pet.has_bandana && pet.bandana_worn,
+    hasScarf: pet.has_scarf && pet.scarf_worn,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--bandana" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--scarf" : ""}"></i>`;
     }
   }
   return { html, width };
@@ -576,7 +576,7 @@ function renderPetPicker(pets) {
       const sprite = miniSpriteHtml(p);
       return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--bandana-color:${p.bandana_color || DEFAULT_BANDANA_COLOR}">
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--scarf-color:${p.scarf_color || DEFAULT_SCARF_COLOR}">
         <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
       </div>
       <div class="pet-picker-info">
@@ -1272,7 +1272,7 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
-  $("btn-buy-bandana").dataset.tooltip = "Cosmetic only, no stat effect";
+  $("btn-buy-scarf").dataset.tooltip = "Cosmetic only, no stat effect";
   $("btn-buy-bed").dataset.tooltip = "Drag it anywhere. Sleep sends your pet there";
 
   $("btn-feed").addEventListener("click", () => {
@@ -1322,15 +1322,15 @@ function wireActions() {
       showMessage(err.message, true);
     }
   });
-  $("btn-buy-bandana").addEventListener("click", () => {
-    if (currentPet.has_bandana) runAction(toggleBandana, { bounce: false, sound: "poke" });
-    else runAction(buyBandana, { bounce: false, sound: "coin" });
+  $("btn-buy-scarf").addEventListener("click", () => {
+    if (currentPet.has_scarf) runAction(toggleScarf, { bounce: false, sound: "poke" });
+    else runAction(buyScarf, { bounce: false, sound: "coin" });
   });
-  $("bandana-color-picker").addEventListener("input", (e) => {
-    setBandanaColor(currentPet, e.target.value);
+  $("scarf-color-picker").addEventListener("input", (e) => {
+    setScarfColor(currentPet, e.target.value);
     renderPuppy(currentPet, eyesOpen);
   });
-  $("bandana-color-picker").addEventListener("change", async () => {
+  $("scarf-color-picker").addEventListener("change", async () => {
     try {
       await persist();
     } catch (err) {

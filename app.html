@@ -8,7 +8,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <meta name="theme-color" content="#111111" />
-  <link rel="stylesheet" href="css/style.css?v=32" />
+  <link rel="stylesheet" href="css/style.css?v=33" />
 </head>
 <body>
   <main class="shell">
@@ -69,7 +69,7 @@
             <div class="help-row"><b>Care</b><span>Feed, Play, Clean, and Sleep keep your pet's stats up. Neglect drops Health, and hitting 0 makes it sick (needs Medicine).</span></div>
             <div class="help-row"><b>Needs a hand</b><span>Low stats show right on the pet: shaking, itching, drooping, or too tired to move, so you don't have to watch the bars.</span></div>
             <div class="help-row"><b>Playground</b><span>Tap to poke it, tap elsewhere to call it over, or drag it around.</span></div>
-            <div class="help-row"><b>Economy</b><span>Play mini-games for coins. Spend them on food, a Bow, a Bandana, or a Bed you can drag anywhere.</span></div>
+            <div class="help-row"><b>Economy</b><span>Play mini-games for coins. Spend them on food, a Bow, a Scarf, or a Bed you can drag anywhere.</span></div>
             <div class="help-row"><b>Multiple pets</b><span>Hatch up to 3 from the ⇄ icon. Switch, rename, reset, or release one there.</span></div>
             <div class="help-row"><b>Daily bonus</b><span>Log in daily for a growing coin bonus.</span></div>
           </div>
@@ -130,13 +130,15 @@
             <button id="btn-buy-meal">Buy Meal (15)</button>
             <button id="btn-buy-bed">Buy Bed (30)</button>
           </div>
-          <div class="accessory-btn-wrap">
-            <button id="btn-buy-bow">Buy Bow (25)</button>
-            <input type="color" id="bow-color-picker" value="#d1477a" aria-label="Bow color" data-tooltip="Bow color" hidden />
-          </div>
-          <div class="accessory-btn-wrap">
-            <button id="btn-buy-bandana">Buy Bandana (20)</button>
-            <input type="color" id="bandana-color-picker" value="#3a82a8" aria-label="Bandana color" data-tooltip="Bandana color" hidden />
+          <div class="actions">
+            <div class="accessory-btn-wrap">
+              <button id="btn-buy-bow">Buy Bow (25)</button>
+              <input type="color" id="bow-color-picker" value="#d1477a" aria-label="Bow color" data-tooltip="Bow color" hidden />
+            </div>
+            <div class="accessory-btn-wrap">
+              <button id="btn-buy-scarf">Buy Scarf (20)</button>
+              <input type="color" id="scarf-color-picker" value="#3a82a8" aria-label="Scarf color" data-tooltip="Scarf color" hidden />
+            </div>
           </div>
         </div>
       </div>
@@ -233,6 +235,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=32"></script>
+  <script type="module" src="js/app.js?v=33"></script>
 </body>
 </html>
