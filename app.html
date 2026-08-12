@@ -8,7 +8,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <meta name="theme-color" content="#111111" />
-  <link rel="stylesheet" href="css/style.css?v=49" />
+  <link rel="stylesheet" href="css/style.css?v=50" />
 </head>
 <body>
   <main class="shell">
@@ -41,6 +41,10 @@
         <div class="password-field">
           <input id="new-password-input" type="password" placeholder="new password" autocomplete="new-password" required minlength="6" />
           <button type="button" class="toggle-pw" data-target="new-password-input">Show</button>
+        </div>
+        <div class="password-field">
+          <input id="new-password-confirm-input" type="password" placeholder="confirm new password" autocomplete="new-password" required minlength="6" />
+          <button type="button" class="toggle-pw" data-target="new-password-confirm-input">Show</button>
         </div>
         <button type="submit">Update Password</button>
       </form>
@@ -231,6 +235,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=49"></script>
+  <script type="module" src="js/app.js?v=50"></script>
 </body>
 </html>

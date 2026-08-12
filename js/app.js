@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=49";
-import * as db from "./supabase.js?v=49";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=49";
+} from "./pet-sprites.js?v=50";
+import * as db from "./supabase.js?v=50";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=50";
 
 const HOUR = 3600000;
 
@@ -703,6 +703,15 @@ function render() {
 // once when a stat crosses the threshold, not on every render.
 const NOTIFY_KEY = "pocketpet_notify_enabled";
 const notifiedLow = new Set();
+
+// Supabase syncs a recovery session to every open tab, so clicking a
+// password-reset email link (which opens a new tab) also drops the
+// original tab into the same "set a new password" screen. Once either tab
+// actually changes the password, this key is written to localStorage —
+// the storage event it triggers only fires in OTHER tabs, never the one
+// that wrote it — so the other tab can log straight in instead of prompting
+// for a password change a second time (see wireAuth's storage listener).
+const PASSWORD_RESET_KEY = "pocketpet_password_reset_at";
 
 function notificationsEnabled() {
   return (
@@ -1719,8 +1728,14 @@ function wireAuth() {
   $("reset-password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const password = $("new-password-input").value;
+    const confirmPassword = $("new-password-confirm-input").value;
+    if (password !== confirmPassword) {
+      showMessage("New passwords do not match.", true);
+      return;
+    }
     await withBusy(e.submitter, "Updating…", async () => {
       await db.updatePassword(password);
+      localStorage.setItem(PASSWORD_RESET_KEY, String(Date.now()));
       const session = await db.getSession();
       if (session) await loadPetsForUser(session.user.id, session.user.email);
     });
@@ -1781,6 +1796,18 @@ async function init() {
       if (sawPasswordRecovery || currentUserId) return;
       loadPetsForUser(session.user.id, session.user.email);
     }, 150);
+  });
+
+  // A sibling tab (e.g. the original one, if the recovery link opened a
+  // new tab) just changed the password on this same recovery session —
+  // log in directly here too instead of leaving this tab sitting on a
+  // stale "set a new password" form that would either fail or set a
+  // different password than the one already saved.
+  window.addEventListener("storage", (e) => {
+    if (e.key !== PASSWORD_RESET_KEY || currentUserId) return;
+    db.getSession().then((session) => {
+      if (session) loadPetsForUser(session.user.id, session.user.email);
+    });
   });
 }
 
