@@ -1,10 +1,12 @@
 // Hand-tuned pixel-dot sprites — no image assets, just an on/off grid.
 // grid values: 0 = off, 1 = fill dot, 2 = eye/sparkle dot, 3 = outline dot,
 // 4 = bow dot, 5 = scarf dot (each accessory gets its own color, so it
-// actually stands out instead of blending in as plain black dots) (outline
-// is a 1px black ring computed by dilating the silhouette outward — see
-// buildBitmap — so fill stays a light tint and the outline reads as the
-// bold black line of a low-res, limited-palette pixel-art sprite.)
+// actually stands out instead of blending in as plain black dots; the bow
+// still gets the outline ring since it's chunky enough to carry one, the
+// scarf doesn't — a black ring around its 1-dot-wide tails read too heavy)
+// (outline is a 1px black ring computed by dilating the silhouette outward
+// — see buildBitmap — so fill stays a light tint and the outline reads as
+// the bold black line of a low-res, limited-palette pixel-art sprite.)
 export const GRID_SIZE = 25;
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -546,17 +548,19 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
   if (profile.scarf && hasScarf) {
     // A narrow neck band (sits below the mouth, or for turtle right where
     // the head meets the shell — same spot the old flat bandana used, just
-    // narrower so it doesn't read as a second mouth) plus 2 dangling tails.
-    // Tails sit 1 column clear of the band's own edge on each side — flush
-    // against it merged into an odd L-shape with the band. The tails swap
-    // which one is long vs short each walk frame, which is what reads as
-    // them swinging as the pet moves (frozen on frame 0 while asleep, same
-    // as every other frame-driven part).
+    // narrower so it doesn't read as a second mouth) plus 2 tails that flare
+    // diagonally outward as they fall — 2 parallel vertical lines read as a
+    // mustache, not a scarf. Tails swap which one is long vs short each walk
+    // frame, which is what reads as them swinging as the pet moves (frozen
+    // on frame 0 while asleep, same as every other frame-driven part). No
+    // outline ring on scarf dots (see the body-check below) — it's a thin
+    // accessory, not a body part, and the ring was visually heavy on a
+    // 1-dot-wide line.
     const row = profile.startRow + profile.scarf.rowOffset;
     for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
     const [leftLen, rightLen] = frame % 2 === 0 ? [7, 3] : [3, 7];
-    for (let dr = 1; dr <= leftLen; dr++) setDot(grid, row + dr, CX - 2, 5);
-    for (let dr = 1; dr <= rightLen; dr++) setDot(grid, row + dr, CX + 2, 5);
+    for (let dr = 1; dr <= leftLen; dr++) setDot(grid, row + dr, CX - (2 + Math.floor((dr - 1) / 2)), 5);
+    for (let dr = 1; dr <= rightLen; dr++) setDot(grid, row + dr, CX + (2 + Math.floor((dr - 1) / 2)), 5);
   }
 
   if (profile.mouth) {
@@ -655,7 +659,7 @@ function outlineSilhouette(grid) {
           const r = row + dr;
           const c = col + dc;
           if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) continue;
-          if (grid[r][c] === 1 || grid[r][c] === 2 || grid[r][c] === 4 || grid[r][c] === 5) {
+          if (grid[r][c] === 1 || grid[r][c] === 2 || grid[r][c] === 4) {
             touchesBody = true;
             break;
           }

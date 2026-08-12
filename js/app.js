@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=34";
-import * as db from "./supabase.js?v=34";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=34";
+} from "./pet-sprites.js?v=35";
+import * as db from "./supabase.js?v=35";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=35";
 
 const HOUR = 3600000;
 
@@ -979,8 +979,14 @@ function walkToBedThenSleep() {
   const host = $("pet-screen");
   const bed = $("pet-bed");
   const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
-  const targetX = Math.min(maxX, Math.max(minX, bed.offsetLeft + bed.offsetWidth / 2 - host.offsetWidth / 2));
-  const targetY = Math.min(maxY, Math.max(minY, bed.offsetTop + bed.offsetHeight / 2 - host.offsetHeight / 2));
+  const bedCenterX = bed.offsetLeft + bed.offsetWidth / 2;
+  const bedCenterY = bed.offsetTop + bed.offsetHeight / 2;
+  // Center the pet horizontally on the mat, but sit its bottom edge (its
+  // feet/ground line) a bit below the mat's own vertical center rather than
+  // centering the pet's whole box on it — center-aligning both axes made it
+  // look like the pet was floating inside the bed instead of lying on top.
+  const targetX = Math.min(maxX, Math.max(minX, bedCenterX - host.offsetWidth / 2));
+  const targetY = Math.min(maxY, Math.max(minY, bedCenterY + bed.offsetHeight * 0.15 - host.offsetHeight));
   walkingToBed = true;
   host.style.left = `${targetX}px`;
   host.style.top = `${targetY}px`;
