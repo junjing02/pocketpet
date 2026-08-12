@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=46";
-import * as db from "./supabase.js?v=46";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=46";
+} from "./pet-sprites.js?v=47";
+import * as db from "./supabase.js?v=47";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=47";
 
 const HOUR = 3600000;
 
@@ -1750,6 +1750,17 @@ async function init() {
     return;
   }
 
+  // The PASSWORD_RECOVERY auth event below is the primary signal, but it's
+  // only guaranteed to reach this listener if it fires AFTER the listener
+  // is registered — the SDK starts processing the recovery link's URL as
+  // soon as the client is created (before this code runs), so there's a
+  // real race where getSession() below resolves with the recovery session
+  // first and sends the user to their normal pet screen before the event
+  // arrives to correct it. Checking the URL itself is a cheap, timing-
+  // independent fallback that closes that gap.
+  const isRecoveryLink = /type=recovery/.test(window.location.hash);
+  if (isRecoveryLink) screen("reset-password");
+
   db.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
       screen("reset-password");
@@ -1759,7 +1770,7 @@ async function init() {
   });
 
   const session = await db.getSession();
-  if (session) {
+  if (session && !isRecoveryLink) {
     await loadPetsForUser(session.user.id, session.user.email);
   }
 }
