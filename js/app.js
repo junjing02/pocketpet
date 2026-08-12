@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=37";
-import * as db from "./supabase.js?v=37";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=37";
+} from "./pet-sprites.js?v=38";
+import * as db from "./supabase.js?v=38";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=38";
 
 const HOUR = 3600000;
 
@@ -30,6 +30,10 @@ const HEALTH_DECAY_PER_HOUR_NEGLECTED = 5;
 const HEALTH_REGEN_PER_HOUR = 6;
 const SLEEP_ENERGY_GAIN_PER_HOUR = 10;
 const SLEEP_DECAY_MULTIPLIER = 0.5;
+// A pet with a bed always walks to it before sleeping (see
+// walkToBedThenSleep), so has_bed alone is enough to know it's sleeping on
+// one — no separate "currently on the bed" state needed.
+const BED_SLEEP_ENERGY_MULTIPLIER = 1.5;
 
 const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
@@ -175,8 +179,9 @@ export function applyDecay(pet, nowMs = Date.now()) {
     pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
     pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
     pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
+    const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
-      ? clamp(pet.energy + SLEEP_ENERGY_GAIN_PER_HOUR * elapsedHours)
+      ? clamp(pet.energy + sleepEnergyRate * elapsedHours)
       : clamp(pet.energy - DECAY_PER_HOUR.energy * elapsedHours);
 
     // Health only drops from neglect; it recovers on its own once every other
@@ -376,6 +381,26 @@ function bedBounds(bed, device) {
   return { ...base, minY: Math.max(base.minY, floorMinY) };
 }
 
+// The cape's cloth reacts to the pet's own movement — trails opposite the
+// direction of travel, like real fabric caught in the air (pet moves left
+// -> wind blows the cape right). Stored as the WIND direction itself
+// (already the opposite of travel), stable between moves rather than
+// reset to neutral, so a purely-vertical hop doesn't blank out the
+// horizontal lean from the last move. Only whichever screens actually
+// move the pet under its own power (wander, click-to-walk, walk-to-bed)
+// update this — not dragging, which is being carried, not walking.
+let capeWindX = 0;
+let capeWindY = 0;
+
+function setPetTarget(host, targetX, targetY) {
+  const dx = targetX - host.offsetLeft;
+  const dy = targetY - host.offsetTop;
+  if (Math.abs(dx) > 1) capeWindX = dx > 0 ? -1 : 1;
+  if (Math.abs(dy) > 1) capeWindY = dy > 0 ? -1 : 1;
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+}
+
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
@@ -387,13 +412,11 @@ function wanderPet() {
     if (Math.random() > SICK_WANDER_CHANCE) return;
     const x = Math.min(maxX, Math.max(minX, host.offsetLeft + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
     const y = Math.min(maxY, Math.max(minY, host.offsetTop + (Math.random() * 2 - 1) * SICK_SHUFFLE_PX));
-    host.style.left = `${x}px`;
-    host.style.top = `${y}px`;
+    setPetTarget(host, x, y);
     return;
   }
 
-  host.style.left = `${minX + Math.random() * (maxX - minX)}px`;
-  host.style.top = `${minY + Math.random() * (maxY - minY)}px`;
+  setPetTarget(host, minX + Math.random() * (maxX - minX), minY + Math.random() * (maxY - minY));
 }
 
 // Younger pets wander more often (and move there faster, via --move-duration
@@ -417,8 +440,7 @@ function movePetTowards(clickX, clickY) {
   const { minX, minY, maxX, maxY } = wanderBounds(host, device);
   const targetX = Math.min(maxX, Math.max(minX, clickX - host.offsetWidth / 2));
   const targetY = Math.min(maxY, Math.max(minY, clickY - host.offsetHeight / 2));
-  host.style.left = `${targetX}px`;
-  host.style.top = `${targetY}px`;
+  setPetTarget(host, targetX, targetY);
 }
 
 function renderPuppy(pet, eyesOpen) {
@@ -430,6 +452,10 @@ function renderPuppy(pet, eyesOpen) {
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
     hasCape: pet.has_cape && pet.cape_worn,
+    // No wind while asleep and not moving — the cape settles to a neutral
+    // hang, same "freeze to resting state" treatment as frame above.
+    capeWindX: pet.is_sleeping ? 0 : capeWindX,
+    capeWindY: pet.is_sleeping ? 0 : capeWindY,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -1000,8 +1026,7 @@ function walkToBedThenSleep() {
   const targetX = Math.min(maxX, Math.max(minX, bedCenterX - host.offsetWidth / 2));
   const targetY = Math.min(maxY, Math.max(minY, bedCenterY + bed.offsetHeight * 0.15 - host.offsetHeight));
   walkingToBed = true;
-  host.style.left = `${targetX}px`;
-  host.style.top = `${targetY}px`;
+  setPetTarget(host, targetX, targetY);
   renderStats(currentPet); // reflects the "Walking…" sleep-button state right away
   const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
   setTimeout(() => {
@@ -1285,7 +1310,7 @@ function wireActions() {
   $("btn-feed-meal").dataset.tooltip = "+60 Hunger, +15 Happy, -10 Clean";
   $("btn-play").dataset.tooltip = "Mini-game: +25 Happy, -15 Energy, -10 Hunger, plus coins";
   $("btn-clean").dataset.tooltip = "+40 Clean";
-  $("btn-sleep").dataset.tooltip = "Restores Energy over time and halves other decay while asleep";
+  $("btn-sleep").dataset.tooltip = "Restores Energy over time (faster with a Bed) and halves other decay while asleep";
   $("btn-medicine").dataset.tooltip = "Cures Sick, +40 Health, -5 Happy";
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;

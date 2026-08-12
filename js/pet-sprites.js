@@ -513,7 +513,7 @@ function setDot(grid, row, col, val) {
 
 export function buildBitmap(
   stage,
-  { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasCape = false } = {}
+  { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasCape = false, capeWindX = 0, capeWindY = 0 } = {}
 ) {
   const profile = stage === "egg" ? EGG_PROFILE : (SPECIES_PROFILES[species] || BIRD_PROFILES)[stage] || EGG_PROFILE;
   const grid = emptyGrid();
@@ -550,28 +550,55 @@ export function buildBitmap(
 
   if (profile.cape && hasCape) {
     // A narrow neck band (sits below the mouth, or for turtle right where
-    // the head meets the shell — same spot the old bandana/scarf used) plus
-    // 2 small triangular tabs flaring out to the SIDES, not a solid center
-    // panel — an earlier trapezoid version covered the mouth entirely on
-    // stages where the mouth sits close to the neck row. Leaving column 0
-    // untouched below the band avoids that regardless of how close the
-    // mouth ends up. Outer tab widens 1 col on alternating walk frames for
-    // a subtle flutter (frozen on frame 0 while asleep, same as every other
-    // frame-driven part). No outline ring on cape dots (see the body-check
-    // below) — it's a thin accessory, not a body part, and the ring was
-    // visually heavy on a 1-dot-wide line.
+    // the head meets the shell) plus a cloth that reacts to the pet's own
+    // movement — capeWindX/capeWindY are the OPPOSITE of its travel
+    // direction (see capeWind() in app.js), so it trails behind like real
+    // cloth caught in the air: pet moves left -> wind blows the cape right.
+    // Leaving column 0 untouched below the band avoids ever covering the
+    // mouth, regardless of how close the mouth ends up on a given stage —
+    // an earlier solid center-panel version did, on several species. No
+    // outline ring on cape dots (see the body-check below) — it's a thin
+    // accessory, not a body part, and the ring was visually heavy on
+    // 1-dot-wide edges.
     const row = profile.startRow + profile.cape.rowOffset;
     for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
     const flutter = frame % 2 === 1 ? 1 : 0;
-    const tabRows = [
-      [1, 2, 3],
-      [2, 3, 4],
-      [3, 4, 4 + flutter],
-    ];
-    for (const [dr, inner, outer] of tabRows) {
-      for (let col = inner; col <= outer; col++) {
-        setDot(grid, row + dr, CX + col, 5);
-        setDot(grid, row + dr, CX - col, 5);
+    // Vertical: wind blowing down (capeWindY>0, pet moving up) drapes the
+    // cape longer/lower, trailing behind; wind blowing up (capeWindY<0, pet
+    // moving down) tucks it shorter, blown up close against the back.
+    const depth = capeWindY > 0 ? 4 : capeWindY < 0 ? 2 : 3;
+
+    if (capeWindX === 0) {
+      // No horizontal wind — small symmetric tabs on both sides.
+      const tabRows = [
+        [1, 2, 3],
+        [2, 3, 4],
+        [3, 4, 4 + flutter],
+      ].slice(0, depth - 1);
+      for (const [dr, inner, outer] of tabRows.length ? tabRows : [[1, 2, 3]]) {
+        for (let col = inner; col <= outer; col++) {
+          setDot(grid, row + dr, CX + col, 5);
+          setDot(grid, row + dr, CX - col, 5);
+        }
+      }
+    } else {
+      // Horizontal wind — cloth billows out wide toward capeWindX; the
+      // near/leading side stays tucked in a small flap close to the band.
+      const big = [
+        [1, 1, 3],
+        [2, 2, 4],
+        [3, 3, 5],
+        [4, 4, 6 + flutter],
+      ].slice(0, depth);
+      const small = [
+        [1, 1, 1],
+        [2, 1, 2],
+      ].slice(0, Math.max(1, depth - 2));
+      for (const [dr, inner, outer] of big) {
+        for (let col = inner; col <= outer; col++) setDot(grid, row + dr, CX + capeWindX * col, 5);
+      }
+      for (const [dr, inner, outer] of small) {
+        for (let col = inner; col <= outer; col++) setDot(grid, row + dr, CX - capeWindX * col, 5);
       }
     }
   }
