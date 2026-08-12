@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=47";
-import * as db from "./supabase.js?v=47";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=47";
+} from "./pet-sprites.js?v=48";
+import * as db from "./supabase.js?v=48";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=48";
 
 const HOUR = 3600000;
 
@@ -1766,7 +1766,12 @@ async function init() {
       screen("reset-password");
       return;
     }
-    if (session && !currentUserId) loadPetsForUser(session.user.id, session.user.email);
+    // Recovery links establish a real session, which can also fire other
+    // events (SIGNED_IN, INITIAL_SESSION, ...) alongside/instead of
+    // PASSWORD_RECOVERY depending on SDK timing — without this guard, the
+    // tab that actually has the recovery link in its URL could still slip
+    // through here straight to the pet screen instead of the reset form.
+    if (session && !currentUserId && !isRecoveryLink) loadPetsForUser(session.user.id, session.user.email);
   });
 
   const session = await db.getSession();
