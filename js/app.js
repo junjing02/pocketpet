@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=35";
-import * as db from "./supabase.js?v=35";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=35";
+} from "./pet-sprites.js?v=36";
+import * as db from "./supabase.js?v=36";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=36";
 
 const HOUR = 3600000;
 
@@ -364,6 +364,17 @@ function wanderBounds(host, device) {
   return { minX, minY, maxX, maxY };
 }
 
+// The bed can't be dragged above this line (see #bed-floor-line) — keeps it
+// in the lower portion of the playground instead of floating up near the
+// top, which read oddly for a "floor" prop.
+const BED_MIN_Y_FRACTION = 0.42;
+
+function bedBounds(bed, device) {
+  const base = wanderBounds(bed, device);
+  const floorMinY = device.clientHeight * BED_MIN_Y_FRACTION;
+  return { ...base, minY: Math.max(base.minY, floorMinY) };
+}
+
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
@@ -409,6 +420,18 @@ function movePetTowards(clickX, clickY) {
   host.style.top = `${targetY}px`;
 }
 
+// Which side the scarf's tails sweep toward — randomized, but stable per
+// pet (not re-rolled on every render) by hashing something that's set once
+// at creation and never changes. Doesn't use pet.id: a brand-new pet has no
+// id yet until the first Supabase round-trip, but birth_timestamp+name are
+// set immediately in createInitialPet.
+function scarfSide(pet) {
+  const seed = `${pet.birth_timestamp || ""}${pet.name || ""}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return hash % 2 === 0 ? 1 : -1;
+}
+
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
   const bitmap = buildBitmap(pet.life_stage, {
@@ -418,6 +441,7 @@ function renderPuppy(pet, eyesOpen) {
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
     hasScarf: pet.has_scarf && pet.scarf_worn,
+    scarfSide: scarfSide(pet),
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -558,6 +582,7 @@ function miniSpriteHtml(pet) {
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
     hasScarf: pet.has_scarf && pet.scarf_worn,
+    scarfSide: scarfSide(pet),
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
@@ -699,13 +724,16 @@ function showFoodBowl() {
 // approach as wanderBounds().
 function renderBed(pet) {
   const bed = $("pet-bed");
+  const floorLine = $("bed-floor-line");
   if (!pet.has_bed || pet.life_stage === "egg") {
     bed.hidden = true;
+    floorLine.hidden = true;
     return;
   }
   bed.hidden = false;
+  floorLine.hidden = false;
   const device = $("pet-device");
-  const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+  const { minX, minY, maxX, maxY } = bedBounds(bed, device);
   bed.style.left = `${minX + (pet.bed_x ?? DEFAULT_BED_X) * (maxX - minX)}px`;
   bed.style.top = `${minY + (pet.bed_y ?? DEFAULT_BED_Y) * (maxY - minY)}px`;
 }
@@ -942,7 +970,7 @@ function wireDragBed() {
     if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
     moved = true;
     const rect = device.getBoundingClientRect();
-    const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+    const { minX, minY, maxX, maxY } = bedBounds(bed, device);
     bed.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - bed.offsetWidth / 2))}px`;
     bed.style.top = `${Math.min(maxY, Math.max(minY, e.clientY - rect.top - bed.offsetHeight / 2))}px`;
   });
@@ -956,7 +984,7 @@ function wireDragBed() {
     // click the browser fires on release (see wireDragPet above).
     if (moved) suppressNextPetClick = true;
     if (!moved) return; // plain tap, nothing moved — leave bed_x/bed_y untouched
-    const { minX, minY, maxX, maxY } = wanderBounds(bed, device);
+    const { minX, minY, maxX, maxY } = bedBounds(bed, device);
     currentPet.bed_x = maxX > minX ? (bed.offsetLeft - minX) / (maxX - minX) : 0.5;
     currentPet.bed_y = maxY > minY ? (bed.offsetTop - minY) / (maxY - minY) : 0.5;
     try {

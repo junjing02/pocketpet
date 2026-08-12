@@ -511,7 +511,10 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
-export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasScarf = false } = {}) {
+export function buildBitmap(
+  stage,
+  { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasScarf = false, scarfSide = 1 } = {}
+) {
   const profile = stage === "egg" ? EGG_PROFILE : (SPECIES_PROFILES[species] || BIRD_PROFILES)[stage] || EGG_PROFILE;
   const grid = emptyGrid();
 
@@ -548,19 +551,31 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
   if (profile.scarf && hasScarf) {
     // A narrow neck band (sits below the mouth, or for turtle right where
     // the head meets the shell — same spot the old flat bandana used, just
-    // narrower so it doesn't read as a second mouth) plus 2 tails that flare
-    // diagonally outward as they fall — 2 parallel vertical lines read as a
-    // mustache, not a scarf. Tails swap which one is long vs short each walk
-    // frame, which is what reads as them swinging as the pet moves (frozen
-    // on frame 0 while asleep, same as every other frame-driven part). No
-    // outline ring on scarf dots (see the body-check below) — it's a thin
-    // accessory, not a body part, and the ring was visually heavy on a
-    // 1-dot-wide line.
+    // narrower so it doesn't read as a second mouth) plus 2 tails, BOTH
+    // swept up and out to the SAME side (scarfSide, randomized per pet but
+    // stable — see scarfSide() in app.js) like caught in wind, rather than
+    // hanging straight down (reads as a mustache) or diverging both ways.
+    // Tails swap which one is long vs short each walk frame for a swinging
+    // look (frozen on frame 0 while asleep, same as every other
+    // frame-driven part). No outline ring on scarf dots (see the body-check
+    // below) — it's a thin accessory, not a body part, and the ring was
+    // visually heavy on a 1-dot-wide line.
     const row = profile.startRow + profile.scarf.rowOffset;
     for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
-    const [leftLen, rightLen] = frame % 2 === 0 ? [7, 3] : [3, 7];
-    for (let dr = 1; dr <= leftLen; dr++) setDot(grid, row + dr, CX - (2 + Math.floor((dr - 1) / 2)), 5);
-    for (let dr = 1; dr <= rightLen; dr++) setDot(grid, row + dr, CX + (2 + Math.floor((dr - 1) / 2)), 5);
+    const [longLen, shortLen] = frame % 2 === 0 ? [7, 3] : [3, 7];
+    // Moves outward FAST (1 col every row) so it clears the head's width
+    // before climbing much — climbing too fast relative to moving out
+    // crosses right through the eye. `near`/`far` read as 2 separate cords
+    // instead of overlapping.
+    const sweepTail = (length, base) => {
+      for (let dr = 1; dr <= length; dr++) {
+        const rowOff = 1 - Math.floor((dr - 1) / 2); // climbs 1 row every 2 steps
+        const colOff = scarfSide * (base + (dr - 1)); // 1 col further out every step
+        setDot(grid, row + rowOff, CX + colOff, 5);
+      }
+    };
+    sweepTail(longLen, 4);
+    sweepTail(shortLen, 2);
   }
 
   if (profile.mouth) {

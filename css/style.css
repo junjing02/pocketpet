@@ -199,6 +199,18 @@ button:disabled:active { transform: none; }
 }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }
 
+/* Marks how high the bed can be dragged (see BED_MIN_Y_FRACTION in app.js)
+   — shown only while a bed exists, so the limit is visible instead of the
+   bed just silently refusing to go further up. */
+.bed-floor-line {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 42%;
+  border-top: 1px dashed var(--muted);
+  pointer-events: none;
+}
+
 .pet-screen {
   --dot-size: 6px;
   --grid-size: 25;
