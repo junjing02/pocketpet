@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=43";
-import * as db from "./supabase.js?v=43";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=43";
+} from "./pet-sprites.js?v=44";
+import * as db from "./supabase.js?v=44";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=44";
 
 const HOUR = 3600000;
 
@@ -954,20 +954,29 @@ function wireDragBed() {
 // Sends the pet walking to the bed's current spot first, then puts it to
 // sleep once it actually arrives (matching the CSS move transition's own
 // duration) instead of just snapping is_sleeping on wherever it already was.
+// Where the pet should end up sitting once it's on the bed — centered
+// horizontally on the mat, with its bottom edge (its feet/ground line) a
+// bit below the mat's own vertical center rather than the pet's whole box
+// centered on it, which looked like it was floating inside the bed instead
+// of lying on top. Shared by walkToBedThenSleep (the walk target) and the
+// on-load snap for a pet that's already asleep on reload (see
+// activatePetAndRender) — both need the exact same resting spot.
+function bedRestTarget(host, bed) {
+  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
+  const bedCenterX = bed.offsetLeft + bed.offsetWidth / 2;
+  const bedCenterY = bed.offsetTop + bed.offsetHeight / 2;
+  return {
+    targetX: Math.min(maxX, Math.max(minX, bedCenterX - host.offsetWidth / 2)),
+    targetY: Math.min(maxY, Math.max(minY, bedCenterY + bed.offsetHeight * 0.15 - host.offsetHeight)),
+  };
+}
+
 function walkToBedThenSleep() {
   if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || currentPet.is_sleeping) return;
   const petId = currentPet.id;
   const host = $("pet-screen");
   const bed = $("pet-bed");
-  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
-  const bedCenterX = bed.offsetLeft + bed.offsetWidth / 2;
-  const bedCenterY = bed.offsetTop + bed.offsetHeight / 2;
-  // Center the pet horizontally on the mat, but sit its bottom edge (its
-  // feet/ground line) a bit below the mat's own vertical center rather than
-  // centering the pet's whole box on it — center-aligning both axes made it
-  // look like the pet was floating inside the bed instead of lying on top.
-  const targetX = Math.min(maxX, Math.max(minX, bedCenterX - host.offsetWidth / 2));
-  const targetY = Math.min(maxY, Math.max(minY, bedCenterY + bed.offsetHeight * 0.15 - host.offsetHeight));
+  const { targetX, targetY } = bedRestTarget(host, bed);
   walkingToBed = true;
   host.style.left = `${targetX}px`;
   host.style.top = `${targetY}px`;
@@ -1550,6 +1559,22 @@ async function activatePetAndRender(pet) {
   currentPet = await db.savePet(decayed);
   screen("pet");
   render();
+  // A pet that was already asleep on its bed before a reload should render
+  // sitting there right away, not at the pet-screen's default top-left
+  // starting spot — render() positions the bed itself, but never touches
+  // the pet's own left/top, so without this it'd sit in the wrong place
+  // until it next moves. transition disabled + a forced reflow so it
+  // appears there instantly instead of visibly sliding in on load.
+  if (currentPet.is_sleeping && currentPet.has_bed && currentPet.life_stage !== "egg") {
+    const host = $("pet-screen");
+    const bed = $("pet-bed");
+    const { targetX, targetY } = bedRestTarget(host, bed);
+    host.style.transition = "none";
+    host.style.left = `${targetX}px`;
+    host.style.top = `${targetY}px`;
+    void host.offsetHeight; // force a reflow so transition:none actually applies before re-enabling it
+    host.style.transition = "";
+  }
   showRecap(recap, loginBonus);
 }
 
