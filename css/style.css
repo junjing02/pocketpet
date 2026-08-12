@@ -199,18 +199,6 @@ button:disabled:active { transform: none; }
 }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }
 
-/* Marks how high the bed can be dragged (see BED_MIN_Y_FRACTION in app.js)
-   — shown only while a bed exists, so the limit is visible instead of the
-   bed just silently refusing to go further up. */
-.bed-floor-line {
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 42%;
-  border-top: 1px dashed var(--muted);
-  pointer-events: none;
-}
-
 .pet-screen {
   --dot-size: 6px;
   --grid-size: 25;
@@ -459,7 +447,7 @@ button:disabled:active { transform: none; }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
-.dot--scarf { background: var(--scarf-color, #3a82a8); }
+.dot--cape { background: var(--cape-color, #3a82a8); }
 
 .pet-status {
   text-align: center;
@@ -599,12 +587,12 @@ button:disabled:active { transform: none; }
   border-top: 1px solid var(--track);
 }
 
-/* Bow/scarf buttons each host their color swatch as a small overlay inset
+/* Bow/cape buttons each host their color swatch as a small overlay inset
    into their own right edge, so the swatch reads as part of the button
    rather than a separate control next to it. The two share their own row
    (flex:1 each, so they split it evenly) instead of sitting in the Buy
    Snack/Buy Meal/Buy Bed row — their longer toggle text ("Take Off Bow"/
-   "Take Off Scarf" + swatch) wouldn't size evenly against those. */
+   "Take Off Cape" + swatch) wouldn't size evenly against those. */
 .accessory-btn-wrap { position: relative; flex: 1; }
 .accessory-btn-wrap button { display: block; width: 100%; }
 .accessory-btn-wrap:has(input[type="color"]:not([hidden])) button { padding-right: 30px; }

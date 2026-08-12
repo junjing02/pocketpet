@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=36";
-import * as db from "./supabase.js?v=36";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=36";
+} from "./pet-sprites.js?v=37";
+import * as db from "./supabase.js?v=37";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=37";
 
 const HOUR = 3600000;
 
@@ -35,8 +35,8 @@ const SNACK_PRICE = 5;
 const MEAL_PRICE = 15;
 const BOW_PRICE = 25;
 const DEFAULT_BOW_COLOR = "#d1477a";
-const SCARF_PRICE = 20;
-const DEFAULT_SCARF_COLOR = "#3a82a8";
+const CAPE_PRICE = 20;
+const DEFAULT_CAPE_COLOR = "#3a82a8";
 const BED_PRICE = 30;
 const DEFAULT_BED_X = 0.7;
 const DEFAULT_BED_Y = 0.7;
@@ -118,9 +118,9 @@ export function createInitialPet(name) {
     has_bow: false,
     bow_worn: false,
     bow_color: DEFAULT_BOW_COLOR,
-    has_scarf: false,
-    scarf_worn: false,
-    scarf_color: DEFAULT_SCARF_COLOR,
+    has_cape: false,
+    cape_worn: false,
+    cape_color: DEFAULT_CAPE_COLOR,
     has_bed: false,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
@@ -258,23 +258,23 @@ export function setBowColor(pet, color) {
   return pet;
 }
 
-export function buyScarf(pet) {
-  if (pet.has_scarf || pet.coins < SCARF_PRICE) return pet;
-  pet.coins -= SCARF_PRICE;
-  pet.has_scarf = true;
-  pet.scarf_worn = true; // wear it right away so the purchase is immediately visible
+export function buyCape(pet) {
+  if (pet.has_cape || pet.coins < CAPE_PRICE) return pet;
+  pet.coins -= CAPE_PRICE;
+  pet.has_cape = true;
+  pet.cape_worn = true; // wear it right away so the purchase is immediately visible
   return pet;
 }
 
-export function toggleScarf(pet) {
-  if (!pet.has_scarf) return pet;
-  pet.scarf_worn = !pet.scarf_worn;
+export function toggleCape(pet) {
+  if (!pet.has_cape) return pet;
+  pet.cape_worn = !pet.cape_worn;
   return pet;
 }
 
-export function setScarfColor(pet, color) {
-  if (!pet.has_scarf) return pet;
-  pet.scarf_color = color;
+export function setCapeColor(pet, color) {
+  if (!pet.has_cape) return pet;
+  pet.cape_color = color;
   return pet;
 }
 
@@ -364,9 +364,10 @@ function wanderBounds(host, device) {
   return { minX, minY, maxX, maxY };
 }
 
-// The bed can't be dragged above this line (see #bed-floor-line) — keeps it
-// in the lower portion of the playground instead of floating up near the
-// top, which read oddly for a "floor" prop.
+// The bed can't be dragged above this fraction of the playground's height —
+// keeps it in the lower portion instead of floating up near the top, which
+// read oddly for a "floor" prop. No visible marker for the limit — it just
+// silently stops there.
 const BED_MIN_Y_FRACTION = 0.42;
 
 function bedBounds(bed, device) {
@@ -420,18 +421,6 @@ function movePetTowards(clickX, clickY) {
   host.style.top = `${targetY}px`;
 }
 
-// Which side the scarf's tails sweep toward — randomized, but stable per
-// pet (not re-rolled on every render) by hashing something that's set once
-// at creation and never changes. Doesn't use pet.id: a brand-new pet has no
-// id yet until the first Supabase round-trip, but birth_timestamp+name are
-// set immediately in createInitialPet.
-function scarfSide(pet) {
-  const seed = `${pet.birth_timestamp || ""}${pet.name || ""}`;
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  return hash % 2 === 0 ? 1 : -1;
-}
-
 function renderPuppy(pet, eyesOpen) {
   const frame = pet.is_sleeping ? 0 : walkFrame;
   const bitmap = buildBitmap(pet.life_stage, {
@@ -440,8 +429,7 @@ function renderPuppy(pet, eyesOpen) {
     frame,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasScarf: pet.has_scarf && pet.scarf_worn,
-    scarfSide: scarfSide(pet),
+    hasCape: pet.has_cape && pet.cape_worn,
   });
   const host = $("pet-screen");
   // Trim to the creature's actual bounding box (not the full 25x25 grid) so
@@ -457,11 +445,11 @@ function renderPuppy(pet, eyesOpen) {
   if (pet.life_stage === "egg") host.style.removeProperty("--dot-color");
   else host.style.setProperty("--dot-color", SPECIES_SHADE[speciesOf(pet)]);
   host.style.setProperty("--bow-color", pet.bow_color || DEFAULT_BOW_COLOR);
-  host.style.setProperty("--scarf-color", pet.scarf_color || DEFAULT_SCARF_COLOR);
+  host.style.setProperty("--cape-color", pet.cape_color || DEFAULT_CAPE_COLOR);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--scarf" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--cape" : ""}"></i>`;
     }
   }
   host.innerHTML = html;
@@ -529,15 +517,15 @@ function renderStats(pet) {
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
     $("bow-color-picker").hidden = true;
   }
-  if (pet.has_scarf) {
-    $("btn-buy-scarf").disabled = false;
-    $("btn-buy-scarf").textContent = pet.scarf_worn ? "Take Off Scarf" : "Put On Scarf";
-    $("scarf-color-picker").hidden = false;
-    $("scarf-color-picker").value = pet.scarf_color || DEFAULT_SCARF_COLOR;
+  if (pet.has_cape) {
+    $("btn-buy-cape").disabled = false;
+    $("btn-buy-cape").textContent = pet.cape_worn ? "Take Off Cape" : "Put On Cape";
+    $("cape-color-picker").hidden = false;
+    $("cape-color-picker").value = pet.cape_color || DEFAULT_CAPE_COLOR;
   } else {
-    $("btn-buy-scarf").disabled = pet.coins < SCARF_PRICE;
-    $("btn-buy-scarf").textContent = `Buy Scarf (${SCARF_PRICE})`;
-    $("scarf-color-picker").hidden = true;
+    $("btn-buy-cape").disabled = pet.coins < CAPE_PRICE;
+    $("btn-buy-cape").textContent = `Buy Cape (${CAPE_PRICE})`;
+    $("cape-color-picker").hidden = true;
   }
   if (pet.has_bed) {
     $("btn-buy-bed").hidden = true;
@@ -581,14 +569,13 @@ function miniSpriteHtml(pet) {
     eyesOpen: true,
     variant: petVariant(pet),
     hasBow: pet.has_bow && pet.bow_worn,
-    hasScarf: pet.has_scarf && pet.scarf_worn,
-    scarfSide: scarfSide(pet),
+    hasCape: pet.has_cape && pet.cape_worn,
   });
   const { rows, width } = trimBitmap(bitmap);
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--scarf" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--bow" : ""}${v === 5 ? " dot--cape" : ""}"></i>`;
     }
   }
   return { html, width };
@@ -601,7 +588,7 @@ function renderPetPicker(pets) {
       const sprite = miniSpriteHtml(p);
       return `
     <div class="pet-picker-item${p.is_active ? " pet-picker-item--active" : ""}">
-      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--scarf-color:${p.scarf_color || DEFAULT_SCARF_COLOR}">
+      <div class="pet-picker-thumb" style="${p.life_stage === "egg" ? "" : `--dot-color:${SPECIES_SHADE[speciesOf(p)]};`}--bow-color:${p.bow_color || DEFAULT_BOW_COLOR};--cape-color:${p.cape_color || DEFAULT_CAPE_COLOR}">
         <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
       </div>
       <div class="pet-picker-info">
@@ -724,14 +711,11 @@ function showFoodBowl() {
 // approach as wanderBounds().
 function renderBed(pet) {
   const bed = $("pet-bed");
-  const floorLine = $("bed-floor-line");
   if (!pet.has_bed || pet.life_stage === "egg") {
     bed.hidden = true;
-    floorLine.hidden = true;
     return;
   }
   bed.hidden = false;
-  floorLine.hidden = false;
   const device = $("pet-device");
   const { minX, minY, maxX, maxY } = bedBounds(bed, device);
   bed.style.left = `${minX + (pet.bed_x ?? DEFAULT_BED_X) * (maxX - minX)}px`;
@@ -1306,7 +1290,7 @@ function wireActions() {
   $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
   $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
   $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
-  $("btn-buy-scarf").dataset.tooltip = "Cosmetic only, no stat effect";
+  $("btn-buy-cape").dataset.tooltip = "Cosmetic only, no stat effect";
   $("btn-buy-bed").dataset.tooltip = "Drag it anywhere. Sleep sends your pet there";
 
   $("btn-feed").addEventListener("click", () => {
@@ -1356,15 +1340,15 @@ function wireActions() {
       showMessage(err.message, true);
     }
   });
-  $("btn-buy-scarf").addEventListener("click", () => {
-    if (currentPet.has_scarf) runAction(toggleScarf, { bounce: false, sound: "poke" });
-    else runAction(buyScarf, { bounce: false, sound: "coin" });
+  $("btn-buy-cape").addEventListener("click", () => {
+    if (currentPet.has_cape) runAction(toggleCape, { bounce: false, sound: "poke" });
+    else runAction(buyCape, { bounce: false, sound: "coin" });
   });
-  $("scarf-color-picker").addEventListener("input", (e) => {
-    setScarfColor(currentPet, e.target.value);
+  $("cape-color-picker").addEventListener("input", (e) => {
+    setCapeColor(currentPet, e.target.value);
     renderPuppy(currentPet, eyesOpen);
   });
-  $("scarf-color-picker").addEventListener("change", async () => {
+  $("cape-color-picker").addEventListener("change", async () => {
     try {
       await persist();
     } catch (err) {
