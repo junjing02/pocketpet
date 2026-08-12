@@ -511,6 +511,16 @@ function setDot(grid, row, col, val) {
   grid[row][col] = val;
 }
 
+// Only claims empty cells — used exclusively for the cape, so it renders
+// BEHIND the body: cells the silhouette already filled (drawn earlier) stay
+// as-is, and the cape only shows where it peeks out around the edges, like
+// a Superman cape draped behind the shoulders. Parts drawn AFTER the cape
+// (mouth, limbs, eyes) still win over it normally via plain setDot.
+function setDotBehind(grid, row, col, val) {
+  if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+  if (grid[row][col] === 0) grid[row][col] = val;
+}
+
 export function buildBitmap(
   stage,
   { species = "bird", eyesOpen = true, frame = 0, variant = "normal", hasBow = false, hasCape = false, capeWindX = 0, capeWindY = 0 } = {}
@@ -549,56 +559,28 @@ export function buildBitmap(
   }
 
   if (profile.cape && hasCape) {
-    // A narrow neck band (sits below the mouth, or for turtle right where
-    // the head meets the shell) plus a cloth that reacts to the pet's own
-    // movement — capeWindX/capeWindY are the OPPOSITE of its travel
-    // direction (see capeWind() in app.js), so it trails behind like real
-    // cloth caught in the air: pet moves left -> wind blows the cape right.
-    // Leaving column 0 untouched below the band avoids ever covering the
-    // mouth, regardless of how close the mouth ends up on a given stage —
-    // an earlier solid center-panel version did, on several species. No
-    // outline ring on cape dots (see the body-check below) — it's a thin
-    // accessory, not a body part, and the ring was visually heavy on
-    // 1-dot-wide edges.
+    // A big cloth draped BEHIND the body (Superman-style) — drawn with
+    // setDotBehind, which only fills cells the silhouette hasn't already
+    // claimed, so it just peeks out around the body's own outline instead
+    // of painting over it. That also means mouth/limbs/eyes (drawn with
+    // plain setDot further below) always win over it too, so it's safe to
+    // make this generously large without any risk of covering the face.
+    // Reacts to the pet's own movement — capeWindX/capeWindY are the
+    // OPPOSITE of its travel direction (see setPetTarget() in app.js), so
+    // it trails behind like real cloth caught in the air: pet moves left ->
+    // wind blows the cape right, pet moves up -> cape drapes longer/lower
+    // behind it, pet moves down -> cape tucks shorter, blown up against the
+    // back. No outline ring on cape dots (see the body-check further down)
+    // — it's cloth, not a body part, and the ring read heavy at this scale.
     const row = profile.startRow + profile.cape.rowOffset;
-    for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
     const flutter = frame % 2 === 1 ? 1 : 0;
-    // Vertical: wind blowing down (capeWindY>0, pet moving up) drapes the
-    // cape longer/lower, trailing behind; wind blowing up (capeWindY<0, pet
-    // moving down) tucks it shorter, blown up close against the back.
-    const depth = capeWindY > 0 ? 4 : capeWindY < 0 ? 2 : 3;
-
-    if (capeWindX === 0) {
-      // No horizontal wind — small symmetric tabs on both sides.
-      const tabRows = [
-        [1, 2, 3],
-        [2, 3, 4],
-        [3, 4, 4 + flutter],
-      ].slice(0, depth - 1);
-      for (const [dr, inner, outer] of tabRows.length ? tabRows : [[1, 2, 3]]) {
-        for (let col = inner; col <= outer; col++) {
-          setDot(grid, row + dr, CX + col, 5);
-          setDot(grid, row + dr, CX - col, 5);
-        }
-      }
-    } else {
-      // Horizontal wind — cloth billows out wide toward capeWindX; the
-      // near/leading side stays tucked in a small flap close to the band.
-      const big = [
-        [1, 1, 3],
-        [2, 2, 4],
-        [3, 3, 5],
-        [4, 4, 6 + flutter],
-      ].slice(0, depth);
-      const small = [
-        [1, 1, 1],
-        [2, 1, 2],
-      ].slice(0, Math.max(1, depth - 2));
-      for (const [dr, inner, outer] of big) {
-        for (let col = inner; col <= outer; col++) setDot(grid, row + dr, CX + capeWindX * col, 5);
-      }
-      for (const [dr, inner, outer] of small) {
-        for (let col = inner; col <= outer; col++) setDot(grid, row + dr, CX - capeWindX * col, 5);
+    const depth = capeWindY > 0 ? 8 : capeWindY < 0 ? 5 : 6;
+    for (let dr = -1; dr < depth; dr++) {
+      const spread = 3 + Math.floor(dr / 2); // widens as it falls
+      const bias = capeWindX ? capeWindX * (2 + dr) : 0; // leans hard toward the wind, growing with distance
+      const extra = dr === depth - 1 && capeWindX === 0 ? flutter : 0;
+      for (let col = -spread - extra; col <= spread + extra; col++) {
+        setDotBehind(grid, row + dr, CX + bias + col, 5);
       }
     }
   }
