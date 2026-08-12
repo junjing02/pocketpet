@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=48";
-import * as db from "./supabase.js?v=48";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=48";
+} from "./pet-sprites.js?v=49";
+import * as db from "./supabase.js?v=49";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=49";
 
 const HOUR = 3600000;
 
@@ -1750,34 +1750,38 @@ async function init() {
     return;
   }
 
-  // The PASSWORD_RECOVERY auth event below is the primary signal, but it's
-  // only guaranteed to reach this listener if it fires AFTER the listener
-  // is registered — the SDK starts processing the recovery link's URL as
-  // soon as the client is created (before this code runs), so there's a
-  // real race where getSession() below resolves with the recovery session
-  // first and sends the user to their normal pet screen before the event
-  // arrives to correct it. Checking the URL itself is a cheap, timing-
-  // independent fallback that closes that gap.
-  const isRecoveryLink = /type=recovery/.test(window.location.hash);
-  if (isRecoveryLink) screen("reset-password");
-
+  // A previous fix here tried to detect a recovery link by checking
+  // window.location.hash for "type=recovery" — wrong, because that's only
+  // how the OLD implicit auth flow encodes it. Supabase's current default
+  // (PKCE) flow instead redirects with a plain ?code= (or routes through
+  // /auth/confirm?type=recovery server-side, which this static site
+  // doesn't have), so the recovery type isn't reliably visible in the URL
+  // at all — trying to sniff it there means guessing a format that depends
+  // on the Supabase project's own flow settings, and guessing wrong is
+  // exactly what broke it last time.
+  //
+  // Rely entirely on onAuthStateChange instead — no separate getSession()
+  // call, so nothing races it. But it's unclear which of PASSWORD_RECOVERY
+  // vs. the session-bearing event (INITIAL_SESSION/SIGNED_IN) fires first
+  // for a recovery link — both stem from the same URL, and the ordering
+  // isn't documented. So a session-bearing event doesn't commit to loading
+  // pets immediately; it waits a brief moment for PASSWORD_RECOVERY to
+  // possibly still arrive first. Imperceptible on a normal login, but
+  // closes the gap regardless of which event order this Supabase project's
+  // flow happens to produce.
+  let sawPasswordRecovery = false;
   db.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
+      sawPasswordRecovery = true;
       screen("reset-password");
       return;
     }
-    // Recovery links establish a real session, which can also fire other
-    // events (SIGNED_IN, INITIAL_SESSION, ...) alongside/instead of
-    // PASSWORD_RECOVERY depending on SDK timing — without this guard, the
-    // tab that actually has the recovery link in its URL could still slip
-    // through here straight to the pet screen instead of the reset form.
-    if (session && !currentUserId && !isRecoveryLink) loadPetsForUser(session.user.id, session.user.email);
+    if (!session || currentUserId) return;
+    setTimeout(() => {
+      if (sawPasswordRecovery || currentUserId) return;
+      loadPetsForUser(session.user.id, session.user.email);
+    }, 150);
   });
-
-  const session = await db.getSession();
-  if (session && !isRecoveryLink) {
-    await loadPetsForUser(session.user.id, session.user.email);
-  }
 }
 
 init();
