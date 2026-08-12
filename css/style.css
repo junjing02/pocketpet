@@ -572,17 +572,18 @@ button:disabled:active { transform: none; }
 .bar i { display: block; height: 100%; background: var(--fg); width: 100%; transition: width 0.3s; }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
-/* white-space:nowrap keeps a longer label (e.g. "Buy Snack (5)") from
-   wrapping to 2 lines and growing taller than its flex:1 siblings.
-   min-width:max-content (not a fixed px floor) means a button never
-   shrinks past what its own label needs — so the label is always fully
-   readable — while flex:1 still lets same-length labels end up the same
-   width when there's enough room. If the row is ever too narrow for all 3
-   at once, flex-wrap on .actions moves a whole button to the next line
-   instead of truncating text inside one. */
-.actions button {
+.actions button { min-width: 70px; flex: 1; }
+
+/* Buy Snack/Buy Meal/Buy Bed specifically — their longer "Buy X (nn)"
+   labels wrapped to 2 lines under the Care row's plain 70px floor.
+   white-space:nowrap stops the wrap; min-width:max-content (not a fixed
+   px) means a button never shrinks past what its own label needs, so it's
+   always fully readable, while flex:1 still lets same-length labels end up
+   the same width when there's room. Scoped here instead of on .actions
+   button generally — applying it to the Care row's 5 shorter-label buttons
+   pushed Sleep onto a second row it didn't need. */
+.actions--shop button {
   min-width: max-content;
-  flex: 1;
   padding-left: 6px;
   padding-right: 6px;
   white-space: nowrap;
