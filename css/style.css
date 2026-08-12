@@ -553,9 +553,12 @@ button:disabled:active { transform: none; }
 
 /* Bow button hosts the color swatch as a small overlay inset into its own
    right edge, so the swatch reads as part of the button rather than a
-   separate control next to it. */
-.bow-btn-wrap { position: relative; flex: 1; min-width: 70px; }
-.bow-btn-wrap button { width: 100%; }
+   separate control next to it. Kept on its own full-width row (like
+   .play-btn) instead of sharing the flex row with Buy Snack/Buy Meal —
+   its longer toggle text ("Take Off Bow" + swatch) wouldn't size evenly
+   against them there. */
+.bow-btn-wrap { position: relative; margin-bottom: 14px; }
+.bow-btn-wrap button { display: block; width: 100%; }
 .bow-btn-wrap:has(#bow-color-picker:not([hidden])) button { padding-right: 30px; }
 
 /* Native color swatch, styled to match the app's existing small circular
