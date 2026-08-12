@@ -119,6 +119,12 @@ button:disabled {
 button:disabled:hover { background: #fff; color: var(--muted); }
 button:disabled:active { transform: none; }
 
+/* Marks a toggle button as currently "on" (e.g. the bow is worn) — same
+   dark fill button already uses on hover, just persistent, so it's clear
+   at a glance without relying on the label text alone. */
+.btn--active { background: var(--fg); color: #fff; }
+.btn--active:hover { background: #333; }
+
 [data-tooltip] { position: relative; }
 [data-tooltip]::after {
   content: attr(data-tooltip);
@@ -601,6 +607,9 @@ button:disabled:active { transform: none; }
 .accessory-btn-wrap input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .accessory-btn-wrap input[type="color"]::-webkit-color-swatch { border: none; }
 .accessory-btn-wrap input[type="color"]::-moz-color-swatch { border: none; }
+/* The swatch's own dark border would blend into the button once it's dark
+   (.btn--active, "worn"), so give it a light border there instead. */
+.accessory-btn-wrap:has(.btn--active) input[type="color"] { border-color: #fff; }
 
 .play-btn {
   display: block;

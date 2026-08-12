@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=41";
-import * as db from "./supabase.js?v=41";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=41";
+} from "./pet-sprites.js?v=42";
+import * as db from "./supabase.js?v=42";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=42";
 
 const HOUR = 3600000;
 
@@ -488,11 +488,13 @@ function renderStats(pet) {
   if (pet.has_bow) {
     $("btn-buy-bow").disabled = false;
     $("btn-buy-bow").textContent = pet.bow_worn ? "Take Off Bow" : "Put On Bow";
+    $("btn-buy-bow").classList.toggle("btn--active", pet.bow_worn);
     $("bow-color-picker").hidden = false;
     $("bow-color-picker").value = pet.bow_color || DEFAULT_BOW_COLOR;
   } else {
     $("btn-buy-bow").disabled = pet.coins < BOW_PRICE;
     $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
+    $("btn-buy-bow").classList.remove("btn--active");
     $("bow-color-picker").hidden = true;
   }
   if (pet.has_bed) {
