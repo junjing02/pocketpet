@@ -554,7 +554,7 @@ export function buildBitmap(stage, { species = "bird", eyesOpen = true, frame = 
     // as every other frame-driven part).
     const row = profile.startRow + profile.scarf.rowOffset;
     for (const off of [-1, 0, 1]) setDot(grid, row, CX + off, 5);
-    const [leftLen, rightLen] = frame % 2 === 0 ? [4, 2] : [2, 4];
+    const [leftLen, rightLen] = frame % 2 === 0 ? [7, 3] : [3, 7];
     for (let dr = 1; dr <= leftLen; dr++) setDot(grid, row + dr, CX - 2, 5);
     for (let dr = 1; dr <= rightLen; dr++) setDot(grid, row + dr, CX + 2, 5);
   }

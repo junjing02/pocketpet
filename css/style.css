@@ -254,33 +254,37 @@ button:disabled:active { transform: none; }
 .pet-bowl--fade { opacity: 0; }
 
 /* A draggable bed prop — stays on the playground permanently once bought
-   (unlike the bowl's brief flash), wherever the user last dragged it. Sized
-   bigger than even the adult stage's own silhouette (~66-80px) so the round
-   mat still shows all the way around the pet once it's lying on it, instead
-   of being fully hidden underneath. Sits behind #pet-screen in paint order
-   so the pet reads as lying on top of it once it walks over and sleeps
-   there. */
+   (unlike the bowl's brief flash), wherever the user last dragged it. Oval
+   (wider than tall) so it reads as a mat the pet sits ON, not a perfectly
+   round cutout — a flat single-tone circle against the similarly-light
+   device background just read as a hole. The radial gradient + drop shadow
+   give it a raised-cushion look instead. Sized bigger than even the adult
+   stage's own silhouette (~66-80px) so the mat still shows all the way
+   around the pet once it's lying on it. Sits behind #pet-screen in paint
+   order so the pet reads as lying on top of it once it walks over and
+   sleeps there. */
 .pet-bed {
   position: absolute;
-  width: 80px;
-  height: 80px;
-  background: var(--track);
+  width: 96px;
+  height: 58px;
+  background: radial-gradient(ellipse at 42% 32%, #f3f3f3 0%, var(--track) 55%, #d2d2d2 100%);
   border: 1px solid var(--line);
   border-radius: 50%;
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.18);
   cursor: grab;
   touch-action: none;
 }
 .pet-bed::before {
   content: "";
   position: absolute;
-  left: 10px;
-  top: 9px;
-  width: 32px;
-  height: 20px;
+  left: 13px;
+  top: 11px;
+  width: 34px;
+  height: 15px;
   background: var(--fg);
-  opacity: 0.12;
+  opacity: 0.14;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 .pet-bed--dragging { cursor: grabbing; }
 
