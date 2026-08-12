@@ -255,34 +255,22 @@ button:disabled:active { transform: none; }
 
 /* A draggable bed prop — stays on the playground permanently once bought
    (unlike the bowl's brief flash), wherever the user last dragged it. Flat
-   fill + 1px line + modest border-radius, same treatment as .pet-bowl and
-   every button/panel in the app — a gradient+shadow "cushion" look stood
-   out against that flat, no-shadow style everywhere else. A simple
-   mattress rectangle with a pillow square reads as a bed without needing
-   the extra rendering flourish. Sized bigger than even the adult stage's
-   own silhouette (~66-80px) so the mat still shows all the way around the
-   pet once it's lying on it. Sits behind #pet-screen in paint order so the
-   pet reads as lying on top of it once it walks over and sleeps there. */
+   fill + 1px line, same treatment as .pet-bowl and every button/panel in
+   the app — no gradient or shadow, unlike the earlier "cushion" version.
+   Oval (wider than tall) so it reads as a mat rather than a plain circle.
+   Sized bigger than even the adult stage's own silhouette (~66-80px) so
+   the mat still shows all the way around the pet once it's lying on it.
+   Sits behind #pet-screen in paint order so the pet reads as lying on top
+   of it once it walks over and sleeps there. */
 .pet-bed {
   position: absolute;
-  width: 84px;
-  height: 48px;
+  width: 92px;
+  height: 52px;
   background: var(--track);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 50%;
   cursor: grab;
   touch-action: none;
-}
-.pet-bed::before {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  width: 26px;
-  height: 36px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 5px;
 }
 .pet-bed--dragging { cursor: grabbing; }
 
