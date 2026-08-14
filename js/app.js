@@ -7,10 +7,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=65";
-import * as db from "./supabase.js?v=65";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=65";
-import { VERSION } from "./version.js?v=65";
+} from "./pet-sprites.js?v=66";
+import * as db from "./supabase.js?v=66";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=66";
+import { VERSION } from "./version.js?v=66";
 
 const HOUR = 3600000;
 
@@ -1347,21 +1347,27 @@ function playOddOneOutRound(overlay) {
   });
 }
 
+// Shared by Count the Dots and More Dots — scatters `count` small dots at
+// random non-overlapping-by-construction (just random, collisions are fine
+// visually) positions inside `container`.
+const SCATTER_DOT_SIZE = 10;
+function scatterDots(container, count) {
+  const w = container.clientWidth || 130;
+  const h = container.clientHeight || 180;
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement("div");
+    dot.className = "count-dot";
+    dot.style.left = `${Math.random() * Math.max(0, w - SCATTER_DOT_SIZE)}px`;
+    dot.style.top = `${Math.random() * Math.max(0, h - SCATTER_DOT_SIZE)}px`;
+    container.appendChild(dot);
+  }
+}
+
 function playCountRound(overlay) {
   return new Promise((resolve) => {
     const count = 6 + Math.floor(Math.random() * 5); // 6..10
     overlay.innerHTML = '<div class="count-dots-area"></div>';
-    const area = overlay.querySelector(".count-dots-area");
-    const size = 10;
-    const w = overlay.clientWidth || 260;
-    const h = overlay.clientHeight || 180;
-    for (let i = 0; i < count; i++) {
-      const dot = document.createElement("div");
-      dot.className = "count-dot";
-      dot.style.left = `${Math.random() * (w - size)}px`;
-      dot.style.top = `${Math.random() * (h - size)}px`;
-      area.appendChild(dot);
-    }
+    scatterDots(overlay.querySelector(".count-dots-area"), count);
 
     setTimeout(() => {
       const wrongPool = [count - 2, count - 1, count + 1, count + 2].filter((n) => n > 0 && n !== count);
@@ -1392,11 +1398,78 @@ function playCountRound(overlay) {
   });
 }
 
+// Two dot clusters, tap the side with more before they disappear — a quick
+// at-a-glance comparison, distinct from Count the Dots' hide-then-guess-the-
+// exact-number shape.
+function playMoreDotsRound(overlay) {
+  return new Promise((resolve) => {
+    const leftCount = 4 + Math.floor(Math.random() * 6); // 4..9
+    let rightCount = 4 + Math.floor(Math.random() * 6);
+    while (rightCount === leftCount) rightCount = 4 + Math.floor(Math.random() * 6);
+    const moreSide = leftCount > rightCount ? "left" : "right";
+
+    overlay.innerHTML = `
+      <div class="moredots-row">
+        <div class="moredots-side" data-side="left"></div>
+        <div class="moredots-side" data-side="right"></div>
+      </div>`;
+    const leftEl = overlay.querySelector('[data-side="left"]');
+    const rightEl = overlay.querySelector('[data-side="right"]');
+    scatterDots(leftEl, leftCount);
+    scatterDots(rightEl, rightCount);
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    leftEl.addEventListener("click", () => finish(moreSide === "left"));
+    rightEl.addEventListener("click", () => finish(moreSide === "right"));
+    setTimeout(() => finish(false), 1500);
+  });
+}
+
+const DIRECTION_ARROWS = ["▲", "▼", "◀", "▶"];
+
+// Shows one big arrow, tap the matching one of 4 small buttons before it
+// times out — a reflex/reaction game, the one input shape (directional
+// choice) none of the others use.
+function playDirectionRound(overlay) {
+  return new Promise((resolve) => {
+    const target = DIRECTION_ARROWS[Math.floor(Math.random() * DIRECTION_ARROWS.length)];
+    overlay.innerHTML = `
+      <div class="direction-prompt">${target}</div>
+      <div class="direction-choices"></div>`;
+    const choicesEl = overlay.querySelector(".direction-choices");
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    for (const arrow of DIRECTION_ARROWS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "direction-choice";
+      btn.textContent = arrow;
+      btn.addEventListener("click", () => finish(arrow === target));
+      choicesEl.appendChild(btn);
+    }
+    setTimeout(() => finish(false), 1400);
+  });
+}
+
 const MINI_GAMES = [
   { id: "tap", name: "Tap the Target", round: playTapRound },
   { id: "timing", name: "Stop the Marker", round: playTimingRound },
   { id: "odd", name: "Odd One Out", round: playOddOneOutRound },
   { id: "count", name: "Count the Dots", round: playCountRound },
+  { id: "moredots", name: "More Dots", round: playMoreDotsRound },
+  { id: "direction", name: "Match the Direction", round: playDirectionRound },
 ];
 
 function openGamePicker() {
