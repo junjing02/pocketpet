@@ -206,10 +206,12 @@ button:disabled:active { transform: none; }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }
 /* The pet and bed dim along with the room instead of staying full-bright
    against the dark background — reads as "the lights are off" rather than
-   two cutouts pasted onto a black rectangle. */
+   two cutouts pasted onto a black rectangle. brightness(), not opacity —
+   opacity blends toward see-through (the dark background shows through the
+   gaps between dots), brightness() darkens the same solid pixels in place. */
 .device:has(.pet-screen.pet--sleeping) #pet-screen,
 .device:has(.pet-screen.pet--sleeping) .pet-bed {
-  opacity: 0.55;
+  filter: brightness(0.55);
 }
 
 .pet-screen {
@@ -225,7 +227,7 @@ button:disabled:active { transform: none; }
   cursor: grab;
   touch-action: none;
   /* --move-duration is set per life stage in JS (younger = faster) */
-  transition: left var(--move-duration, 1.6s) ease-in-out, top var(--move-duration, 1.6s) ease-in-out, width 0.8s ease, height 0.8s ease, opacity 0.8s ease;
+  transition: left var(--move-duration, 1.6s) ease-in-out, top var(--move-duration, 1.6s) ease-in-out, width 0.8s ease, height 0.8s ease, filter 0.8s ease;
 }
 #pet-screen.pet--dragging {
   cursor: grabbing;
@@ -286,7 +288,7 @@ button:disabled:active { transform: none; }
   border-radius: 50%;
   cursor: grab;
   touch-action: none;
-  transition: opacity 0.8s ease;
+  transition: filter 0.8s ease;
 }
 .pet-bed::before,
 .pet-bed::after {
@@ -345,6 +347,26 @@ button:disabled:active { transform: none; }
 }
 .device:has(.pet-screen.pet--sleeping) .night-light::before {
   background: #ffc363;
+}
+/* Rays shining out of the bulb — a ring of thin wedges (repeating-conic-
+   gradient) around the light, faded from the center outward by a radial
+   mask so they read as light spreading out rather than a flat sunburst
+   sticker, slowly turning so it doesn't look static. Reuses ::after since
+   ::before is already the cord. */
+.device:has(.pet-screen.pet--sleeping) .night-light::after {
+  content: "";
+  position: absolute;
+  inset: -13px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 205, 130, 0.8) 0deg 3deg, rgba(255, 205, 130, 0) 3deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 78%);
+  mask-image: radial-gradient(circle, #000 30%, transparent 78%);
+  animation: night-light-rays 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes night-light-rays {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
