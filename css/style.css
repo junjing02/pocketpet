@@ -204,6 +204,13 @@ button:disabled:active { transform: none; }
   transition: background 0.8s ease;
 }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }
+/* The pet and bed dim along with the room instead of staying full-bright
+   against the dark background — reads as "the lights are off" rather than
+   two cutouts pasted onto a black rectangle. */
+.device:has(.pet-screen.pet--sleeping) #pet-screen,
+.device:has(.pet-screen.pet--sleeping) .pet-bed {
+  opacity: 0.55;
+}
 
 .pet-screen {
   --dot-size: 6px;
@@ -218,7 +225,7 @@ button:disabled:active { transform: none; }
   cursor: grab;
   touch-action: none;
   /* --move-duration is set per life stage in JS (younger = faster) */
-  transition: left var(--move-duration, 1.6s) ease-in-out, top var(--move-duration, 1.6s) ease-in-out, width 0.8s ease, height 0.8s ease;
+  transition: left var(--move-duration, 1.6s) ease-in-out, top var(--move-duration, 1.6s) ease-in-out, width 0.8s ease, height 0.8s ease, opacity 0.8s ease;
 }
 #pet-screen.pet--dragging {
   cursor: grabbing;
@@ -279,6 +286,7 @@ button:disabled:active { transform: none; }
   border-radius: 50%;
   cursor: grab;
   touch-action: none;
+  transition: opacity 0.8s ease;
 }
 .pet-bed::before,
 .pet-bed::after {
@@ -323,19 +331,20 @@ button:disabled:active { transform: none; }
 }
 /* A slow, gentle glow while the pet actually sleeps (the playground itself
    already goes dark then, see .device:has(...)) — reads as the light being
-   "on" for a calm night rather than just a static prop. Grayscale pulse,
-   not a color, to stay within the app's flat monochrome look. */
+   "on" for a calm night rather than just a static prop. The one deliberate
+   spot of warm color in an otherwise monochrome app, same reasoning as a
+   real bulb against a dark room. */
 @keyframes night-light-glow {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.25); }
-  50% { box-shadow: 0 0 9px 3px rgba(255, 255, 255, 0.55); }
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 196, 110, 0.4); }
+  50% { box-shadow: 0 0 10px 4px rgba(255, 196, 110, 0.7); }
 }
 .device:has(.pet-screen.pet--sleeping) .night-light {
-  background: #fff;
-  border-color: #fff;
+  background: #ffd68a;
+  border-color: #ffc363;
   animation: night-light-glow 3s ease-in-out infinite;
 }
 .device:has(.pet-screen.pet--sleeping) .night-light::before {
-  background: #fff;
+  background: #ffc363;
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
@@ -605,12 +614,17 @@ button:disabled:active { transform: none; }
 
 .economy {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
-  font-size: 10px;
+  gap: 6px 12px;
+  font-size: 9px;
   margin-bottom: 16px;
   text-transform: uppercase;
 }
+/* Flex items shrink to their min-content width by default, which for text
+   is just its widest unbreakable word — without this, "Vitamins: 0" was
+   splitting into "Vitamins:" / "0" on two lines instead of staying put. */
+.economy span { white-space: nowrap; }
 
 .stats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .stat { display: grid; grid-template-columns: 48px 1fr 26px; align-items: center; gap: 6px; font-size: 10px; }
