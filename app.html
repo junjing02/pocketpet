@@ -8,7 +8,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <meta name="theme-color" content="#111111" />
-  <link rel="stylesheet" href="css/style.css?v=51" />
+  <link rel="stylesheet" href="css/style.css?v=52" />
 </head>
 <body>
   <main class="shell">
@@ -87,6 +87,10 @@
           <div id="pet-device" class="device">
             <div id="pet-bowl" class="pet-bowl" hidden></div>
             <div id="pet-bed" class="pet-bed" hidden></div>
+            <div id="night-light" class="night-light" hidden></div>
+            <div id="grooming-kit" class="grooming-kit" hidden></div>
+            <div id="treat-jar" class="treat-jar" hidden></div>
+            <div id="toy-box" class="toy-box" hidden></div>
             <div id="pet-screen" class="pet-screen"></div>
           </div>
           <p id="pet-status" class="pet-status" hidden></p>
@@ -104,13 +108,14 @@
             <span>Coins: <b id="val-coins">0</b></span>
             <span>Snacks: <b id="val-food">0</b></span>
             <span>Meals: <b id="val-meals">0</b></span>
+            <span>Vitamins: <b id="val-vitamins">0</b></span>
           </div>
 
           <div class="stats">
             <div class="stat"><label>Hunger</label><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
-            <div class="stat"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
+            <div class="stat" id="stat-happiness"><label>Happy</label><div class="bar"><i id="bar-happiness"></i></div><span id="val-happiness"></span></div>
             <div class="stat"><label>Energy</label><div class="bar"><i id="bar-energy"></i></div><span id="val-energy"></span></div>
-            <div class="stat"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
+            <div class="stat" id="stat-health"><label>Health</label><div class="bar"><i id="bar-health"></i></div><span id="val-health"></span></div>
             <div class="stat"><label>Clean</label><div class="bar"><i id="bar-hygiene"></i></div><span id="val-hygiene"></span></div>
           </div>
 
@@ -123,6 +128,7 @@
               <button id="btn-feed-meal">Meal</button>
               <button id="btn-clean">Clean</button>
               <button id="btn-sleep">Sleep</button>
+              <button id="btn-vitamins">Vitamins</button>
               <button id="btn-medicine" hidden>Medicine</button>
             </div>
 
@@ -133,9 +139,12 @@
 
       <div id="shop-modal" class="modal-backdrop" hidden>
         <div class="modal-box">
-          <p class="modal-title">Shop</p>
+          <div class="screen-header">
+            <p class="modal-title section-title">Shop</p>
+            <button type="button" id="btn-shop-close" class="icon-btn" aria-label="Close">✕</button>
+          </div>
+          <p class="shop-coins">Coins: <b id="shop-coins">0</b></p>
           <div id="shop-list" class="shop-list"></div>
-          <button type="button" id="btn-shop-close" class="ghost">Close</button>
         </div>
       </div>
 
@@ -231,6 +240,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="js/app.js?v=51"></script>
+  <script type="module" src="js/app.js?v=52"></script>
 </body>
 </html>

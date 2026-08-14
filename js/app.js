@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=51";
-import * as db from "./supabase.js?v=51";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=51";
+} from "./pet-sprites.js?v=52";
+import * as db from "./supabase.js?v=52";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=52";
 
 const HOUR = 3600000;
 
@@ -48,11 +48,22 @@ const GROOMING_KIT_PRICE = 20;
 const TREAT_JAR_PRICE = 20;
 const VITAMINS_PRICE = 30;
 const NIGHT_LIGHT_PRICE = 20;
-const TOYBOX_HAPPINESS_MULTIPLIER = 0.7; // happiness decays 30% slower
-const GROOMING_KIT_HYGIENE_MULTIPLIER = 0.7; // hygiene decays 30% slower
-const TREAT_JAR_HUNGER_MULTIPLIER = 0.7; // hunger decays 30% slower
-const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster
+
+const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster while a dose is active
+const VITAMIN_BUFF_DURATION_MS = 15 * 60 * 1000;
 const NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER = 0.75; // stacks on top of SLEEP_DECAY_MULTIPLIER
+
+// Treat Jar and Toy Box are placed props the pet visits on its own — same
+// "walk over, do a thing, come back to wandering" shape, just different
+// effects and timing. Grooming Kit instead waits for Clean to actually get
+// low (see checkGroomingKit) rather than visiting on a timer.
+const TREAT_JAR_VISIT_MIN_MS = 30 * 1000;
+const TREAT_JAR_VISIT_MAX_MS = 75 * 1000;
+const TREAT_JAR_HUNGER_GAIN = 4;
+const TOY_VISIT_MIN_MS = 30 * 1000;
+const TOY_VISIT_MAX_MS = 75 * 1000;
+const TOY_BUFF_DURATION_MS = 10 * 60 * 1000; // Happy pauses decay entirely for this long after a visit
+const GROOMING_CLEAN_AMOUNT = 25;
 
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
@@ -133,13 +144,20 @@ export function createInitialPet(name) {
     bow_worn: false,
     bow_color: DEFAULT_BOW_COLOR,
     has_bed: false,
+    bed_active: true,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
     has_toybox: false,
+    toybox_active: true,
+    toy_buff_until: null,
     has_grooming_kit: false,
+    grooming_active: true,
     has_treat_jar: false,
-    has_vitamins: false,
+    treat_jar_active: true,
+    vitamin_count: 0,
+    vitamins_until: null,
     has_night_light: false,
+    night_light_active: true,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -187,13 +205,16 @@ export function applyDecay(pet, nowMs = Date.now()) {
   // An egg has no needs yet — it just waits to hatch, nothing to decay.
   if (pet.life_stage !== "egg") {
     const mul = pet.is_sleeping
-      ? SLEEP_DECAY_MULTIPLIER * (pet.has_night_light ? NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER : 1)
+      ? SLEEP_DECAY_MULTIPLIER * (pet.has_night_light && pet.night_light_active ? NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER : 1)
       : 1;
+    // A Toy Box visit (see toyBoxVisit) sets this — while it's running, Happy
+    // is fully immune to decay instead of just decaying slower.
+    const toyBuffActive = pet.toy_buff_until && new Date(pet.toy_buff_until).getTime() > nowMs;
 
-    pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * (pet.has_treat_jar ? TREAT_JAR_HUNGER_MULTIPLIER : 1) * elapsedHours * mul);
-    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * (pet.has_toybox ? TOYBOX_HAPPINESS_MULTIPLIER : 1) * elapsedHours * mul);
-    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * (pet.has_grooming_kit ? GROOMING_KIT_HYGIENE_MULTIPLIER : 1) * elapsedHours * mul);
-    const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
+    pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
+    pet.happiness = toyBuffActive ? pet.happiness : clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
+    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
+    const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed && pet.bed_active ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
       ? clamp(pet.energy + sleepEnergyRate * elapsedHours)
       : clamp(pet.energy - DECAY_PER_HOUR.energy * elapsedHours);
@@ -205,7 +226,10 @@ export function applyDecay(pet, nowMs = Date.now()) {
       pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
       pet.neglect_incidents = (pet.neglect_incidents || 0) + 1;
     } else if (!pet.is_sick) {
-      const regenRate = HEALTH_REGEN_PER_HOUR * (pet.has_vitamins ? VITAMINS_HEALTH_REGEN_MULTIPLIER : 1);
+      // A fed dose of Vitamins (see giveVitamins) sets vitamins_until —
+      // regen runs faster only while that window is still open.
+      const vitaminsActive = pet.vitamins_until && new Date(pet.vitamins_until).getTime() > nowMs;
+      const regenRate = HEALTH_REGEN_PER_HOUR * (vitaminsActive ? VITAMINS_HEALTH_REGEN_MULTIPLIER : 1);
       pet.health = clamp(pet.health + regenRate * elapsedHours);
     }
     if (pet.health <= 0) {
@@ -282,8 +306,15 @@ export function buyBed(pet) {
   if (pet.has_bed || pet.coins < BED_PRICE) return pet;
   pet.coins -= BED_PRICE;
   pet.has_bed = true;
+  pet.bed_active = true; // placed in the playground right away, same as the bow is worn right away
   if (pet.bed_x == null) pet.bed_x = DEFAULT_BED_X;
   if (pet.bed_y == null) pet.bed_y = DEFAULT_BED_Y;
+  return pet;
+}
+
+export function toggleBedActive(pet) {
+  if (!pet.has_bed) return pet;
+  pet.bed_active = !pet.bed_active;
   return pet;
 }
 
@@ -291,6 +322,13 @@ export function buyToyBox(pet) {
   if (pet.has_toybox || pet.coins < TOYBOX_PRICE) return pet;
   pet.coins -= TOYBOX_PRICE;
   pet.has_toybox = true;
+  pet.toybox_active = true;
+  return pet;
+}
+
+export function toggleToyBoxActive(pet) {
+  if (!pet.has_toybox) return pet;
+  pet.toybox_active = !pet.toybox_active;
   return pet;
 }
 
@@ -298,6 +336,13 @@ export function buyGroomingKit(pet) {
   if (pet.has_grooming_kit || pet.coins < GROOMING_KIT_PRICE) return pet;
   pet.coins -= GROOMING_KIT_PRICE;
   pet.has_grooming_kit = true;
+  pet.grooming_active = true;
+  return pet;
+}
+
+export function toggleGroomingKitActive(pet) {
+  if (!pet.has_grooming_kit) return pet;
+  pet.grooming_active = !pet.grooming_active;
   return pet;
 }
 
@@ -305,13 +350,30 @@ export function buyTreatJar(pet) {
   if (pet.has_treat_jar || pet.coins < TREAT_JAR_PRICE) return pet;
   pet.coins -= TREAT_JAR_PRICE;
   pet.has_treat_jar = true;
+  pet.treat_jar_active = true;
   return pet;
 }
 
+export function toggleTreatJarActive(pet) {
+  if (!pet.has_treat_jar) return pet;
+  pet.treat_jar_active = !pet.treat_jar_active;
+  return pet;
+}
+
+// Vitamins are a stash-and-feed consumable like Snacks/Meals, not a one-time
+// purchase — buying just adds to the count; giveVitamins is what actually
+// starts the temporary faster-Health-regen window (see applyDecay).
 export function buyVitamins(pet) {
-  if (pet.has_vitamins || pet.coins < VITAMINS_PRICE) return pet;
+  if (pet.coins < VITAMINS_PRICE) return pet;
   pet.coins -= VITAMINS_PRICE;
-  pet.has_vitamins = true;
+  pet.vitamin_count = (pet.vitamin_count || 0) + 1;
+  return pet;
+}
+
+export function giveVitamins(pet, nowMs = Date.now()) {
+  if (pet.life_stage === "egg" || pet.vitamin_count <= 0) return pet;
+  pet.vitamin_count -= 1;
+  pet.vitamins_until = new Date(nowMs + VITAMIN_BUFF_DURATION_MS).toISOString();
   return pet;
 }
 
@@ -319,6 +381,13 @@ export function buyNightLight(pet) {
   if (pet.has_night_light || pet.coins < NIGHT_LIGHT_PRICE) return pet;
   pet.coins -= NIGHT_LIGHT_PRICE;
   pet.has_night_light = true;
+  pet.night_light_active = true;
+  return pet;
+}
+
+export function toggleNightLightActive(pet) {
+  if (!pet.has_night_light) return pet;
+  pet.night_light_active = !pet.night_light_active;
   return pet;
 }
 
@@ -363,6 +432,11 @@ let walkFrame = 0;
 let gameActive = false;
 let draggingPet = false;
 let walkingToBed = false;
+// True while the pet is walking to/using the Treat Jar, Grooming Kit, or Toy
+// Box (see visitProp) — same purpose as walkingToBed, blocks wandering,
+// click-to-walk, and dragging so nothing yanks it away mid-visit.
+let visitingProp = false;
+let groomedForThisDip = false; // see checkGroomingKit
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -412,7 +486,7 @@ function bedBounds(bed, device) {
 }
 
 function wanderPet() {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed || visitingProp) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -445,7 +519,7 @@ function scheduleWander() {
 // Click-to-walk: tapping empty space in the playground (not the pet itself)
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingProp) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -533,11 +607,21 @@ function renderStats(pet) {
   $("val-coins").textContent = pet.coins;
   $("val-food").textContent = pet.food_count;
   $("val-meals").textContent = pet.meal_count;
+  $("val-vitamins").textContent = pet.vitamin_count || 0;
   $("btn-feed").disabled = pet.food_count <= 0 || pet.is_sleeping;
   $("btn-feed-meal").disabled = pet.meal_count <= 0 || pet.is_sleeping;
   $("btn-clean").disabled = pet.is_sleeping;
   $("btn-play").disabled = pet.is_sleeping || pet.energy < 10;
   $("btn-medicine").disabled = pet.is_sleeping;
+  $("btn-vitamins").disabled = (pet.vitamin_count || 0) <= 0 || pet.is_sleeping;
+
+  // A visible "↑" next to the stat label acknowledges an active timed
+  // buff — otherwise a dose of Vitamins or a Toy Box visit has no on-screen
+  // sign it's actually doing anything until the effect wears off.
+  const vitaminsActive = pet.vitamins_until && new Date(pet.vitamins_until).getTime() > Date.now();
+  const toyBuffActive = pet.toy_buff_until && new Date(pet.toy_buff_until).getTime() > Date.now();
+  $("stat-health").classList.toggle("stat--boosted", !!vitaminsActive);
+  $("stat-happiness").classList.toggle("stat--boosted", !!toyBuffActive);
 }
 
 function renderAchievements(pet) {
@@ -714,7 +798,7 @@ function showFoodBowl() {
 // approach as wanderBounds().
 function renderBed(pet) {
   const bed = $("pet-bed");
-  if (!pet.has_bed || pet.life_stage === "egg") {
+  if (!pet.has_bed || !pet.bed_active || pet.life_stage === "egg") {
     bed.hidden = true;
     return;
   }
@@ -725,45 +809,126 @@ function renderBed(pet) {
   bed.style.top = `${minY + (pet.bed_y ?? DEFAULT_BED_Y) * (maxY - minY)}px`;
 }
 
+// The four small fixed-position props (Night Light, Grooming Kit, Treat Jar,
+// Toy Box) share one corner each and never move, unlike the Bed — just a
+// straight ownership+active check to show/hide.
+const PROPS = [
+  { id: "night-light", owned: (p) => p.has_night_light, active: (p) => p.night_light_active },
+  { id: "grooming-kit", owned: (p) => p.has_grooming_kit, active: (p) => p.grooming_active },
+  { id: "treat-jar", owned: (p) => p.has_treat_jar, active: (p) => p.treat_jar_active },
+  { id: "toy-box", owned: (p) => p.has_toybox, active: (p) => p.toybox_active },
+];
+
+function renderProps(pet) {
+  for (const prop of PROPS) {
+    $(prop.id).hidden = pet.life_stage === "egg" || !prop.owned(pet) || !prop.active(pet);
+  }
+}
+
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderBed(currentPet);
+  renderProps(currentPet);
+  checkGroomingKit(currentPet);
   checkNotifications(currentPet);
 }
 
 // A single list drives the whole Shop modal instead of one hand-wired button
 // per item — with this many purchasable items, adding a new one is just a
 // new entry here plus its buy() function, no new HTML/wiring per item.
+//
+// kind: "consumable" (Snack/Meal/Vitamins) always shows a repeatable Buy
+// button and stacks a count. "wearable" (Bow) and "placeable" (everything
+// else) are one-time buys that, once owned, swap the Buy button for a
+// toggle — worn/not for the Bow, in the playground/put away for the rest —
+// exactly like the Bow always worked.
 const SHOP_ITEMS = [
   { id: "food", name: "Snack", desc: "+1 Snack to feed later", price: SNACK_PRICE, buy: buyFood, kind: "consumable" },
   { id: "meal", name: "Meal", desc: "+1 Meal to feed later", price: MEAL_PRICE, buy: buyMeal, kind: "consumable" },
-  { id: "bow", name: "Bow", desc: "Cosmetic accessory, no stat effect", price: BOW_PRICE, buy: buyBow, kind: "wearable", owned: (p) => p.has_bow },
-  { id: "bed", name: "Bed", desc: "Drag it anywhere. Sleep sends your pet there and recovers Energy faster", price: BED_PRICE, buy: buyBed, kind: "passive", owned: (p) => p.has_bed },
-  { id: "toybox", name: "Toy Box", desc: "Happy decays 30% slower", price: TOYBOX_PRICE, buy: buyToyBox, kind: "passive", owned: (p) => p.has_toybox },
-  { id: "grooming", name: "Grooming Kit", desc: "Clean decays 30% slower", price: GROOMING_KIT_PRICE, buy: buyGroomingKit, kind: "passive", owned: (p) => p.has_grooming_kit },
-  { id: "treatjar", name: "Treat Jar", desc: "Hunger decays 30% slower", price: TREAT_JAR_PRICE, buy: buyTreatJar, kind: "passive", owned: (p) => p.has_treat_jar },
-  { id: "vitamins", name: "Vitamins", desc: "Health recovers 50% faster", price: VITAMINS_PRICE, buy: buyVitamins, kind: "passive", owned: (p) => p.has_vitamins },
-  { id: "nightlight", name: "Night Light", desc: "Sleep decays stats even slower", price: NIGHT_LIGHT_PRICE, buy: buyNightLight, kind: "passive", owned: (p) => p.has_night_light },
+  {
+    id: "vitamins",
+    name: "Vitamins",
+    desc: `+1 dose. Feed it from Care for ${VITAMIN_BUFF_DURATION_MS / 60000} min of 50% faster Health recovery`,
+    price: VITAMINS_PRICE,
+    buy: buyVitamins,
+    kind: "consumable",
+  },
+  { id: "bow", name: "Bow", desc: "Cosmetic accessory, no stat effect", price: BOW_PRICE, buy: buyBow, kind: "wearable", owned: (p) => p.has_bow, toggle: toggleBow },
+  {
+    id: "bed",
+    name: "Bed",
+    desc: "Drag it anywhere. Sleep sends your pet there and recovers Energy faster",
+    price: BED_PRICE,
+    buy: buyBed,
+    kind: "placeable",
+    owned: (p) => p.has_bed,
+    active: (p) => p.bed_active,
+    toggle: toggleBedActive,
+  },
+  {
+    id: "toybox",
+    name: "Toy Box",
+    desc: "Pet visits it on its own — Happy won't decay at all for a while after",
+    price: TOYBOX_PRICE,
+    buy: buyToyBox,
+    kind: "placeable",
+    owned: (p) => p.has_toybox,
+    active: (p) => p.toybox_active,
+    toggle: toggleToyBoxActive,
+  },
+  {
+    id: "grooming",
+    name: "Grooming Kit",
+    desc: "Pet cleans itself here on its own whenever Clean gets low",
+    price: GROOMING_KIT_PRICE,
+    buy: buyGroomingKit,
+    kind: "placeable",
+    owned: (p) => p.has_grooming_kit,
+    active: (p) => p.grooming_active,
+    toggle: toggleGroomingKitActive,
+  },
+  {
+    id: "treatjar",
+    name: "Treat Jar",
+    desc: "Pet snacks here on its own — a little Hunger at a time",
+    price: TREAT_JAR_PRICE,
+    buy: buyTreatJar,
+    kind: "placeable",
+    owned: (p) => p.has_treat_jar,
+    active: (p) => p.treat_jar_active,
+    toggle: toggleTreatJarActive,
+  },
+  {
+    id: "nightlight",
+    name: "Night Light",
+    desc: "Stacks with a Bed to slow decay even more while asleep",
+    price: NIGHT_LIGHT_PRICE,
+    buy: buyNightLight,
+    kind: "placeable",
+    owned: (p) => p.has_night_light,
+    active: (p) => p.night_light_active,
+    toggle: toggleNightLightActive,
+  },
 ];
 
-// Bow is "wearable" — once owned it swaps its Buy button for the same
-// worn-toggle + color-swatch controls the old dedicated bow row used to
-// show. Everything else just flips to a static "Owned" once bought.
 function shopItemControlHtml(item, pet) {
-  const owned = item.kind !== "consumable" && item.owned(pet);
-  if (item.kind === "wearable" && owned) {
+  if (item.kind === "consumable" || !item.owned(pet)) {
+    return `<button type="button" data-item="${item.id}" ${pet.coins < item.price ? "disabled" : ""}>Buy (${item.price})</button>`;
+  }
+  if (item.kind === "wearable") {
     return `
       <div class="accessory-btn-wrap">
-        <button type="button" data-toggle-bow class="${pet.bow_worn ? "btn--active" : ""}">${pet.bow_worn ? "Take Off" : "Put On"}</button>
+        <button type="button" data-toggle="${item.id}" class="${pet.bow_worn ? "btn--active" : ""}">${pet.bow_worn ? "Take Off" : "Put On"}</button>
         <input type="color" data-bow-color value="${pet.bow_color || DEFAULT_BOW_COLOR}" aria-label="Bow color" />
       </div>`;
   }
-  if (owned) return `<button type="button" disabled>Owned</button>`;
-  return `<button type="button" data-item="${item.id}" ${pet.coins < item.price ? "disabled" : ""}>Buy (${item.price})</button>`;
+  const active = item.active(pet);
+  return `<button type="button" data-toggle="${item.id}" class="${active ? "btn--active" : ""}">${active ? "Remove" : "Put In"}</button>`;
 }
 
 function renderShop(pet) {
+  $("shop-coins").textContent = pet.coins;
   $("shop-list").innerHTML = SHOP_ITEMS.map(
     (item) => `
     <div class="shop-item">
@@ -796,8 +961,10 @@ function wireShop() {
       renderShop(currentPet);
       return;
     }
-    if (e.target.closest("[data-toggle-bow]")) {
-      runAction(toggleBow, { bounce: false, sound: "poke" });
+    const toggleBtn = e.target.closest("[data-toggle]");
+    if (toggleBtn) {
+      const item = SHOP_ITEMS.find((i) => i.id === toggleBtn.dataset.toggle);
+      runAction(item.toggle, { bounce: false, sound: "poke" });
       renderShop(currentPet);
     }
   });
@@ -887,6 +1054,20 @@ function checkNotifications(pet) {
   } else {
     notifiedLow.delete("sick");
   }
+}
+
+// Fires once per dip below the threshold, not on every render while it stays
+// low — groomedForThisDip resets only once Clean climbs back out, same
+// debounce shape as notifiedLow above.
+function checkGroomingKit(pet) {
+  if (!pet || !pet.has_grooming_kit || !pet.grooming_active || pet.life_stage === "egg") return;
+  if (pet.hygiene > LOW_STAT_THRESHOLD) {
+    groomedForThisDip = false;
+    return;
+  }
+  if (groomedForThisDip) return;
+  groomedForThisDip = true;
+  visitProp("grooming-kit", { sound: "clean", onArrive: (p) => { p.hygiene = clamp(p.hygiene + GROOMING_CLEAN_AMOUNT); } });
 }
 
 function bouncePet() {
@@ -981,7 +1162,7 @@ function wireDragPet() {
   let downY = 0;
 
   host.addEventListener("pointerdown", (e) => {
-    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
+    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingProp) return;
     dragging = true;
     draggingPet = true;
     moved = false;
@@ -1039,7 +1220,10 @@ function wireDragBed() {
   let downY = 0;
 
   bed.addEventListener("pointerdown", (e) => {
-    if (!currentPet || !currentPet.has_bed) return;
+    // Don't let the bed be dragged out from under a sleeping pet — it's
+    // already resting there (see bedRestTarget), so moving the mat mid-sleep
+    // would just leave the pet floating apart from it until it wakes.
+    if (!currentPet || !currentPet.has_bed || currentPet.is_sleeping) return;
     dragging = true;
     moved = false;
     downX = e.clientX;
@@ -1102,7 +1286,7 @@ function bedRestTarget(host, bed) {
 }
 
 function walkToBedThenSleep() {
-  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || currentPet.is_sleeping) return;
+  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || visitingProp || currentPet.is_sleeping) return;
   const petId = currentPet.id;
   const host = $("pet-screen");
   const bed = $("pet-bed");
@@ -1120,6 +1304,65 @@ function walkToBedThenSleep() {
     }
     runAction(toggleSleep, { bounce: false, sound: "sleep" });
   }, duration + 50);
+}
+
+// Same "walk over, do a thing" shape as walkToBedThenSleep, generalized for
+// the three props the pet visits on its own (Treat Jar, Grooming Kit, Toy
+// Box) — they only differ in which stat they touch on arrival.
+function propRestTarget(host, prop) {
+  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
+  const propCenterX = prop.offsetLeft + prop.offsetWidth / 2;
+  const propCenterY = prop.offsetTop + prop.offsetHeight / 2;
+  return {
+    targetX: Math.min(maxX, Math.max(minX, propCenterX - host.offsetWidth / 2)),
+    targetY: Math.min(maxY, Math.max(minY, propCenterY - host.offsetHeight / 2)),
+  };
+}
+
+function visitProp(propId, { onArrive, sound }) {
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping) return;
+  if (gameActive || draggingPet || walkingToBed || visitingProp) return;
+  if (isTooTiredToWalk(currentPet)) return;
+  const prop = $(propId);
+  if (prop.hidden) return;
+  const petId = currentPet.id;
+  const host = $("pet-screen");
+  const { targetX, targetY } = propRestTarget(host, prop);
+  visitingProp = true;
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+  const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
+  setTimeout(() => {
+    visitingProp = false;
+    if (!currentPet || currentPet.id !== petId || currentPet.is_sleeping) {
+      render();
+      return;
+    }
+    onArrive(currentPet);
+    render();
+    if (sound) playSound(sound);
+    persist().catch((err) => showMessage(err.message, true));
+  }, duration + 50);
+}
+
+function scheduleTreatJarVisit() {
+  const delay = TREAT_JAR_VISIT_MIN_MS + Math.random() * (TREAT_JAR_VISIT_MAX_MS - TREAT_JAR_VISIT_MIN_MS);
+  setTimeout(() => {
+    if (currentPet && currentPet.has_treat_jar && currentPet.treat_jar_active) {
+      visitProp("treat-jar", { sound: "feed", onArrive: (p) => { p.hunger = clamp(p.hunger + TREAT_JAR_HUNGER_GAIN); } });
+    }
+    scheduleTreatJarVisit();
+  }, delay);
+}
+
+function scheduleToyBoxVisit() {
+  const delay = TOY_VISIT_MIN_MS + Math.random() * (TOY_VISIT_MAX_MS - TOY_VISIT_MIN_MS);
+  setTimeout(() => {
+    if (currentPet && currentPet.has_toybox && currentPet.toybox_active) {
+      visitProp("toy-box", { sound: "play", onArrive: (p) => { p.toy_buff_until = new Date(Date.now() + TOY_BUFF_DURATION_MS).toISOString(); } });
+    }
+    scheduleToyBoxVisit();
+  }, delay);
 }
 
 async function runAction(fn, { bounce = true, sound } = {}) {
@@ -1392,6 +1635,7 @@ function wireActions() {
   $("btn-clean").dataset.tooltip = "+40 Clean";
   $("btn-sleep").dataset.tooltip = "Restores Energy over time (faster with a Bed) and halves other decay while asleep";
   $("btn-medicine").dataset.tooltip = "Cures Sick, +40 Health, -5 Happy";
+  $("btn-vitamins").dataset.tooltip = `${VITAMIN_BUFF_DURATION_MS / 60000} min of 50% faster Health recovery`;
 
   $("btn-feed").addEventListener("click", () => {
     runAction(feed, { sound: "feed" });
@@ -1416,10 +1660,11 @@ function wireActions() {
       runAction(toggleSleep, { bounce: false, sound: "wake" });
       return;
     }
-    if (currentPet.has_bed) walkToBedThenSleep();
+    if (currentPet.has_bed && currentPet.bed_active) walkToBedThenSleep();
     else runAction(toggleSleep, { bounce: false, sound: "sleep" });
   });
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine, { sound: "medicine" }));
+  $("btn-vitamins").addEventListener("click", () => runAction(giveVitamins, { bounce: false, sound: "medicine" }));
 
   wireDragPet();
   wireDragBed();
@@ -1652,6 +1897,8 @@ function wireActions() {
   scheduleWander();
   scheduleIdleQuirk();
   scheduleBlink();
+  scheduleTreatJarVisit();
+  scheduleToyBoxVisit();
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one
@@ -1668,7 +1915,7 @@ async function activatePetAndRender(pet) {
   // the pet's own left/top, so without this it'd sit in the wrong place
   // until it next moves. transition disabled + a forced reflow so it
   // appears there instantly instead of visibly sliding in on load.
-  if (currentPet.is_sleeping && currentPet.has_bed && currentPet.life_stage !== "egg") {
+  if (currentPet.is_sleeping && currentPet.has_bed && currentPet.bed_active && currentPet.life_stage !== "egg") {
     const host = $("pet-screen");
     const bed = $("pet-bed");
     const { targetX, targetY } = bedRestTarget(host, bed);
