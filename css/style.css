@@ -173,6 +173,9 @@ button:disabled:active { transform: none; }
 }
 .icon-btn {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -180,6 +183,9 @@ button:disabled:active { transform: none; }
   border-radius: 50%;
   font-size: 11px;
 }
+/* currentColor lets the bag icon flip white on hover along with the rest
+   of the button, same as the plain-text icons next to it. */
+.icon-btn svg { width: 13px; height: 13px; stroke: currentColor; }
 
 .pet-layout {
   display: flex;
@@ -348,25 +354,24 @@ button:disabled:active { transform: none; }
 .device:has(.pet-screen.pet--sleeping) .night-light::before {
   background: #ffc363;
 }
-/* Rays shining out of the bulb — a ring of thin wedges (repeating-conic-
-   gradient) around the light, faded from the center outward by a radial
-   mask so they read as light spreading out rather than a flat sunburst
-   sticker, slowly turning so it doesn't look static. Reuses ::after since
+/* A soft halo of light spreading out from the bulb — a smooth radial
+   gradient, not distinct rays/wedges (an earlier version used sharp conic
+   spokes and read as a cartoon sun instead of a light source). Blurred and
+   slowly breathing in size/opacity for a calm glow. Reuses ::after since
    ::before is already the cord. */
 .device:has(.pet-screen.pet--sleeping) .night-light::after {
   content: "";
   position: absolute;
-  inset: -13px;
+  inset: -16px;
   border-radius: 50%;
-  background: repeating-conic-gradient(rgba(255, 205, 130, 0.8) 0deg 3deg, rgba(255, 205, 130, 0) 3deg 30deg);
-  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 78%);
-  mask-image: radial-gradient(circle, #000 30%, transparent 78%);
-  animation: night-light-rays 7s linear infinite;
+  background: radial-gradient(circle, rgba(255, 205, 130, 0.6) 0%, rgba(255, 205, 130, 0.28) 45%, rgba(255, 205, 130, 0) 78%);
+  filter: blur(1.5px);
+  animation: night-light-halo 3.5s ease-in-out infinite;
   pointer-events: none;
 }
-@keyframes night-light-rays {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes night-light-halo {
+  0%, 100% { opacity: 0.65; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
