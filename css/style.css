@@ -8,6 +8,20 @@
 
 * { box-sizing: border-box; }
 
+/* Collapses every animation/transition in the file to effectively instant,
+   one-shot playback instead of writing a reduced-motion variant of each of
+   the ~15 @keyframes individually. Safe to do globally here because motion
+   is never the only carrier of information — mood/sick states also show as
+   plain text (#pet-status), and every wander/drag position is a real
+   left/top value regardless of whether it animates there or snaps. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   margin: 0;
   min-height: 100vh;
