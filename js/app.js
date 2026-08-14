@@ -7,9 +7,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=63";
-import * as db from "./supabase.js?v=63";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=63";
+} from "./pet-sprites.js?v=64";
+import * as db from "./supabase.js?v=64";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=64";
+import { VERSION } from "./version.js?v=64";
 
 const HOUR = 3600000;
 
@@ -1969,6 +1970,7 @@ function wireAuth() {
 }
 
 async function init() {
+  $("app-version").textContent = `v${VERSION}`;
   wireAuth();
   wireActions();
   wireTooltipTouch();
