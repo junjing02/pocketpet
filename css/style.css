@@ -290,21 +290,26 @@ button:disabled:active { transform: none; }
 }
 .pet-bed::before { inset: 7px; }
 .pet-bed::after { inset: 15px; }
-.pet-bed--dragging { cursor: grabbing; }
 
-/* The four Shop upgrade props each get a fixed corner of the playground —
-   flat fill + 1px lines only, same treatment as .pet-bed, just small and
-   static (no drag) since there's only ever one sensible spot for each. */
+/* One dragging-state class shared by all 5 floor items (see
+   wireDragGroundedItem) instead of a per-item copy. */
+.grounded-item--dragging { cursor: grabbing; }
+
+/* The four Shop upgrade props — same draggable-prop treatment as .pet-bed
+   (flat fill + 1px lines, no gradient/shadow), just smaller. Positioned by
+   JS the same way the bed is (see renderGroundedItems), so no static
+   top/left/right/bottom here despite each having an obvious "home" corner —
+   that's just their default saved fraction, not a fixed spot. */
 .night-light,
 .grooming-kit,
 .treat-jar,
 .toy-box {
   position: absolute;
+  cursor: grab;
+  touch-action: none;
 }
 
 .night-light {
-  top: 10px;
-  right: 8px;
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -322,10 +327,24 @@ button:disabled:active { transform: none; }
   background: var(--line);
   border-radius: 0 0 1px 1px;
 }
+/* A slow, gentle glow while the pet actually sleeps (the playground itself
+   already goes dark then, see .device:has(...)) — reads as the light being
+   "on" for a calm night rather than just a static prop. Grayscale pulse,
+   not a color, to stay within the app's flat monochrome look. */
+@keyframes night-light-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.25); }
+  50% { box-shadow: 0 0 9px 3px rgba(255, 255, 255, 0.55); }
+}
+.device:has(.pet-screen.pet--sleeping) .night-light {
+  background: #fff;
+  border-color: #fff;
+  animation: night-light-glow 3s ease-in-out infinite;
+}
+.device:has(.pet-screen.pet--sleeping) .night-light::after {
+  background: #fff;
+}
 
 .grooming-kit {
-  top: 8px;
-  left: 8px;
   width: 22px;
   height: 13px;
   border-radius: 3px 3px 7px 7px;
@@ -342,8 +361,6 @@ button:disabled:active { transform: none; }
 }
 
 .treat-jar {
-  bottom: 8px;
-  left: 8px;
   width: 14px;
   height: 17px;
   border-radius: 2px;
@@ -363,8 +380,6 @@ button:disabled:active { transform: none; }
 }
 
 .toy-box {
-  bottom: 8px;
-  right: 8px;
   width: 20px;
   height: 15px;
   border-radius: 2px;

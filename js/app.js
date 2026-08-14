@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=52";
-import * as db from "./supabase.js?v=52";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=52";
+} from "./pet-sprites.js?v=53";
+import * as db from "./supabase.js?v=53";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=53";
 
 const HOUR = 3600000;
 
@@ -150,14 +150,22 @@ export function createInitialPet(name) {
     has_toybox: false,
     toybox_active: true,
     toy_buff_until: null,
+    toy_box_x: 0.95,
+    toy_box_y: 0.95,
     has_grooming_kit: false,
     grooming_active: true,
+    grooming_kit_x: 0.05,
+    grooming_kit_y: 0.05,
     has_treat_jar: false,
     treat_jar_active: true,
+    treat_jar_x: 0.05,
+    treat_jar_y: 0.95,
     vitamin_count: 0,
     vitamins_until: null,
     has_night_light: false,
     night_light_active: true,
+    night_light_x: 0.95,
+    night_light_y: 0.05,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -473,16 +481,24 @@ function wanderBounds(host, device) {
   return { minX, minY, maxX, maxY };
 }
 
-// The bed can't be dragged above this fraction of the playground's height —
-// keeps it in the lower portion instead of floating up near the top, which
-// read oddly for a "floor" prop. No visible marker for the limit — it just
-// silently stops there.
-const BED_MIN_Y_FRACTION = 0.42;
+// None of the 5 floor items (Bed + the 4 Shop props) can be dragged above
+// this fraction of the playground's height — keeps them in the lower
+// portion instead of floating up near the top, which read oddly for
+// "grounded" props. No visible marker for the limit — it just silently
+// stops there.
+const GROUND_MIN_Y_FRACTION = 0.42;
 
-function bedBounds(bed, device) {
-  const base = wanderBounds(bed, device);
-  const floorMinY = device.clientHeight * BED_MIN_Y_FRACTION;
+function groundedBounds(el, device) {
+  const base = wanderBounds(el, device);
+  const floorMinY = device.clientHeight * GROUND_MIN_Y_FRACTION;
   return { ...base, minY: Math.max(base.minY, floorMinY) };
+}
+
+// Small AABB overlap test (with a little padding so props don't end up
+// touching edge-to-edge either) used to stop one floor item from being
+// dragged on top of another.
+function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad = 4) {
+  return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
 }
 
 function wanderPet() {
@@ -791,45 +807,54 @@ function showFoodBowl() {
   }, BOWL_SHOW_MS);
 }
 
-// Positions the bed from its saved fraction (0..1) of the playground's
-// usable area — not raw pixels, since the device's own width is responsive
-// (see .pet-visual's breakpoint), so a stored pixel position would drift out
-// of place on a different screen size. Recomputed on every render, same
-// approach as wanderBounds().
-function renderBed(pet) {
-  const bed = $("pet-bed");
-  if (!pet.has_bed || !pet.bed_active || pet.life_stage === "egg") {
-    bed.hidden = true;
-    return;
-  }
-  bed.hidden = false;
-  const device = $("pet-device");
-  const { minX, minY, maxX, maxY } = bedBounds(bed, device);
-  bed.style.left = `${minX + (pet.bed_x ?? DEFAULT_BED_X) * (maxX - minX)}px`;
-  bed.style.top = `${minY + (pet.bed_y ?? DEFAULT_BED_Y) * (maxY - minY)}px`;
-}
-
-// The four small fixed-position props (Night Light, Grooming Kit, Treat Jar,
-// Toy Box) share one corner each and never move, unlike the Bed — just a
-// straight ownership+active check to show/hide.
-const PROPS = [
-  { id: "night-light", owned: (p) => p.has_night_light, active: (p) => p.night_light_active },
-  { id: "grooming-kit", owned: (p) => p.has_grooming_kit, active: (p) => p.grooming_active },
-  { id: "treat-jar", owned: (p) => p.has_treat_jar, active: (p) => p.treat_jar_active },
-  { id: "toy-box", owned: (p) => p.has_toybox, active: (p) => p.toybox_active },
+// All 5 floor items (the Bed plus the 4 Shop props) are dragged and
+// persisted the same way — a saved fraction (0..1) of the playground's
+// usable area, not raw pixels, since the device's own width is responsive
+// (see .pet-visual's breakpoint). Recomputed on every render, same approach
+// as wanderBounds(). One list drives rendering (below) and dragging (see
+// wireGroundedItems) instead of 5 near-identical copies of the same code.
+const GROUNDED_ITEMS = [
+  { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
+  { id: "night-light", xField: "night_light_x", yField: "night_light_y", defaultX: 0.95, defaultY: 0.05, owned: (p) => p.has_night_light && p.night_light_active },
+  { id: "grooming-kit", xField: "grooming_kit_x", yField: "grooming_kit_y", defaultX: 0.05, defaultY: 0.05, owned: (p) => p.has_grooming_kit && p.grooming_active },
+  { id: "treat-jar", xField: "treat_jar_x", yField: "treat_jar_y", defaultX: 0.05, defaultY: 0.95, owned: (p) => p.has_treat_jar && p.treat_jar_active },
+  { id: "toy-box", xField: "toy_box_x", yField: "toy_box_y", defaultX: 0.95, defaultY: 0.95, owned: (p) => p.has_toybox && p.toybox_active },
 ];
 
-function renderProps(pet) {
-  for (const prop of PROPS) {
-    $(prop.id).hidden = pet.life_stage === "egg" || !prop.owned(pet) || !prop.active(pet);
+function renderGroundedItems(pet) {
+  const device = $("pet-device");
+  for (const item of GROUNDED_ITEMS) {
+    const el = $(item.id);
+    if (pet.life_stage === "egg" || !item.owned(pet)) {
+      el.hidden = true;
+      continue;
+    }
+    el.hidden = false;
+    const { minX, minY, maxX, maxY } = groundedBounds(el, device);
+    const fx = pet[item.xField] ?? item.defaultX;
+    const fy = pet[item.yField] ?? item.defaultY;
+    el.style.left = `${minX + fx * (maxX - minX)}px`;
+    el.style.top = `${minY + fy * (maxY - minY)}px`;
   }
+}
+
+// True if placing `item` at (x, y) would overlap any other currently visible
+// floor item — checked live against their rendered rects, not stored
+// fractions, so it accounts for whatever's actually on screen right now.
+function overlapsOtherGroundedItems(item, x, y, w, h) {
+  for (const other of GROUNDED_ITEMS) {
+    if (other.id === item.id) continue;
+    const el = $(other.id);
+    if (el.hidden) continue;
+    if (rectsOverlap(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight)) return true;
+  }
+  return false;
 }
 
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
-  renderBed(currentPet);
-  renderProps(currentPet);
+  renderGroundedItems(currentPet);
   checkGroomingKit(currentPet);
   checkNotifications(currentPet);
 }
@@ -1208,52 +1233,57 @@ function wireDragPet() {
   host.addEventListener("pointercancel", endDrag);
 }
 
-// Bed dragging is simpler than the pet's — no click/poke to disambiguate
-// from a drag, no wander to fight with, just "grab it, move it, save where
-// it landed" (as a fraction, see renderBed).
-function wireDragBed() {
-  const bed = $("pet-bed");
+// One drag handler shared by all 5 floor items (see GROUNDED_ITEMS) instead
+// of a separate copy per item — dragging is blocked from crossing over any
+// other visible floor item (see overlapsOtherGroundedItems), same "just
+// stops there" feel as the invisible vertical floor line.
+function wireDragGroundedItem(item) {
+  const el = $(item.id);
   const device = $("pet-device");
   let dragging = false;
   let moved = false;
   let downX = 0;
   let downY = 0;
 
-  bed.addEventListener("pointerdown", (e) => {
+  el.addEventListener("pointerdown", (e) => {
+    if (!currentPet || !item.owned(currentPet)) return;
     // Don't let the bed be dragged out from under a sleeping pet — it's
     // already resting there (see bedRestTarget), so moving the mat mid-sleep
     // would just leave the pet floating apart from it until it wakes.
-    if (!currentPet || !currentPet.has_bed || currentPet.is_sleeping) return;
+    if (item.id === "pet-bed" && currentPet.is_sleeping) return;
     dragging = true;
     moved = false;
     downX = e.clientX;
     downY = e.clientY;
-    bed.setPointerCapture(e.pointerId);
-    bed.classList.add("pet-bed--dragging");
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("grounded-item--dragging");
   });
 
-  bed.addEventListener("pointermove", (e) => {
+  el.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
     moved = true;
     const rect = device.getBoundingClientRect();
-    const { minX, minY, maxX, maxY } = bedBounds(bed, device);
-    bed.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - bed.offsetWidth / 2))}px`;
-    bed.style.top = `${Math.min(maxY, Math.max(minY, e.clientY - rect.top - bed.offsetHeight / 2))}px`;
+    const { minX, minY, maxX, maxY } = groundedBounds(el, device);
+    const x = Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2));
+    const y = Math.min(maxY, Math.max(minY, e.clientY - rect.top - el.offsetHeight / 2));
+    if (overlapsOtherGroundedItems(item, x, y, el.offsetWidth, el.offsetHeight)) return;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   });
 
   async function endDrag() {
     if (!dragging) return;
     dragging = false;
-    bed.classList.remove("pet-bed--dragging");
+    el.classList.remove("grounded-item--dragging");
     // A real drag shouldn't also send the pet walking toward the release
     // point — reuses the same flag the pet's own drag uses to swallow the
     // click the browser fires on release (see wireDragPet above).
     if (moved) suppressNextPetClick = true;
-    if (!moved) return; // plain tap, nothing moved — leave bed_x/bed_y untouched
-    const { minX, minY, maxX, maxY } = bedBounds(bed, device);
-    currentPet.bed_x = maxX > minX ? (bed.offsetLeft - minX) / (maxX - minX) : 0.5;
-    currentPet.bed_y = maxY > minY ? (bed.offsetTop - minY) / (maxY - minY) : 0.5;
+    if (!moved) return; // plain tap, nothing moved — leave its saved position untouched
+    const { minX, minY, maxX, maxY } = groundedBounds(el, device);
+    currentPet[item.xField] = maxX > minX ? (el.offsetLeft - minX) / (maxX - minX) : 0.5;
+    currentPet[item.yField] = maxY > minY ? (el.offsetTop - minY) / (maxY - minY) : 0.5;
     try {
       await persist();
     } catch (err) {
@@ -1261,8 +1291,12 @@ function wireDragBed() {
     }
   }
 
-  bed.addEventListener("pointerup", endDrag);
-  bed.addEventListener("pointercancel", endDrag);
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
+}
+
+function wireGroundedItems() {
+  for (const item of GROUNDED_ITEMS) wireDragGroundedItem(item);
 }
 
 // Sends the pet walking to the bed's current spot first, then puts it to
@@ -1667,7 +1701,7 @@ function wireActions() {
   $("btn-vitamins").addEventListener("click", () => runAction(giveVitamins, { bounce: false, sound: "medicine" }));
 
   wireDragPet();
-  wireDragBed();
+  wireGroundedItems();
   wireShop();
   $("pet-device").addEventListener("click", (e) => {
     if (suppressNextPetClick) {
