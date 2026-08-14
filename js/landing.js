@@ -7,7 +7,7 @@ import {
   SPECIES,
   SPECIES_SHADE,
   STAGE_MOVE_DURATION_S,
-} from "./pet-sprites.js?v=57";
+} from "./pet-sprites.js?v=59";
 
 const host = document.getElementById("landing-pet");
 const label = document.getElementById("hero-stage-label");
