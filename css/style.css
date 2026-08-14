@@ -17,7 +17,6 @@ body {
   justify-content: center;
   gap: 14px;
   padding: 32px 16px;
-  background: var(--bg);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
   color: var(--fg);
@@ -927,7 +926,7 @@ button:disabled:active { transform: none; }
 .ghost:hover { background: var(--muted); color: #fff; }
 
 .landing .device { height: 240px; margin-bottom: 14px; }
-body:has(.landing) {
+body {
   background-color: #eee;
   background-image:
     linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
