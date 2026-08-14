@@ -90,6 +90,13 @@ body {
 }
 .back-home-link:hover { color: var(--fg); }
 
+.app-version {
+  text-align: center;
+  margin: 16px 0 0;
+  font-size: 9px;
+  color: var(--muted);
+}
+
 input, button {
   font-family: inherit;
   font-size: 12px;
@@ -210,12 +217,12 @@ button:disabled:active { transform: none; }
   transition: background 0.8s ease, box-shadow 0.8s ease;
 }
 .device:has(.pet-screen.pet--sleeping) { background: #1a1a1a; }
-/* An owned, active Night Light bleeds a soft cool glow past the
+/* An owned, active Night Light bleeds a soft white glow past the
    playground's own edge — overflow stays visible (see above) so this box-
    shadow isn't clipped, reading as light escaping the dark room rather
    than staying sealed inside the box. */
 .device:has(.pet-screen.pet--sleeping):has(.night-light:not([hidden])) {
-  box-shadow: 0 0 24px 6px rgba(180, 210, 255, 0.35);
+  box-shadow: 0 0 24px 6px rgba(255, 255, 255, 0.35);
 }
 /* The pet and bed dim along with the room instead of staying full-bright
    against the dark background — reads as "the lights are off" rather than
@@ -346,20 +353,19 @@ button:disabled:active { transform: none; }
 }
 /* A slow, gentle glow while the pet actually sleeps (the playground itself
    already goes dark then, see .device:has(...)) — reads as the light being
-   "on" for a calm night rather than just a static prop. The one deliberate
-   spot of color in an otherwise monochrome app — a cool pale blue, like
-   moonlight, rather than a warm bulb tone. */
+   "on" for a calm night rather than just a static prop. Plain white, so it
+   still reads as a light source without introducing a new hue. */
 @keyframes night-light-glow {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(180, 210, 255, 0.4); }
-  50% { box-shadow: 0 0 10px 4px rgba(180, 210, 255, 0.7); }
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.4); }
+  50% { box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.7); }
 }
 .device:has(.pet-screen.pet--sleeping) .night-light {
-  background: #cfe6ff;
-  border-color: #a9cdf5;
+  background: #ffffff;
+  border-color: #e6e6e6;
   animation: night-light-glow 3s ease-in-out infinite;
 }
 .device:has(.pet-screen.pet--sleeping) .night-light::before {
-  background: #a9cdf5;
+  background: #e6e6e6;
 }
 /* A soft halo of light spreading out from the bulb — a smooth radial
    gradient, not distinct rays/wedges (an earlier version used sharp conic
@@ -371,7 +377,7 @@ button:disabled:active { transform: none; }
   position: absolute;
   inset: -16px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(180, 210, 255, 0.6) 0%, rgba(180, 210, 255, 0.28) 45%, rgba(180, 210, 255, 0) 78%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.28) 45%, rgba(255, 255, 255, 0) 78%);
   filter: blur(1.5px);
   animation: night-light-halo 3.5s ease-in-out infinite;
   pointer-events: none;

@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=59";
-import * as db from "./supabase.js?v=59";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=59";
+} from "./pet-sprites.js?v=60";
+import * as db from "./supabase.js?v=60";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=60";
 
 const HOUR = 3600000;
 
@@ -763,21 +763,14 @@ function render() {
 // toggle — worn/not for the Bow, in the playground/put away for the rest —
 // exactly like the Bow always worked.
 const SHOP_ITEMS = [
-  { id: "food", name: "Snack", desc: "+1 Snack to feed later", price: SNACK_PRICE, buy: buyFood, kind: "consumable" },
-  { id: "meal", name: "Meal", desc: "+1 Meal to feed later", price: MEAL_PRICE, buy: buyMeal, kind: "consumable" },
-  {
-    id: "vitamins",
-    name: "Vitamins",
-    desc: `+1 dose. Feed it from Care for ${VITAMIN_BUFF_DURATION_MS / 60000} min of 50% faster Health recovery`,
-    price: VITAMINS_PRICE,
-    buy: buyVitamins,
-    kind: "consumable",
-  },
-  { id: "bow", name: "Bow", desc: "Cosmetic accessory, no stat effect", price: BOW_PRICE, buy: buyBow, kind: "wearable", owned: (p) => p.has_bow, toggle: toggleBow },
+  { id: "food", name: "Snack", desc: "+1 Snack", price: SNACK_PRICE, buy: buyFood, kind: "consumable" },
+  { id: "meal", name: "Meal", desc: "+1 Meal", price: MEAL_PRICE, buy: buyMeal, kind: "consumable" },
+  { id: "vitamins", name: "Vitamins", desc: "Feed for faster Health regen", price: VITAMINS_PRICE, buy: buyVitamins, kind: "consumable" },
+  { id: "bow", name: "Bow", desc: "Cosmetic only", price: BOW_PRICE, buy: buyBow, kind: "wearable", owned: (p) => p.has_bow, toggle: toggleBow },
   {
     id: "bed",
     name: "Bed",
-    desc: "Drag it anywhere. Sleep sends your pet there and recovers Energy faster",
+    desc: "Faster Energy recovery while asleep",
     price: BED_PRICE,
     buy: buyBed,
     kind: "placeable",
@@ -788,7 +781,7 @@ const SHOP_ITEMS = [
   {
     id: "nightlight",
     name: "Night Light",
-    desc: "Hangs from the ceiling, drag it left or right. Stacks with a Bed to slow decay even more while asleep",
+    desc: "Slows decay further while asleep",
     price: NIGHT_LIGHT_PRICE,
     buy: buyNightLight,
     kind: "placeable",
