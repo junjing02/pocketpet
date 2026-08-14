@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=53";
-import * as db from "./supabase.js?v=53";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=53";
+} from "./pet-sprites.js?v=54";
+import * as db from "./supabase.js?v=54";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=54";
 
 const HOUR = 3600000;
 
@@ -43,27 +43,12 @@ const BED_PRICE = 30;
 const DEFAULT_BED_X = 0.7;
 const DEFAULT_BED_Y = 0.7;
 
-const TOYBOX_PRICE = 20;
-const GROOMING_KIT_PRICE = 20;
-const TREAT_JAR_PRICE = 20;
 const VITAMINS_PRICE = 30;
 const NIGHT_LIGHT_PRICE = 20;
 
 const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster while a dose is active
 const VITAMIN_BUFF_DURATION_MS = 15 * 60 * 1000;
 const NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER = 0.75; // stacks on top of SLEEP_DECAY_MULTIPLIER
-
-// Treat Jar and Toy Box are placed props the pet visits on its own — same
-// "walk over, do a thing, come back to wandering" shape, just different
-// effects and timing. Grooming Kit instead waits for Clean to actually get
-// low (see checkGroomingKit) rather than visiting on a timer.
-const TREAT_JAR_VISIT_MIN_MS = 30 * 1000;
-const TREAT_JAR_VISIT_MAX_MS = 75 * 1000;
-const TREAT_JAR_HUNGER_GAIN = 4;
-const TOY_VISIT_MIN_MS = 30 * 1000;
-const TOY_VISIT_MAX_MS = 75 * 1000;
-const TOY_BUFF_DURATION_MS = 10 * 60 * 1000; // Happy pauses decay entirely for this long after a visit
-const GROOMING_CLEAN_AMOUNT = 25;
 
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
@@ -147,25 +132,11 @@ export function createInitialPet(name) {
     bed_active: true,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
-    has_toybox: false,
-    toybox_active: true,
-    toy_buff_until: null,
-    toy_box_x: 0.95,
-    toy_box_y: 0.95,
-    has_grooming_kit: false,
-    grooming_active: true,
-    grooming_kit_x: 0.05,
-    grooming_kit_y: 0.05,
-    has_treat_jar: false,
-    treat_jar_active: true,
-    treat_jar_x: 0.05,
-    treat_jar_y: 0.95,
     vitamin_count: 0,
     vitamins_until: null,
     has_night_light: false,
     night_light_active: true,
-    night_light_x: 0.95,
-    night_light_y: 0.05,
+    night_light_x: 0.5,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -215,12 +186,9 @@ export function applyDecay(pet, nowMs = Date.now()) {
     const mul = pet.is_sleeping
       ? SLEEP_DECAY_MULTIPLIER * (pet.has_night_light && pet.night_light_active ? NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER : 1)
       : 1;
-    // A Toy Box visit (see toyBoxVisit) sets this — while it's running, Happy
-    // is fully immune to decay instead of just decaying slower.
-    const toyBuffActive = pet.toy_buff_until && new Date(pet.toy_buff_until).getTime() > nowMs;
 
     pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
-    pet.happiness = toyBuffActive ? pet.happiness : clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
+    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
     pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
     const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed && pet.bed_active ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
@@ -326,48 +294,6 @@ export function toggleBedActive(pet) {
   return pet;
 }
 
-export function buyToyBox(pet) {
-  if (pet.has_toybox || pet.coins < TOYBOX_PRICE) return pet;
-  pet.coins -= TOYBOX_PRICE;
-  pet.has_toybox = true;
-  pet.toybox_active = true;
-  return pet;
-}
-
-export function toggleToyBoxActive(pet) {
-  if (!pet.has_toybox) return pet;
-  pet.toybox_active = !pet.toybox_active;
-  return pet;
-}
-
-export function buyGroomingKit(pet) {
-  if (pet.has_grooming_kit || pet.coins < GROOMING_KIT_PRICE) return pet;
-  pet.coins -= GROOMING_KIT_PRICE;
-  pet.has_grooming_kit = true;
-  pet.grooming_active = true;
-  return pet;
-}
-
-export function toggleGroomingKitActive(pet) {
-  if (!pet.has_grooming_kit) return pet;
-  pet.grooming_active = !pet.grooming_active;
-  return pet;
-}
-
-export function buyTreatJar(pet) {
-  if (pet.has_treat_jar || pet.coins < TREAT_JAR_PRICE) return pet;
-  pet.coins -= TREAT_JAR_PRICE;
-  pet.has_treat_jar = true;
-  pet.treat_jar_active = true;
-  return pet;
-}
-
-export function toggleTreatJarActive(pet) {
-  if (!pet.has_treat_jar) return pet;
-  pet.treat_jar_active = !pet.treat_jar_active;
-  return pet;
-}
-
 // Vitamins are a stash-and-feed consumable like Snacks/Meals, not a one-time
 // purchase — buying just adds to the count; giveVitamins is what actually
 // starts the temporary faster-Health-regen window (see applyDecay).
@@ -440,11 +366,6 @@ let walkFrame = 0;
 let gameActive = false;
 let draggingPet = false;
 let walkingToBed = false;
-// True while the pet is walking to/using the Treat Jar, Grooming Kit, or Toy
-// Box (see visitProp) — same purpose as walkingToBed, blocks wandering,
-// click-to-walk, and dragging so nothing yanks it away mid-visit.
-let visitingProp = false;
-let groomedForThisDip = false; // see checkGroomingKit
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -481,11 +402,10 @@ function wanderBounds(host, device) {
   return { minX, minY, maxX, maxY };
 }
 
-// None of the 5 floor items (Bed + the 4 Shop props) can be dragged above
-// this fraction of the playground's height — keeps them in the lower
-// portion instead of floating up near the top, which read oddly for
-// "grounded" props. No visible marker for the limit — it just silently
-// stops there.
+// The bed can't be dragged above this fraction of the playground's height —
+// keeps it in the lower portion instead of floating up near the top, which
+// read oddly for a "floor" prop. No visible marker for the limit — it just
+// silently stops there.
 const GROUND_MIN_Y_FRACTION = 0.42;
 
 function groundedBounds(el, device) {
@@ -494,15 +414,8 @@ function groundedBounds(el, device) {
   return { ...base, minY: Math.max(base.minY, floorMinY) };
 }
 
-// Small AABB overlap test (with a little padding so props don't end up
-// touching edge-to-edge either) used to stop one floor item from being
-// dragged on top of another.
-function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad = 4) {
-  return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
-}
-
 function wanderPet() {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed || visitingProp) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -535,7 +448,7 @@ function scheduleWander() {
 // Click-to-walk: tapping empty space in the playground (not the pet itself)
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingProp) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -631,13 +544,11 @@ function renderStats(pet) {
   $("btn-medicine").disabled = pet.is_sleeping;
   $("btn-vitamins").disabled = (pet.vitamin_count || 0) <= 0 || pet.is_sleeping;
 
-  // A visible "↑" next to the stat label acknowledges an active timed
-  // buff — otherwise a dose of Vitamins or a Toy Box visit has no on-screen
-  // sign it's actually doing anything until the effect wears off.
+  // A visible "↑" next to Health acknowledges a fed dose of Vitamins —
+  // otherwise the buff has no on-screen sign it's doing anything until it
+  // wears off.
   const vitaminsActive = pet.vitamins_until && new Date(pet.vitamins_until).getTime() > Date.now();
-  const toyBuffActive = pet.toy_buff_until && new Date(pet.toy_buff_until).getTime() > Date.now();
   $("stat-health").classList.toggle("stat--boosted", !!vitaminsActive);
-  $("stat-happiness").classList.toggle("stat--boosted", !!toyBuffActive);
 }
 
 function renderAchievements(pet) {
@@ -807,18 +718,14 @@ function showFoodBowl() {
   }, BOWL_SHOW_MS);
 }
 
-// All 5 floor items (the Bed plus the 4 Shop props) are dragged and
-// persisted the same way — a saved fraction (0..1) of the playground's
-// usable area, not raw pixels, since the device's own width is responsive
-// (see .pet-visual's breakpoint). Recomputed on every render, same approach
-// as wanderBounds(). One list drives rendering (below) and dragging (see
-// wireGroundedItems) instead of 5 near-identical copies of the same code.
+// The Bed is dragged and persisted as a saved fraction (0..1) of the
+// playground's usable area, not raw pixels, since the device's own width is
+// responsive (see .pet-visual's breakpoint). Recomputed on every render,
+// same approach as wanderBounds(). Kept as a one-item list (rather than a
+// bed-only function) since the Night Light used to share this shape too and
+// may again if another floor prop shows up later.
 const GROUNDED_ITEMS = [
   { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
-  { id: "night-light", xField: "night_light_x", yField: "night_light_y", defaultX: 0.95, defaultY: 0.05, owned: (p) => p.has_night_light && p.night_light_active },
-  { id: "grooming-kit", xField: "grooming_kit_x", yField: "grooming_kit_y", defaultX: 0.05, defaultY: 0.05, owned: (p) => p.has_grooming_kit && p.grooming_active },
-  { id: "treat-jar", xField: "treat_jar_x", yField: "treat_jar_y", defaultX: 0.05, defaultY: 0.95, owned: (p) => p.has_treat_jar && p.treat_jar_active },
-  { id: "toy-box", xField: "toy_box_x", yField: "toy_box_y", defaultX: 0.95, defaultY: 0.95, owned: (p) => p.has_toybox && p.toybox_active },
 ];
 
 function renderGroundedItems(pet) {
@@ -838,24 +745,11 @@ function renderGroundedItems(pet) {
   }
 }
 
-// True if placing `item` at (x, y) would overlap any other currently visible
-// floor item — checked live against their rendered rects, not stored
-// fractions, so it accounts for whatever's actually on screen right now.
-function overlapsOtherGroundedItems(item, x, y, w, h) {
-  for (const other of GROUNDED_ITEMS) {
-    if (other.id === item.id) continue;
-    const el = $(other.id);
-    if (el.hidden) continue;
-    if (rectsOverlap(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight)) return true;
-  }
-  return false;
-}
-
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderGroundedItems(currentPet);
-  checkGroomingKit(currentPet);
+  renderNightLight(currentPet);
   checkNotifications(currentPet);
 }
 
@@ -892,42 +786,9 @@ const SHOP_ITEMS = [
     toggle: toggleBedActive,
   },
   {
-    id: "toybox",
-    name: "Toy Box",
-    desc: "Pet visits it on its own — Happy won't decay at all for a while after",
-    price: TOYBOX_PRICE,
-    buy: buyToyBox,
-    kind: "placeable",
-    owned: (p) => p.has_toybox,
-    active: (p) => p.toybox_active,
-    toggle: toggleToyBoxActive,
-  },
-  {
-    id: "grooming",
-    name: "Grooming Kit",
-    desc: "Pet cleans itself here on its own whenever Clean gets low",
-    price: GROOMING_KIT_PRICE,
-    buy: buyGroomingKit,
-    kind: "placeable",
-    owned: (p) => p.has_grooming_kit,
-    active: (p) => p.grooming_active,
-    toggle: toggleGroomingKitActive,
-  },
-  {
-    id: "treatjar",
-    name: "Treat Jar",
-    desc: "Pet snacks here on its own — a little Hunger at a time",
-    price: TREAT_JAR_PRICE,
-    buy: buyTreatJar,
-    kind: "placeable",
-    owned: (p) => p.has_treat_jar,
-    active: (p) => p.treat_jar_active,
-    toggle: toggleTreatJarActive,
-  },
-  {
     id: "nightlight",
     name: "Night Light",
-    desc: "Stacks with a Bed to slow decay even more while asleep",
+    desc: "Hangs from the ceiling, drag it left or right. Stacks with a Bed to slow decay even more while asleep",
     price: NIGHT_LIGHT_PRICE,
     buy: buyNightLight,
     kind: "placeable",
@@ -1081,20 +942,6 @@ function checkNotifications(pet) {
   }
 }
 
-// Fires once per dip below the threshold, not on every render while it stays
-// low — groomedForThisDip resets only once Clean climbs back out, same
-// debounce shape as notifiedLow above.
-function checkGroomingKit(pet) {
-  if (!pet || !pet.has_grooming_kit || !pet.grooming_active || pet.life_stage === "egg") return;
-  if (pet.hygiene > LOW_STAT_THRESHOLD) {
-    groomedForThisDip = false;
-    return;
-  }
-  if (groomedForThisDip) return;
-  groomedForThisDip = true;
-  visitProp("grooming-kit", { sound: "clean", onArrive: (p) => { p.hygiene = clamp(p.hygiene + GROOMING_CLEAN_AMOUNT); } });
-}
-
 function bouncePet() {
   const host = $("pet-screen");
   host.classList.remove("pet--bounce");
@@ -1187,7 +1034,7 @@ function wireDragPet() {
   let downY = 0;
 
   host.addEventListener("pointerdown", (e) => {
-    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingProp) return;
+    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
     dragging = true;
     draggingPet = true;
     moved = false;
@@ -1233,10 +1080,9 @@ function wireDragPet() {
   host.addEventListener("pointercancel", endDrag);
 }
 
-// One drag handler shared by all 5 floor items (see GROUNDED_ITEMS) instead
-// of a separate copy per item — dragging is blocked from crossing over any
-// other visible floor item (see overlapsOtherGroundedItems), same "just
-// stops there" feel as the invisible vertical floor line.
+// Drag handler for floor items (currently just the Bed, see GROUNDED_ITEMS)
+// — a generic list-driven function rather than a bed-specific one so a
+// future floor prop can reuse it.
 function wireDragGroundedItem(item) {
   const el = $(item.id);
   const device = $("pet-device");
@@ -1267,7 +1113,6 @@ function wireDragGroundedItem(item) {
     const { minX, minY, maxX, maxY } = groundedBounds(el, device);
     const x = Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2));
     const y = Math.min(maxY, Math.max(minY, e.clientY - rect.top - el.offsetHeight / 2));
-    if (overlapsOtherGroundedItems(item, x, y, el.offsetWidth, el.offsetHeight)) return;
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
   });
@@ -1320,7 +1165,7 @@ function bedRestTarget(host, bed) {
 }
 
 function walkToBedThenSleep() {
-  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || visitingProp || currentPet.is_sleeping) return;
+  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || currentPet.is_sleeping) return;
   const petId = currentPet.id;
   const host = $("pet-screen");
   const bed = $("pet-bed");
@@ -1340,63 +1185,65 @@ function walkToBedThenSleep() {
   }, duration + 50);
 }
 
-// Same "walk over, do a thing" shape as walkToBedThenSleep, generalized for
-// the three props the pet visits on its own (Treat Jar, Grooming Kit, Toy
-// Box) — they only differ in which stat they touch on arrival.
-function propRestTarget(host, prop) {
-  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
-  const propCenterX = prop.offsetLeft + prop.offsetWidth / 2;
-  const propCenterY = prop.offsetTop + prop.offsetHeight / 2;
-  return {
-    targetX: Math.min(maxX, Math.max(minX, propCenterX - host.offsetWidth / 2)),
-    targetY: Math.min(maxY, Math.max(minY, propCenterY - host.offsetHeight / 2)),
-  };
+// The Night Light hangs from the ceiling — its own render/drag pair instead
+// of joining GROUNDED_ITEMS, since it only ever moves horizontally and
+// never enters the floor region the way the Bed does. top stays fixed in
+// CSS; only left (as a saved 0..1 fraction of the horizontal range) moves.
+function renderNightLight(pet) {
+  const el = $("night-light");
+  if (pet.life_stage === "egg" || !pet.has_night_light || !pet.night_light_active) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const device = $("pet-device");
+  const { minX, maxX } = wanderBounds(el, device);
+  const fx = pet.night_light_x ?? 0.5;
+  el.style.left = `${minX + fx * (maxX - minX)}px`;
 }
 
-function visitProp(propId, { onArrive, sound }) {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping) return;
-  if (gameActive || draggingPet || walkingToBed || visitingProp) return;
-  if (isTooTiredToWalk(currentPet)) return;
-  const prop = $(propId);
-  if (prop.hidden) return;
-  const petId = currentPet.id;
-  const host = $("pet-screen");
-  const { targetX, targetY } = propRestTarget(host, prop);
-  visitingProp = true;
-  host.style.left = `${targetX}px`;
-  host.style.top = `${targetY}px`;
-  const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
-  setTimeout(() => {
-    visitingProp = false;
-    if (!currentPet || currentPet.id !== petId || currentPet.is_sleeping) {
-      render();
-      return;
-    }
-    onArrive(currentPet);
-    render();
-    if (sound) playSound(sound);
-    persist().catch((err) => showMessage(err.message, true));
-  }, duration + 50);
-}
+function wireDragNightLight() {
+  const el = $("night-light");
+  const device = $("pet-device");
+  let dragging = false;
+  let moved = false;
+  let downX = 0;
 
-function scheduleTreatJarVisit() {
-  const delay = TREAT_JAR_VISIT_MIN_MS + Math.random() * (TREAT_JAR_VISIT_MAX_MS - TREAT_JAR_VISIT_MIN_MS);
-  setTimeout(() => {
-    if (currentPet && currentPet.has_treat_jar && currentPet.treat_jar_active) {
-      visitProp("treat-jar", { sound: "feed", onArrive: (p) => { p.hunger = clamp(p.hunger + TREAT_JAR_HUNGER_GAIN); } });
-    }
-    scheduleTreatJarVisit();
-  }, delay);
-}
+  el.addEventListener("pointerdown", (e) => {
+    if (!currentPet || !currentPet.has_night_light || !currentPet.night_light_active) return;
+    dragging = true;
+    moved = false;
+    downX = e.clientX;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("grounded-item--dragging");
+  });
 
-function scheduleToyBoxVisit() {
-  const delay = TOY_VISIT_MIN_MS + Math.random() * (TOY_VISIT_MAX_MS - TOY_VISIT_MIN_MS);
-  setTimeout(() => {
-    if (currentPet && currentPet.has_toybox && currentPet.toybox_active) {
-      visitProp("toy-box", { sound: "play", onArrive: (p) => { p.toy_buff_until = new Date(Date.now() + TOY_BUFF_DURATION_MS).toISOString(); } });
+  el.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - downX) < DRAG_MOVE_TOLERANCE_PX) return;
+    moved = true;
+    const rect = device.getBoundingClientRect();
+    const { minX, maxX } = wanderBounds(el, device);
+    el.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2))}px`;
+  });
+
+  async function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove("grounded-item--dragging");
+    if (moved) suppressNextPetClick = true;
+    if (!moved) return; // plain tap, nothing moved — leave its saved position untouched
+    const { minX, maxX } = wanderBounds(el, device);
+    currentPet.night_light_x = maxX > minX ? (el.offsetLeft - minX) / (maxX - minX) : 0.5;
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
     }
-    scheduleToyBoxVisit();
-  }, delay);
+  }
+
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
 }
 
 async function runAction(fn, { bounce = true, sound } = {}) {
@@ -1702,6 +1549,7 @@ function wireActions() {
 
   wireDragPet();
   wireGroundedItems();
+  wireDragNightLight();
   wireShop();
   $("pet-device").addEventListener("click", (e) => {
     if (suppressNextPetClick) {
@@ -1931,8 +1779,6 @@ function wireActions() {
   scheduleWander();
   scheduleIdleQuirk();
   scheduleBlink();
-  scheduleTreatJarVisit();
-  scheduleToyBoxVisit();
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one

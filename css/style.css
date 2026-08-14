@@ -291,41 +291,35 @@ button:disabled:active { transform: none; }
 .pet-bed::before { inset: 7px; }
 .pet-bed::after { inset: 15px; }
 
-/* One dragging-state class shared by all 5 floor items (see
-   wireDragGroundedItem) instead of a per-item copy. */
+/* One dragging-state class shared by the Bed and the Night Light (see
+   wireDragGroundedItem / wireDragNightLight) instead of a per-item copy. */
 .grounded-item--dragging { cursor: grabbing; }
 
-/* The four Shop upgrade props — same draggable-prop treatment as .pet-bed
-   (flat fill + 1px lines, no gradient/shadow), just smaller. Positioned by
-   JS the same way the bed is (see renderGroundedItems), so no static
-   top/left/right/bottom here despite each having an obvious "home" corner —
-   that's just their default saved fraction, not a fixed spot. */
-.night-light,
-.grooming-kit,
-.treat-jar,
-.toy-box {
-  position: absolute;
-  cursor: grab;
-  touch-action: none;
-}
-
+/* A pendant light hanging from the playground's own "ceiling" (the device's
+   top edge) — fixed top, only ever dragged left/right (see
+   wireDragNightLight), unlike the Bed which moves freely. The cord is a
+   separate pseudo-element spanning from the very top down to the bulb, so
+   it visually reads as mounted above rather than floating mid-air. */
 .night-light {
+  position: absolute;
+  top: 10px;
   width: 14px;
   height: 14px;
   border-radius: 50%;
   background: var(--track);
   border: 1px solid var(--line);
+  cursor: grab;
+  touch-action: none;
 }
-.night-light::after {
+.night-light::before {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -4px;
+  top: -10px;
   transform: translateX(-50%);
-  width: 6px;
-  height: 3px;
+  width: 1px;
+  height: 10px;
   background: var(--line);
-  border-radius: 0 0 1px 1px;
 }
 /* A slow, gentle glow while the pet actually sleeps (the playground itself
    already goes dark then, see .device:has(...)) — reads as the light being
@@ -340,62 +334,8 @@ button:disabled:active { transform: none; }
   border-color: #fff;
   animation: night-light-glow 3s ease-in-out infinite;
 }
-.device:has(.pet-screen.pet--sleeping) .night-light::after {
+.device:has(.pet-screen.pet--sleeping) .night-light::before {
   background: #fff;
-}
-
-.grooming-kit {
-  width: 22px;
-  height: 13px;
-  border-radius: 3px 3px 7px 7px;
-  background: var(--track);
-  border: 1px solid var(--line);
-}
-.grooming-kit::after {
-  content: "";
-  position: absolute;
-  inset: 3px 4px;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  opacity: 0.35;
-}
-
-.treat-jar {
-  width: 14px;
-  height: 17px;
-  border-radius: 2px;
-  background: var(--track);
-  border: 1px solid var(--line);
-}
-.treat-jar::before {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 4px;
-  background: var(--line);
-  border-radius: 2px;
-}
-
-.toy-box {
-  width: 20px;
-  height: 15px;
-  border-radius: 2px;
-  background: var(--track);
-  border: 1px solid var(--line);
-}
-.toy-box::after {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 2px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--track);
-  border: 1px solid var(--line);
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
@@ -677,9 +617,8 @@ button:disabled:active { transform: none; }
 .bar { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--fg); width: 100%; transition: width 0.3s; }
 
-/* Acknowledges an active timed buff (a fed dose of Vitamins, a Toy Box
-   visit) right on the stat it affects — otherwise the effect is invisible
-   until it silently wears off. */
+/* Acknowledges a fed dose of Vitamins right on Health while it's active —
+   otherwise the effect is invisible until it silently wears off. */
 .stat--boosted label::after { content: "↑"; margin-left: 2px; }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
