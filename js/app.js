@@ -7,9 +7,9 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=50";
-import * as db from "./supabase.js?v=50";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=50";
+} from "./pet-sprites.js?v=51";
+import * as db from "./supabase.js?v=51";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=51";
 
 const HOUR = 3600000;
 
@@ -42,6 +42,18 @@ const DEFAULT_BOW_COLOR = "#d1477a";
 const BED_PRICE = 30;
 const DEFAULT_BED_X = 0.7;
 const DEFAULT_BED_Y = 0.7;
+
+const TOYBOX_PRICE = 20;
+const GROOMING_KIT_PRICE = 20;
+const TREAT_JAR_PRICE = 20;
+const VITAMINS_PRICE = 30;
+const NIGHT_LIGHT_PRICE = 20;
+const TOYBOX_HAPPINESS_MULTIPLIER = 0.7; // happiness decays 30% slower
+const GROOMING_KIT_HYGIENE_MULTIPLIER = 0.7; // hygiene decays 30% slower
+const TREAT_JAR_HUNGER_MULTIPLIER = 0.7; // hunger decays 30% slower
+const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster
+const NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER = 0.75; // stacks on top of SLEEP_DECAY_MULTIPLIER
+
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
 const GAME_ROUNDS = 5;
@@ -123,6 +135,11 @@ export function createInitialPet(name) {
     has_bed: false,
     bed_x: DEFAULT_BED_X,
     bed_y: DEFAULT_BED_Y,
+    has_toybox: false,
+    has_grooming_kit: false,
+    has_treat_jar: false,
+    has_vitamins: false,
+    has_night_light: false,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -169,11 +186,13 @@ export function applyDecay(pet, nowMs = Date.now()) {
 
   // An egg has no needs yet — it just waits to hatch, nothing to decay.
   if (pet.life_stage !== "egg") {
-    const mul = pet.is_sleeping ? SLEEP_DECAY_MULTIPLIER : 1;
+    const mul = pet.is_sleeping
+      ? SLEEP_DECAY_MULTIPLIER * (pet.has_night_light ? NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER : 1)
+      : 1;
 
-    pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
-    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
-    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
+    pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * (pet.has_treat_jar ? TREAT_JAR_HUNGER_MULTIPLIER : 1) * elapsedHours * mul);
+    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * (pet.has_toybox ? TOYBOX_HAPPINESS_MULTIPLIER : 1) * elapsedHours * mul);
+    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * (pet.has_grooming_kit ? GROOMING_KIT_HYGIENE_MULTIPLIER : 1) * elapsedHours * mul);
     const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
       ? clamp(pet.energy + sleepEnergyRate * elapsedHours)
@@ -186,7 +205,8 @@ export function applyDecay(pet, nowMs = Date.now()) {
       pet.health = clamp(pet.health - HEALTH_DECAY_PER_HOUR_NEGLECTED * elapsedHours);
       pet.neglect_incidents = (pet.neglect_incidents || 0) + 1;
     } else if (!pet.is_sick) {
-      pet.health = clamp(pet.health + HEALTH_REGEN_PER_HOUR * elapsedHours);
+      const regenRate = HEALTH_REGEN_PER_HOUR * (pet.has_vitamins ? VITAMINS_HEALTH_REGEN_MULTIPLIER : 1);
+      pet.health = clamp(pet.health + regenRate * elapsedHours);
     }
     if (pet.health <= 0) {
       pet.is_sick = true;
@@ -264,6 +284,41 @@ export function buyBed(pet) {
   pet.has_bed = true;
   if (pet.bed_x == null) pet.bed_x = DEFAULT_BED_X;
   if (pet.bed_y == null) pet.bed_y = DEFAULT_BED_Y;
+  return pet;
+}
+
+export function buyToyBox(pet) {
+  if (pet.has_toybox || pet.coins < TOYBOX_PRICE) return pet;
+  pet.coins -= TOYBOX_PRICE;
+  pet.has_toybox = true;
+  return pet;
+}
+
+export function buyGroomingKit(pet) {
+  if (pet.has_grooming_kit || pet.coins < GROOMING_KIT_PRICE) return pet;
+  pet.coins -= GROOMING_KIT_PRICE;
+  pet.has_grooming_kit = true;
+  return pet;
+}
+
+export function buyTreatJar(pet) {
+  if (pet.has_treat_jar || pet.coins < TREAT_JAR_PRICE) return pet;
+  pet.coins -= TREAT_JAR_PRICE;
+  pet.has_treat_jar = true;
+  return pet;
+}
+
+export function buyVitamins(pet) {
+  if (pet.has_vitamins || pet.coins < VITAMINS_PRICE) return pet;
+  pet.coins -= VITAMINS_PRICE;
+  pet.has_vitamins = true;
+  return pet;
+}
+
+export function buyNightLight(pet) {
+  if (pet.has_night_light || pet.coins < NIGHT_LIGHT_PRICE) return pet;
+  pet.coins -= NIGHT_LIGHT_PRICE;
+  pet.has_night_light = true;
   return pet;
 }
 
@@ -483,27 +538,6 @@ function renderStats(pet) {
   $("btn-clean").disabled = pet.is_sleeping;
   $("btn-play").disabled = pet.is_sleeping || pet.energy < 10;
   $("btn-medicine").disabled = pet.is_sleeping;
-  $("btn-buy-food").disabled = pet.coins < SNACK_PRICE;
-  $("btn-buy-meal").disabled = pet.coins < MEAL_PRICE;
-  if (pet.has_bow) {
-    $("btn-buy-bow").disabled = false;
-    $("btn-buy-bow").textContent = pet.bow_worn ? "Take Off Bow" : "Put On Bow";
-    $("btn-buy-bow").classList.toggle("btn--active", pet.bow_worn);
-    $("bow-color-picker").hidden = false;
-    $("bow-color-picker").value = pet.bow_color || DEFAULT_BOW_COLOR;
-  } else {
-    $("btn-buy-bow").disabled = pet.coins < BOW_PRICE;
-    $("btn-buy-bow").textContent = `Buy Bow (${BOW_PRICE})`;
-    $("btn-buy-bow").classList.remove("btn--active");
-    $("bow-color-picker").hidden = true;
-  }
-  if (pet.has_bed) {
-    $("btn-buy-bed").hidden = true;
-  } else {
-    $("btn-buy-bed").hidden = false;
-    $("btn-buy-bed").disabled = pet.coins < BED_PRICE;
-    $("btn-buy-bed").textContent = `Buy Bed (${BED_PRICE})`;
-  }
 }
 
 function renderAchievements(pet) {
@@ -696,6 +730,93 @@ function render() {
   renderStats(currentPet);
   renderBed(currentPet);
   checkNotifications(currentPet);
+}
+
+// A single list drives the whole Shop modal instead of one hand-wired button
+// per item — with this many purchasable items, adding a new one is just a
+// new entry here plus its buy() function, no new HTML/wiring per item.
+const SHOP_ITEMS = [
+  { id: "food", name: "Snack", desc: "+1 Snack to feed later", price: SNACK_PRICE, buy: buyFood, kind: "consumable" },
+  { id: "meal", name: "Meal", desc: "+1 Meal to feed later", price: MEAL_PRICE, buy: buyMeal, kind: "consumable" },
+  { id: "bow", name: "Bow", desc: "Cosmetic accessory, no stat effect", price: BOW_PRICE, buy: buyBow, kind: "wearable", owned: (p) => p.has_bow },
+  { id: "bed", name: "Bed", desc: "Drag it anywhere. Sleep sends your pet there and recovers Energy faster", price: BED_PRICE, buy: buyBed, kind: "passive", owned: (p) => p.has_bed },
+  { id: "toybox", name: "Toy Box", desc: "Happy decays 30% slower", price: TOYBOX_PRICE, buy: buyToyBox, kind: "passive", owned: (p) => p.has_toybox },
+  { id: "grooming", name: "Grooming Kit", desc: "Clean decays 30% slower", price: GROOMING_KIT_PRICE, buy: buyGroomingKit, kind: "passive", owned: (p) => p.has_grooming_kit },
+  { id: "treatjar", name: "Treat Jar", desc: "Hunger decays 30% slower", price: TREAT_JAR_PRICE, buy: buyTreatJar, kind: "passive", owned: (p) => p.has_treat_jar },
+  { id: "vitamins", name: "Vitamins", desc: "Health recovers 50% faster", price: VITAMINS_PRICE, buy: buyVitamins, kind: "passive", owned: (p) => p.has_vitamins },
+  { id: "nightlight", name: "Night Light", desc: "Sleep decays stats even slower", price: NIGHT_LIGHT_PRICE, buy: buyNightLight, kind: "passive", owned: (p) => p.has_night_light },
+];
+
+// Bow is "wearable" — once owned it swaps its Buy button for the same
+// worn-toggle + color-swatch controls the old dedicated bow row used to
+// show. Everything else just flips to a static "Owned" once bought.
+function shopItemControlHtml(item, pet) {
+  const owned = item.kind !== "consumable" && item.owned(pet);
+  if (item.kind === "wearable" && owned) {
+    return `
+      <div class="accessory-btn-wrap">
+        <button type="button" data-toggle-bow class="${pet.bow_worn ? "btn--active" : ""}">${pet.bow_worn ? "Take Off" : "Put On"}</button>
+        <input type="color" data-bow-color value="${pet.bow_color || DEFAULT_BOW_COLOR}" aria-label="Bow color" />
+      </div>`;
+  }
+  if (owned) return `<button type="button" disabled>Owned</button>`;
+  return `<button type="button" data-item="${item.id}" ${pet.coins < item.price ? "disabled" : ""}>Buy (${item.price})</button>`;
+}
+
+function renderShop(pet) {
+  $("shop-list").innerHTML = SHOP_ITEMS.map(
+    (item) => `
+    <div class="shop-item">
+      <div class="shop-item-info">
+        <b>${item.name}</b>
+        <span>${item.desc}</span>
+      </div>
+      ${shopItemControlHtml(item, pet)}
+    </div>`
+  ).join("");
+}
+
+function wireShop() {
+  $("btn-shop").addEventListener("click", () => {
+    renderShop(currentPet);
+    $("shop-modal").hidden = false;
+  });
+  $("btn-shop-close").addEventListener("click", () => {
+    $("shop-modal").hidden = true;
+  });
+  $("shop-modal").addEventListener("click", (e) => {
+    if (e.target.id === "shop-modal") $("shop-modal").hidden = true;
+  });
+
+  $("shop-list").addEventListener("click", (e) => {
+    const buyBtn = e.target.closest("[data-item]");
+    if (buyBtn) {
+      const item = SHOP_ITEMS.find((i) => i.id === buyBtn.dataset.item);
+      runAction(item.buy, { bounce: false, sound: "coin" });
+      renderShop(currentPet);
+      return;
+    }
+    if (e.target.closest("[data-toggle-bow]")) {
+      runAction(toggleBow, { bounce: false, sound: "poke" });
+      renderShop(currentPet);
+    }
+  });
+
+  // Same input/change split as the old dedicated color picker: live-preview
+  // on every drag step, only persist once the user commits a color.
+  $("shop-list").addEventListener("input", (e) => {
+    if (!e.target.matches("[data-bow-color]")) return;
+    setBowColor(currentPet, e.target.value);
+    renderPuppy(currentPet, eyesOpen);
+  });
+  $("shop-list").addEventListener("change", async (e) => {
+    if (!e.target.matches("[data-bow-color]")) return;
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
 }
 
 // Local-only nudges — only fire while this tab is open, never across a closed
@@ -1265,19 +1386,12 @@ function wireTooltipTouch() {
 }
 
 function wireActions() {
-  $("btn-buy-food").textContent = `Buy Snack (${SNACK_PRICE})`;
-  $("btn-buy-meal").textContent = `Buy Meal (${MEAL_PRICE})`;
-
   $("btn-feed").dataset.tooltip = "+30 Hunger, +5 Happy, -5 Clean";
   $("btn-feed-meal").dataset.tooltip = "+60 Hunger, +15 Happy, -10 Clean";
   $("btn-play").dataset.tooltip = "Mini-game: +25 Happy, -15 Energy, -10 Hunger, plus coins";
   $("btn-clean").dataset.tooltip = "+40 Clean";
   $("btn-sleep").dataset.tooltip = "Restores Energy over time (faster with a Bed) and halves other decay while asleep";
   $("btn-medicine").dataset.tooltip = "Cures Sick, +40 Health, -5 Happy";
-  $("btn-buy-food").dataset.tooltip = `+1 Snack for ${SNACK_PRICE} coins`;
-  $("btn-buy-meal").dataset.tooltip = `+1 Meal for ${MEAL_PRICE} coins`;
-  $("btn-buy-bow").dataset.tooltip = "Cosmetic only, no stat effect";
-  $("btn-buy-bed").dataset.tooltip = "Drag it anywhere. Sleep sends your pet there";
 
   $("btn-feed").addEventListener("click", () => {
     runAction(feed, { sound: "feed" });
@@ -1306,30 +1420,10 @@ function wireActions() {
     else runAction(toggleSleep, { bounce: false, sound: "sleep" });
   });
   $("btn-medicine").addEventListener("click", () => runAction(giveMedicine, { sound: "medicine" }));
-  $("btn-buy-food").addEventListener("click", () => runAction(buyFood, { bounce: false, sound: "coin" }));
-  $("btn-buy-meal").addEventListener("click", () => runAction(buyMeal, { bounce: false, sound: "coin" }));
-  $("btn-buy-bow").addEventListener("click", () => {
-    if (currentPet.has_bow) runAction(toggleBow, { bounce: false, sound: "poke" });
-    else runAction(buyBow, { bounce: false, sound: "coin" });
-  });
-  // "input" fires continuously while the picker is open — update the
-  // preview live but don't hit the database on every drag step. "change"
-  // fires once the user commits a color, which is when it's actually saved.
-  $("bow-color-picker").addEventListener("input", (e) => {
-    setBowColor(currentPet, e.target.value);
-    renderPuppy(currentPet, eyesOpen);
-  });
-  $("bow-color-picker").addEventListener("change", async () => {
-    try {
-      await persist();
-    } catch (err) {
-      showMessage(err.message, true);
-    }
-  });
-  $("btn-buy-bed").addEventListener("click", () => runAction(buyBed, { bounce: false, sound: "coin" }));
 
   wireDragPet();
   wireDragBed();
+  wireShop();
   $("pet-device").addEventListener("click", (e) => {
     if (suppressNextPetClick) {
       suppressNextPetClick = false;

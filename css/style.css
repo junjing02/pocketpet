@@ -574,23 +574,8 @@ button:disabled:active { transform: none; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 .actions button { min-width: 70px; flex: 1; }
 
-/* Buy Snack/Buy Meal/Buy Bed specifically — their longer "Buy X (nn)"
-   labels wrapped to 2 lines under the Care row's plain 70px floor.
-   white-space:nowrap stops the wrap; min-width:max-content (not a fixed
-   px) means a button never shrinks past what its own label needs, so it's
-   always fully readable, while flex:1 still lets same-length labels end up
-   the same width when there's room. Scoped here instead of on .actions
-   button generally — applying it to the Care row's 5 shorter-label buttons
-   pushed Sleep onto a second row it didn't need. */
-.actions--shop button {
-  min-width: max-content;
-  padding-left: 6px;
-  padding-right: 6px;
-  white-space: nowrap;
-}
-
-/* Labels the "use it" (Care) row apart from the "spend coins" (Shop) row —
-   same button styling made them blend into one undifferentiated block. */
+/* Labels the Care row (the only row left on the main screen — purchases
+   now live in the Shop modal). */
 .action-group-label {
   font-size: 9px;
   font-weight: 700;
@@ -599,17 +584,24 @@ button:disabled:active { transform: none; }
   color: var(--muted);
   margin: 0 0 8px;
 }
-.action-divider {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--track);
+
+.shop-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--track);
 }
+.shop-item:last-child { border-bottom: none; padding-bottom: 0; }
+.shop-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.shop-item-info b { font-size: 11px; }
+.shop-item-info span { font-size: 9px; color: var(--muted); line-height: 1.4; }
+.shop-item > button, .shop-item .accessory-btn-wrap { flex: none; width: 92px; }
 
 /* The bow button hosts its color swatch as a small overlay inset into its
    own right edge, so the swatch reads as part of the button rather than a
-   separate control next to it. Kept on its own row instead of sitting in
-   the Buy Snack/Buy Meal/Buy Bed row — its longer toggle text ("Take Off
-   Bow" + swatch) wouldn't size evenly against those. */
+   separate control next to it. */
 .accessory-btn-wrap { position: relative; flex: 1; }
 .accessory-btn-wrap button { display: block; width: 100%; }
 .accessory-btn-wrap:has(input[type="color"]:not([hidden])) button { padding-right: 30px; }

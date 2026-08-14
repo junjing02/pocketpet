@@ -128,6 +128,11 @@ export async function savePet(pet) {
       has_bed: pet.has_bed,
       bed_x: pet.bed_x,
       bed_y: pet.bed_y,
+      has_toybox: pet.has_toybox,
+      has_grooming_kit: pet.has_grooming_kit,
+      has_treat_jar: pet.has_treat_jar,
+      has_vitamins: pet.has_vitamins,
+      has_night_light: pet.has_night_light,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })
