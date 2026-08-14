@@ -25,6 +25,8 @@ body {
 }
 
 .shell {
+  position: relative;
+  z-index: 1;
   width: min(340px, 92vw);
   background: #fff;
   border: 1px solid var(--line);
@@ -953,8 +955,6 @@ body:has(.landing) {
 }
 
 .shell.landing {
-  position: relative;
-  z-index: 1;
   box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.3);
   border-radius: 10px;
 }
