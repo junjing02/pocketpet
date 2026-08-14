@@ -7,8 +7,8 @@ import {
   SPECIES,
   SPECIES_SHADE,
   STAGE_MOVE_DURATION_S,
-} from "./pet-sprites.js?v=66";
-import { VERSION } from "./version.js?v=66";
+} from "./pet-sprites.js?v=67";
+import { VERSION } from "./version.js?v=67";
 
 document.getElementById("app-version").textContent = `v${VERSION}`;
 

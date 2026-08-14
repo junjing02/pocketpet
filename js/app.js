@@ -7,10 +7,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=66";
-import * as db from "./supabase.js?v=66";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=66";
-import { VERSION } from "./version.js?v=66";
+} from "./pet-sprites.js?v=67";
+import * as db from "./supabase.js?v=67";
+import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=67";
+import { VERSION } from "./version.js?v=67";
 
 const HOUR = 3600000;
 
@@ -46,10 +46,20 @@ const DEFAULT_BED_Y = 0.7;
 
 const VITAMINS_PRICE = 30;
 const NIGHT_LIGHT_PRICE = 20;
+const MUSIC_BOX_PRICE = 20;
+const TOY_PRICE = 20;
+const DEFAULT_TOY_X = 0.3;
+const DEFAULT_TOY_Y = 0.3;
 
 const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster while a dose is active
 const VITAMIN_BUFF_DURATION_MS = 15 * 60 * 1000;
 const NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER = 0.75; // stacks on top of SLEEP_DECAY_MULTIPLIER
+const MUSIC_BOX_HAPPINESS_MULTIPLIER = 0.8; // happiness decays 20% slower
+const MUSIC_BOX_CHIME_MIN_MS = 45 * 1000;
+const MUSIC_BOX_CHIME_MAX_MS = 90 * 1000;
+const TOY_VISIT_MIN_MS = 30 * 1000;
+const TOY_VISIT_MAX_MS = 75 * 1000;
+const TOY_HAPPY_GAIN = 8;
 
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
@@ -138,6 +148,12 @@ export function createInitialPet(name) {
     has_night_light: false,
     night_light_active: true,
     night_light_x: 0.5,
+    has_music_box: false,
+    music_box_active: true,
+    has_toy: false,
+    toy_active: true,
+    toy_x: DEFAULT_TOY_X,
+    toy_y: DEFAULT_TOY_Y,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -188,8 +204,9 @@ export function applyDecay(pet, nowMs = Date.now()) {
       ? SLEEP_DECAY_MULTIPLIER * (pet.has_night_light && pet.night_light_active ? NIGHT_LIGHT_SLEEP_DECAY_MULTIPLIER : 1)
       : 1;
 
+    const musicBoxMul = pet.has_music_box && pet.music_box_active ? MUSIC_BOX_HAPPINESS_MULTIPLIER : 1;
     pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
-    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul);
+    pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul * musicBoxMul);
     pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
     const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed && pet.bed_active ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
@@ -326,6 +343,34 @@ export function toggleNightLightActive(pet) {
   return pet;
 }
 
+export function buyMusicBox(pet) {
+  if (pet.has_music_box || pet.coins < MUSIC_BOX_PRICE) return pet;
+  pet.coins -= MUSIC_BOX_PRICE;
+  pet.has_music_box = true;
+  pet.music_box_active = true;
+  return pet;
+}
+
+export function toggleMusicBoxActive(pet) {
+  if (!pet.has_music_box) return pet;
+  pet.music_box_active = !pet.music_box_active;
+  return pet;
+}
+
+export function buyToy(pet) {
+  if (pet.has_toy || pet.coins < TOY_PRICE) return pet;
+  pet.coins -= TOY_PRICE;
+  pet.has_toy = true;
+  pet.toy_active = true;
+  return pet;
+}
+
+export function toggleToyActive(pet) {
+  if (!pet.has_toy) return pet;
+  pet.toy_active = !pet.toy_active;
+  return pet;
+}
+
 export function play(pet) {
   if (pet.life_stage === "egg" || pet.is_sleeping || pet.energy < 10) return pet;
   pet.happiness = clamp(pet.happiness + 25);
@@ -367,6 +412,7 @@ let walkFrame = 0;
 let gameActive = false;
 let draggingPet = false;
 let walkingToBed = false;
+let visitingToy = false; // walking to/playing with the Toy on its own — see walkToToyThenPlay
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -416,7 +462,7 @@ function groundedBounds(el, device) {
 }
 
 function wanderPet() {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed || visitingToy) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -449,7 +495,7 @@ function scheduleWander() {
 // Click-to-walk: tapping empty space in the playground (not the pet itself)
 // sends it toward that spot instead of just wandering randomly.
 function movePetTowards(clickX, clickY) {
-  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingToy) return;
   if (isTooTiredToWalk(currentPet)) return;
   const host = $("pet-screen");
   const device = host.parentElement;
@@ -719,14 +765,13 @@ function showFoodBowl() {
   }, BOWL_SHOW_MS);
 }
 
-// The Bed is dragged and persisted as a saved fraction (0..1) of the
+// Floor items are dragged and persisted as a saved fraction (0..1) of the
 // playground's usable area, not raw pixels, since the device's own width is
 // responsive (see .pet-visual's breakpoint). Recomputed on every render,
-// same approach as wanderBounds(). Kept as a one-item list (rather than a
-// bed-only function) since the Night Light used to share this shape too and
-// may again if another floor prop shows up later.
+// same approach as wanderBounds().
 const GROUNDED_ITEMS = [
   { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
+  { id: "toy", xField: "toy_x", yField: "toy_y", defaultX: DEFAULT_TOY_X, defaultY: DEFAULT_TOY_Y, owned: (p) => p.has_toy && p.toy_active },
 ];
 
 function renderGroundedItems(pet) {
@@ -746,11 +791,18 @@ function renderGroundedItems(pet) {
   }
 }
 
+// Purely ambient — fixed in its own corner, never dragged, so it doesn't
+// need a saved position the way the floor items above do.
+function renderMusicBox(pet) {
+  $("music-box").hidden = pet.life_stage === "egg" || !pet.has_music_box || !pet.music_box_active;
+}
+
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderGroundedItems(currentPet);
   renderNightLight(currentPet);
+  renderMusicBox(currentPet);
   checkNotifications(currentPet);
 }
 
@@ -789,6 +841,28 @@ const SHOP_ITEMS = [
     owned: (p) => p.has_night_light,
     active: (p) => p.night_light_active,
     toggle: toggleNightLightActive,
+  },
+  {
+    id: "musicbox",
+    name: "Music Box",
+    desc: "Happy decays 20% slower, chimes now and then",
+    price: MUSIC_BOX_PRICE,
+    buy: buyMusicBox,
+    kind: "placeable",
+    owned: (p) => p.has_music_box,
+    active: (p) => p.music_box_active,
+    toggle: toggleMusicBoxActive,
+  },
+  {
+    id: "toy",
+    name: "Toy",
+    desc: "Pet visits it on its own for a little Happy each time",
+    price: TOY_PRICE,
+    buy: buyToy,
+    kind: "placeable",
+    owned: (p) => p.has_toy,
+    active: (p) => p.toy_active,
+    toggle: toggleToyActive,
   },
 ];
 
@@ -1028,7 +1102,7 @@ function wireDragPet() {
   let downY = 0;
 
   host.addEventListener("pointerdown", (e) => {
-    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed) return;
+    if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || walkingToBed || visitingToy) return;
     dragging = true;
     draggingPet = true;
     moved = false;
@@ -1159,7 +1233,7 @@ function bedRestTarget(host, bed) {
 }
 
 function walkToBedThenSleep() {
-  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || currentPet.is_sleeping) return;
+  if (!currentPet || currentPet.life_stage === "egg" || walkingToBed || visitingToy || currentPet.is_sleeping) return;
   const petId = currentPet.id;
   const host = $("pet-screen");
   const bed = $("pet-bed");
@@ -1177,6 +1251,62 @@ function walkToBedThenSleep() {
     }
     runAction(toggleSleep, { bounce: false, sound: "sleep" });
   }, duration + 50);
+}
+
+// Same "walk over, then do a thing" shape as bedRestTarget/walkToBedThenSleep
+// above, for the Toy's own on-its-own visits.
+function toyRestTarget(host, toy) {
+  const { minX, minY, maxX, maxY } = wanderBounds(host, host.parentElement);
+  const toyCenterX = toy.offsetLeft + toy.offsetWidth / 2;
+  const toyCenterY = toy.offsetTop + toy.offsetHeight / 2;
+  return {
+    targetX: Math.min(maxX, Math.max(minX, toyCenterX - host.offsetWidth / 2)),
+    targetY: Math.min(maxY, Math.max(minY, toyCenterY - host.offsetHeight / 2)),
+  };
+}
+
+function walkToToyThenPlay() {
+  if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping) return;
+  if (gameActive || draggingPet || walkingToBed || visitingToy) return;
+  if (isTooTiredToWalk(currentPet)) return;
+  const toy = $("toy");
+  if (toy.hidden) return;
+  const petId = currentPet.id;
+  const host = $("pet-screen");
+  const { targetX, targetY } = toyRestTarget(host, toy);
+  visitingToy = true;
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+  const duration = (STAGE_MOVE_DURATION_S[currentPet.life_stage] ?? 1.6) * 1000;
+  setTimeout(() => {
+    visitingToy = false;
+    if (!currentPet || currentPet.id !== petId || currentPet.is_sleeping) {
+      render();
+      return;
+    }
+    currentPet.happiness = clamp(currentPet.happiness + TOY_HAPPY_GAIN);
+    render();
+    playSound("play");
+    persist().catch((err) => showMessage(err.message, true));
+  }, duration + 50);
+}
+
+function scheduleToyVisit() {
+  const delay = TOY_VISIT_MIN_MS + Math.random() * (TOY_VISIT_MAX_MS - TOY_VISIT_MIN_MS);
+  setTimeout(() => {
+    if (currentPet && currentPet.has_toy && currentPet.toy_active) walkToToyThenPlay();
+    scheduleToyVisit();
+  }, delay);
+}
+
+function scheduleMusicBoxChime() {
+  const delay = MUSIC_BOX_CHIME_MIN_MS + Math.random() * (MUSIC_BOX_CHIME_MAX_MS - MUSIC_BOX_CHIME_MIN_MS);
+  setTimeout(() => {
+    if (currentPet && currentPet.has_music_box && currentPet.music_box_active && !currentPet.is_sleeping) {
+      playSound("chime");
+    }
+    scheduleMusicBoxChime();
+  }, delay);
 }
 
 // The Night Light hangs from the ceiling — its own render/drag pair instead
@@ -1846,6 +1976,8 @@ function wireActions() {
   scheduleWander();
   scheduleIdleQuirk();
   scheduleBlink();
+  scheduleToyVisit();
+  scheduleMusicBoxChime();
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one

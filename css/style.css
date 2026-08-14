@@ -337,7 +337,7 @@ button:disabled:active { transform: none; }
 .pet-bed::before { inset: 7px; }
 .pet-bed::after { inset: 15px; }
 
-/* One dragging-state class shared by the Bed and the Night Light (see
+/* One dragging-state class shared by the Bed, Toy, and Night Light (see
    wireDragGroundedItem / wireDragNightLight) instead of a per-item copy. */
 .grounded-item--dragging { cursor: grabbing; }
 
@@ -401,6 +401,55 @@ button:disabled:active { transform: none; }
 @keyframes night-light-halo {
   0%, 100% { opacity: 0.65; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS) —
+   same flat fill + 1px line treatment, small ball peeking over a base so it
+   reads as a toy rather than a plain box. */
+.toy {
+  position: absolute;
+  width: 20px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--track);
+  border: 1px solid var(--line);
+  cursor: grab;
+  touch-action: none;
+}
+.toy::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--track);
+  border: 1px solid var(--line);
+}
+
+/* Purely ambient (see renderMusicBox) — fixed in its own corner, never
+   dragged, so unlike .toy/.pet-bed it has no saved position and no
+   grab cursor. */
+.music-box {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 20px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--track);
+  border: 1px solid var(--line);
+}
+.music-box::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }

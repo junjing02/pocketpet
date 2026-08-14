@@ -134,6 +134,12 @@ export async function savePet(pet) {
       has_night_light: pet.has_night_light,
       night_light_active: pet.night_light_active,
       night_light_x: pet.night_light_x,
+      has_music_box: pet.has_music_box,
+      music_box_active: pet.music_box_active,
+      has_toy: pet.has_toy,
+      toy_active: pet.toy_active,
+      toy_x: pet.toy_x,
+      toy_y: pet.toy_y,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

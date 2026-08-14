@@ -45,6 +45,7 @@ const CLIPS = {
   evolve: () => { tone(523, 0, 0.12); tone(659, 0.1, 0.12); tone(784, 0.2, 0.12); tone(1046, 0.3, 0.2); },
   poke: () => tone(300, 0, 0.06, "square", 0.08),
   coin: () => { tone(988, 0, 0.06, "square", 0.09); tone(1318, 0.05, 0.08, "square", 0.09); },
+  chime: () => { tone(880, 0, 0.22, "sine", 0.05); tone(1108, 0.16, 0.28, "sine", 0.04); },
 };
 
 export function playSound(name) {
