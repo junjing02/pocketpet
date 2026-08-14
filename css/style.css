@@ -240,13 +240,15 @@ button:disabled:active { transform: none; }
 .device:has(.pet-screen.pet--sleeping):has(.night-light:not([hidden])) {
   box-shadow: 0 0 24px 6px rgba(255, 255, 255, 0.35);
 }
-/* The pet and bed dim along with the room instead of staying full-bright
+/* Everything in the room dims along with it instead of staying full-bright
    against the dark background — reads as "the lights are off" rather than
-   two cutouts pasted onto a black rectangle. brightness(), not opacity —
+   cutouts pasted onto a black rectangle. brightness(), not opacity —
    opacity blends toward see-through (the dark background shows through the
    gaps between dots), brightness() darkens the same solid pixels in place. */
 .device:has(.pet-screen.pet--sleeping) #pet-screen,
-.device:has(.pet-screen.pet--sleeping) .pet-bed {
+.device:has(.pet-screen.pet--sleeping) .pet-bed,
+.device:has(.pet-screen.pet--sleeping) .toy,
+.device:has(.pet-screen.pet--sleeping) .music-box {
   filter: brightness(0.55);
 }
 
@@ -339,7 +341,10 @@ button:disabled:active { transform: none; }
 
 /* One dragging-state class shared by the Bed, Toy, and Night Light (see
    wireDragGroundedItem / wireDragNightLight) instead of a per-item copy. */
-.grounded-item--dragging { cursor: grabbing; }
+/* transition:none while actually being dragged — the Toy's own left/top
+   transition (for its "kick" animation, see .toy below) would otherwise
+   make manual dragging lag behind the pointer. */
+.grounded-item--dragging { cursor: grabbing; transition: none; }
 
 /* A pendant light hanging from the playground's own "ceiling" (the device's
    top edge) — fixed top, only ever dragged left/right (see
@@ -404,52 +409,82 @@ button:disabled:active { transform: none; }
 }
 
 /* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS) —
-   same flat fill + 1px line treatment, small ball peeking over a base so it
-   reads as a toy rather than a plain box. */
+   a plain ball. left/top transition (disabled while actually being manually
+   dragged, see .grounded-item--dragging) is what makes kickToy()'s reposition
+   read as rolling there instead of teleporting. */
 .toy {
   position: absolute;
-  width: 20px;
-  height: 15px;
-  border-radius: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   background: var(--track);
   border: 1px solid var(--line);
   cursor: grab;
   touch-action: none;
+  transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
 }
+.toy::before,
 .toy::after {
   content: "";
   position: absolute;
-  top: -6px;
-  left: 2px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--track);
   border: 1px solid var(--line);
+  opacity: 0.4;
 }
+.toy::before { top: 50%; left: 1px; right: 1px; height: 0; }
+.toy::after { left: 50%; top: 1px; bottom: 1px; width: 0; }
 
-/* Purely ambient (see renderMusicBox) — fixed in its own corner, never
-   dragged, so unlike .toy/.pet-bed it has no saved position and no
-   grab cursor. */
+/* A small turntable: a spinning vinyl-disc child element (see
+   #music-box .vinyl-disc, toggled by wireMusicBox) plus a couple of music
+   notes that float up and fade while it plays. Fixed in its own corner
+   (see renderMusicBox) — never dragged, unlike .toy/.pet-bed. */
 .music-box {
   position: absolute;
   bottom: 8px;
   left: 8px;
-  width: 20px;
-  height: 14px;
+  width: 22px;
+  height: 20px;
   border-radius: 2px;
   background: var(--track);
   border: 1px solid var(--line);
+  cursor: pointer;
+  transition: filter 0.8s ease;
 }
-.music-box::after {
+.vinyl-disc {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--fg);
+}
+.vinyl-disc::after {
   content: "";
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
+  inset: 42%;
   border-radius: 50%;
-  border: 1px solid var(--line);
+  background: var(--track);
+}
+.music-box--playing .vinyl-disc {
+  animation: vinyl-spin 1.8s linear infinite;
+}
+@keyframes vinyl-spin {
+  to { transform: rotate(360deg); }
+}
+.music-box--playing::before,
+.music-box--playing::after {
+  content: "♪";
+  position: absolute;
+  top: -2px;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--line);
+  opacity: 0;
+  animation: note-float 2.4s ease-in infinite;
+}
+.music-box--playing::before { left: -3px; }
+.music-box--playing::after { content: "♫"; left: 16px; animation-delay: 1.1s; }
+@keyframes note-float {
+  0% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-16px); }
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }

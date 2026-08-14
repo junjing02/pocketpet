@@ -56,3 +56,35 @@ export function playSound(name) {
     // Audio unavailable (autoplay policy, unsupported browser) — skip silently.
   }
 }
+
+// A steppable note sequence (the Music Box's toggleable song) instead of a
+// one-shot CLIPS entry — loops until stopMelody() is called, rather than
+// playing once. Session-only, never persisted: nothing here survives a
+// reload, same as every other sound in this file.
+let melodyTimer = null;
+
+export function playMelody(notes, noteDurationS = 0.32) {
+  stopMelody();
+  let i = 0;
+  const step = () => {
+    if (soundEnabled()) {
+      try {
+        tone(notes[i % notes.length], 0, noteDurationS * 0.85, "triangle", 0.05);
+      } catch {
+        // Audio unavailable — skip this note, keep the loop going silently.
+      }
+    }
+    i++;
+    melodyTimer = setTimeout(step, noteDurationS * 1000);
+  };
+  step();
+}
+
+export function stopMelody() {
+  clearTimeout(melodyTimer);
+  melodyTimer = null;
+}
+
+export function isMelodyPlaying() {
+  return melodyTimer !== null;
+}

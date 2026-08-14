@@ -7,10 +7,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=67";
-import * as db from "./supabase.js?v=67";
-import { playSound, soundEnabled, setSoundEnabled } from "./sound.js?v=67";
-import { VERSION } from "./version.js?v=67";
+} from "./pet-sprites.js?v=68";
+import * as db from "./supabase.js?v=68";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=68";
+import { VERSION } from "./version.js?v=68";
 
 const HOUR = 3600000;
 
@@ -60,6 +60,18 @@ const MUSIC_BOX_CHIME_MAX_MS = 90 * 1000;
 const TOY_VISIT_MIN_MS = 30 * 1000;
 const TOY_VISIT_MAX_MS = 75 * 1000;
 const TOY_HAPPY_GAIN = 8;
+
+// Beethoven's "Ode to Joy" opening phrase (public domain) — the Music Box's
+// toggleable song, played as a plain note sequence through the same
+// synthesized-tone approach as every other sound (see playMelody in
+// sound.js), not an audio file, to keep the project's zero-asset-weight
+// approach intact.
+const ODE_TO_JOY = [
+  329.63, 329.63, 349.23, 392.0, // E E F G
+  392.0, 349.23, 329.63, 293.66, // G F E D
+  261.63, 261.63, 293.66, 329.63, // C C D E
+  329.63, 293.66, 293.66, // E D D
+];
 
 const STARTING_COINS = 20;
 const STARTING_SNACKS = 3;
@@ -461,6 +473,42 @@ function groundedBounds(el, device) {
   return { ...base, minY: Math.max(base.minY, floorMinY) };
 }
 
+// Small AABB overlap test (with a little padding so items don't end up
+// touching edge-to-edge either) used to keep every floor item apart.
+function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad = 4) {
+  return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
+}
+
+// Every floor item that must never overlap another — the Bed and Toy are
+// draggable (see GROUNDED_ITEMS), the Music Box is fixed but still occupies
+// floor space, so it's still a live obstacle for the other two.
+const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "music-box"];
+
+function overlapsFloorObstacles(excludeId, x, y, w, h) {
+  for (const id of FLOOR_OBSTACLE_IDS) {
+    if (id === excludeId) continue;
+    const el = $(id);
+    if (el.hidden) continue;
+    if (rectsOverlap(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight)) return true;
+  }
+  return false;
+}
+
+// Random spot within `el`'s own grounded bounds that doesn't overlap any
+// other floor item — used for the Toy's "kick" (see kickToy). Gives up
+// after a handful of tries and just returns the last spot rolled rather
+// than looping forever on a crowded playground.
+function randomFreeFloorSpot(el, device, excludeId) {
+  const { minX, minY, maxX, maxY } = groundedBounds(el, device);
+  let x = minX, y = minY;
+  for (let i = 0; i < 12; i++) {
+    x = minX + Math.random() * (maxX - minX);
+    y = minY + Math.random() * (maxY - minY);
+    if (!overlapsFloorObstacles(excludeId, x, y, el.offsetWidth, el.offsetHeight)) break;
+  }
+  return { x, y };
+}
+
 function wanderPet() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping || gameActive || draggingPet || walkingToBed || visitingToy) return;
   if (isTooTiredToWalk(currentPet)) return;
@@ -794,7 +842,14 @@ function renderGroundedItems(pet) {
 // Purely ambient — fixed in its own corner, never dragged, so it doesn't
 // need a saved position the way the floor items above do.
 function renderMusicBox(pet) {
-  $("music-box").hidden = pet.life_stage === "egg" || !pet.has_music_box || !pet.music_box_active;
+  const el = $("music-box");
+  const shouldShow = pet.life_stage !== "egg" && pet.has_music_box && pet.music_box_active;
+  el.hidden = !shouldShow;
+  // Don't leave the song playing behind a hidden/deactivated box.
+  if (!shouldShow && isMelodyPlaying()) {
+    stopMelody();
+    el.classList.remove("music-box--playing");
+  }
 }
 
 function render() {
@@ -845,7 +900,7 @@ const SHOP_ITEMS = [
   {
     id: "musicbox",
     name: "Music Box",
-    desc: "Happy decays 20% slower, chimes now and then",
+    desc: "Happy decays 20% slower. Click it to play or stop a little song",
     price: MUSIC_BOX_PRICE,
     buy: buyMusicBox,
     kind: "placeable",
@@ -855,8 +910,8 @@ const SHOP_ITEMS = [
   },
   {
     id: "toy",
-    name: "Toy",
-    desc: "Pet visits it on its own for a little Happy each time",
+    name: "Ball",
+    desc: "Pet kicks it around on its own for a little Happy each time",
     price: TOY_PRICE,
     buy: buyToy,
     kind: "placeable",
@@ -1148,9 +1203,10 @@ function wireDragPet() {
   host.addEventListener("pointercancel", endDrag);
 }
 
-// Drag handler for floor items (currently just the Bed, see GROUNDED_ITEMS)
-// — a generic list-driven function rather than a bed-specific one so a
-// future floor prop can reuse it.
+// Drag handler for the Bed and Toy (see GROUNDED_ITEMS) — dragging is
+// blocked from crossing into any other floor item (see
+// overlapsFloorObstacles), same "just stops there" feel as the invisible
+// vertical floor line.
 function wireDragGroundedItem(item) {
   const el = $(item.id);
   const device = $("pet-device");
@@ -1181,6 +1237,7 @@ function wireDragGroundedItem(item) {
     const { minX, minY, maxX, maxY } = groundedBounds(el, device);
     const x = Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2));
     const y = Math.min(maxY, Math.max(minY, e.clientY - rect.top - el.offsetHeight / 2));
+    if (overlapsFloorObstacles(item.id, x, y, el.offsetWidth, el.offsetHeight)) return;
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
   });
@@ -1265,6 +1322,20 @@ function toyRestTarget(host, toy) {
   };
 }
 
+// Sends the ball rolling off to a new (non-overlapping) spot on the floor —
+// called right after the pet "kicks" it, so the ball actually looks played
+// with instead of just sitting there getting Happy credit. render()'s own
+// call to renderGroundedItems right after this picks up the new toy_x/toy_y
+// and animates there via .toy's own left/top transition.
+function kickToy() {
+  const toy = $("toy");
+  const device = $("pet-device");
+  const { minX, minY, maxX, maxY } = groundedBounds(toy, device);
+  const spot = randomFreeFloorSpot(toy, device, "toy");
+  currentPet.toy_x = maxX > minX ? (spot.x - minX) / (maxX - minX) : 0.5;
+  currentPet.toy_y = maxY > minY ? (spot.y - minY) / (maxY - minY) : 0.5;
+}
+
 function walkToToyThenPlay() {
   if (!currentPet || currentPet.life_stage === "egg" || currentPet.is_sleeping) return;
   if (gameActive || draggingPet || walkingToBed || visitingToy) return;
@@ -1285,6 +1356,7 @@ function walkToToyThenPlay() {
       return;
     }
     currentPet.happiness = clamp(currentPet.happiness + TOY_HAPPY_GAIN);
+    kickToy();
     render();
     playSound("play");
     persist().catch((err) => showMessage(err.message, true));
@@ -1368,6 +1440,25 @@ function wireDragNightLight() {
 
   el.addEventListener("pointerup", endDrag);
   el.addEventListener("pointercancel", endDrag);
+}
+
+// Click to toggle the song on/off — session-only (see playMelody/stopMelody
+// in sound.js), not saved to the pet, so it always starts silent on load
+// rather than trying to resume audio the browser's autoplay policy would
+// likely block anyway.
+function wireMusicBox() {
+  $("music-box").addEventListener("click", (e) => {
+    e.stopPropagation(); // don't also let this bubble up into a click-to-walk
+    if (!currentPet || !currentPet.has_music_box || !currentPet.music_box_active) return;
+    const el = $("music-box");
+    if (isMelodyPlaying()) {
+      stopMelody();
+      el.classList.remove("music-box--playing");
+    } else {
+      playMelody(ODE_TO_JOY);
+      el.classList.add("music-box--playing");
+    }
+  });
 }
 
 async function runAction(fn, { bounce = true, sound } = {}) {
@@ -1747,6 +1838,7 @@ function wireActions() {
   wireDragPet();
   wireGroundedItems();
   wireDragNightLight();
+  wireMusicBox();
   wireShop();
   $("pet-device").addEventListener("click", (e) => {
     if (suppressNextPetClick) {
