@@ -7,10 +7,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=68";
-import * as db from "./supabase.js?v=68";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=68";
-import { VERSION } from "./version.js?v=68";
+} from "./pet-sprites.js?v=69";
+import * as db from "./supabase.js?v=69";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=69";
+import { VERSION } from "./version.js?v=69";
 
 const HOUR = 3600000;
 
@@ -47,9 +47,12 @@ const DEFAULT_BED_Y = 0.7;
 const VITAMINS_PRICE = 30;
 const NIGHT_LIGHT_PRICE = 20;
 const MUSIC_BOX_PRICE = 20;
+const DEFAULT_MUSIC_BOX_X = 0.05;
+const DEFAULT_MUSIC_BOX_Y = 0.95;
 const TOY_PRICE = 20;
 const DEFAULT_TOY_X = 0.3;
 const DEFAULT_TOY_Y = 0.3;
+const DEFAULT_BALL_COLOR = "#5b9bd5";
 
 const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster while a dose is active
 const VITAMIN_BUFF_DURATION_MS = 15 * 60 * 1000;
@@ -162,10 +165,13 @@ export function createInitialPet(name) {
     night_light_x: 0.5,
     has_music_box: false,
     music_box_active: true,
+    music_box_x: DEFAULT_MUSIC_BOX_X,
+    music_box_y: DEFAULT_MUSIC_BOX_Y,
     has_toy: false,
     toy_active: true,
     toy_x: DEFAULT_TOY_X,
     toy_y: DEFAULT_TOY_Y,
+    ball_color: DEFAULT_BALL_COLOR,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -380,6 +386,12 @@ export function buyToy(pet) {
 export function toggleToyActive(pet) {
   if (!pet.has_toy) return pet;
   pet.toy_active = !pet.toy_active;
+  return pet;
+}
+
+export function setBallColor(pet, color) {
+  if (!pet.has_toy) return pet;
+  pet.ball_color = color;
   return pet;
 }
 
@@ -820,6 +832,7 @@ function showFoodBowl() {
 const GROUNDED_ITEMS = [
   { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
   { id: "toy", xField: "toy_x", yField: "toy_y", defaultX: DEFAULT_TOY_X, defaultY: DEFAULT_TOY_Y, owned: (p) => p.has_toy && p.toy_active },
+  { id: "music-box", xField: "music_box_x", yField: "music_box_y", defaultX: DEFAULT_MUSIC_BOX_X, defaultY: DEFAULT_MUSIC_BOX_Y, owned: (p) => p.has_music_box && p.music_box_active },
 ];
 
 function renderGroundedItems(pet) {
@@ -841,12 +854,12 @@ function renderGroundedItems(pet) {
 
 // Purely ambient — fixed in its own corner, never dragged, so it doesn't
 // need a saved position the way the floor items above do.
-function renderMusicBox(pet) {
+// Music Box's hidden/position are handled generically now that it's part of
+// GROUNDED_ITEMS (see renderGroundedItems, called first in render() below)
+// — this only needs to stop a song left playing behind a now-hidden box.
+function stopMusicBoxIfHidden() {
   const el = $("music-box");
-  const shouldShow = pet.life_stage !== "egg" && pet.has_music_box && pet.music_box_active;
-  el.hidden = !shouldShow;
-  // Don't leave the song playing behind a hidden/deactivated box.
-  if (!shouldShow && isMelodyPlaying()) {
+  if (el.hidden && isMelodyPlaying()) {
     stopMelody();
     el.classList.remove("music-box--playing");
   }
@@ -857,7 +870,8 @@ function render() {
   renderStats(currentPet);
   renderGroundedItems(currentPet);
   renderNightLight(currentPet);
-  renderMusicBox(currentPet);
+  stopMusicBoxIfHidden();
+  $("toy").style.setProperty("--ball-color", currentPet.ball_color || DEFAULT_BALL_COLOR);
   checkNotifications(currentPet);
 }
 
@@ -933,6 +947,13 @@ function shopItemControlHtml(item, pet) {
       </div>`;
   }
   const active = item.active(pet);
+  if (item.id === "toy") {
+    return `
+      <div class="accessory-btn-wrap">
+        <button type="button" data-toggle="${item.id}" class="${active ? "btn--active" : ""}">${active ? "Remove" : "Put In"}</button>
+        <input type="color" data-ball-color value="${pet.ball_color || DEFAULT_BALL_COLOR}" aria-label="Ball color" />
+      </div>`;
+  }
   return `<button type="button" data-toggle="${item.id}" class="${active ? "btn--active" : ""}">${active ? "Remove" : "Put In"}</button>`;
 }
 
@@ -981,12 +1002,16 @@ function wireShop() {
   // Same input/change split as the old dedicated color picker: live-preview
   // on every drag step, only persist once the user commits a color.
   $("shop-list").addEventListener("input", (e) => {
-    if (!e.target.matches("[data-bow-color]")) return;
-    setBowColor(currentPet, e.target.value);
-    renderPuppy(currentPet, eyesOpen);
+    if (e.target.matches("[data-bow-color]")) {
+      setBowColor(currentPet, e.target.value);
+      renderPuppy(currentPet, eyesOpen);
+    } else if (e.target.matches("[data-ball-color]")) {
+      setBallColor(currentPet, e.target.value);
+      $("toy").style.setProperty("--ball-color", currentPet.ball_color);
+    }
   });
   $("shop-list").addEventListener("change", async (e) => {
-    if (!e.target.matches("[data-bow-color]")) return;
+    if (!e.target.matches("[data-bow-color], [data-ball-color]")) return;
     try {
       await persist();
     } catch (err) {
@@ -1446,9 +1471,18 @@ function wireDragNightLight() {
 // in sound.js), not saved to the pet, so it always starts silent on load
 // rather than trying to resume audio the browser's autoplay policy would
 // likely block anyway.
+// The Music Box is now also draggable (see GROUNDED_ITEMS/wireGroundedItems)
+// on the same element, so a plain tap and a drag-release both end up
+// firing this click listener — suppressNextPetClick (set by
+// wireDragGroundedItem's endDrag on a real drag) is how it tells them
+// apart, same signal #pet-device's own click handler uses.
 function wireMusicBox() {
   $("music-box").addEventListener("click", (e) => {
     e.stopPropagation(); // don't also let this bubble up into a click-to-walk
+    if (suppressNextPetClick) {
+      suppressNextPetClick = false;
+      return;
+    }
     if (!currentPet || !currentPet.has_music_box || !currentPet.music_box_active) return;
     const el = $("music-box");
     if (isMelodyPlaying()) {

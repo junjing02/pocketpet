@@ -136,10 +136,13 @@ export async function savePet(pet) {
       night_light_x: pet.night_light_x,
       has_music_box: pet.has_music_box,
       music_box_active: pet.music_box_active,
+      music_box_x: pet.music_box_x,
+      music_box_y: pet.music_box_y,
       has_toy: pet.has_toy,
       toy_active: pet.toy_active,
       toy_x: pet.toy_x,
       toy_y: pet.toy_y,
+      ball_color: pet.ball_color,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })

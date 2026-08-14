@@ -339,11 +339,11 @@ button:disabled:active { transform: none; }
 .pet-bed::before { inset: 7px; }
 .pet-bed::after { inset: 15px; }
 
-/* One dragging-state class shared by the Bed, Toy, and Night Light (see
-   wireDragGroundedItem / wireDragNightLight) instead of a per-item copy. */
-/* transition:none while actually being dragged — the Toy's own left/top
-   transition (for its "kick" animation, see .toy below) would otherwise
-   make manual dragging lag behind the pointer. */
+/* One dragging-state class shared by the Bed, Ball, Music Box, and Night
+   Light (see wireDragGroundedItem / wireDragNightLight) instead of a
+   per-item copy. transition:none while actually dragging — the Ball's own
+   left/top transition (for its "kick" animation, see .toy below) would
+   otherwise make manual dragging lag behind the pointer. */
 .grounded-item--dragging { cursor: grabbing; transition: none; }
 
 /* A pendant light hanging from the playground's own "ceiling" (the device's
@@ -417,7 +417,7 @@ button:disabled:active { transform: none; }
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--track);
+  background: var(--ball-color, var(--track));
   border: 1px solid var(--line);
   cursor: grab;
   touch-action: none;
@@ -435,18 +435,19 @@ button:disabled:active { transform: none; }
 
 /* A small turntable: a spinning vinyl-disc child element (see
    #music-box .vinyl-disc, toggled by wireMusicBox) plus a couple of music
-   notes that float up and fade while it plays. Fixed in its own corner
-   (see renderMusicBox) — never dragged, unlike .toy/.pet-bed. */
+   notes that float up and fade while it plays. A third free-roaming floor
+   item alongside the Bed and Ball (see GROUNDED_ITEMS) — click toggles the
+   song, drag moves it (wireMusicBox tells the two apart via
+   suppressNextPetClick). */
 .music-box {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
   width: 22px;
   height: 20px;
   border-radius: 2px;
   background: var(--track);
   border: 1px solid var(--line);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   transition: filter 0.8s ease;
 }
 .vinyl-disc {
