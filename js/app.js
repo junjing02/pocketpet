@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=78";
-import * as db from "./supabase.js?v=78";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=78";
-import { VERSION } from "./version.js?v=78";
+} from "./pet-sprites.js?v=79";
+import * as db from "./supabase.js?v=79";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=79";
+import { VERSION } from "./version.js?v=79";
 
 const HOUR = 3600000;
 
@@ -935,10 +935,49 @@ function syncMusicBoxAudio(pet) {
   if (!isMelodyPlaying()) playMelody(ODE_TO_JOY);
 }
 
+// Positions are computed here, not persisted — each poop drops wherever the
+// pet currently is the moment it's first shown (a little scatter added so
+// several appearing at once, e.g. after time away, don't land in an exact
+// stack), then stays put across re-renders until cleared. poopPositions is
+// keyed by slot index and only valid for poopPositionsPetId — switching to
+// a different pet resets it so poop repositions to *that* pet's own spot
+// instead of showing leftover positions from whichever pet was active
+// before.
+let poopPositions = {};
+let poopPositionsPetId = null;
+const POOP_SCATTER_X = 16;
+const POOP_SCATTER_Y = 10;
+
 function renderPoop(pet) {
   const isEgg = pet.life_stage === "egg";
+  const host = $("pet-screen");
+  const device = $("pet-device");
+
+  if (pet.id !== poopPositionsPetId) {
+    poopPositions = {};
+    poopPositionsPetId = pet.id;
+  }
+
   for (let i = 0; i < MAX_POOP_COUNT; i++) {
-    $(`poop-${i}`).hidden = isEgg || i >= (pet.poop_count || 0);
+    const el = $(`poop-${i}`);
+    const shouldShow = !isEgg && i < (pet.poop_count || 0);
+    if (!shouldShow) {
+      delete poopPositions[i];
+      el.hidden = true;
+      continue;
+    }
+    if (!poopPositions[i]) {
+      const jitterX = (Math.random() - 0.5) * POOP_SCATTER_X;
+      const jitterY = (Math.random() - 0.5) * POOP_SCATTER_Y;
+      const maxLeft = Math.max(0, device.clientWidth - el.offsetWidth);
+      const maxTop = Math.max(0, device.clientHeight - el.offsetHeight);
+      const left = Math.min(maxLeft, Math.max(0, host.offsetLeft + host.offsetWidth / 2 - el.offsetWidth / 2 + jitterX));
+      const top = Math.min(maxTop, Math.max(0, host.offsetTop + host.offsetHeight - el.offsetHeight + jitterY));
+      poopPositions[i] = { left, top };
+    }
+    el.style.left = `${poopPositions[i].left}px`;
+    el.style.top = `${poopPositions[i].top}px`;
+    el.hidden = false;
   }
 }
 
