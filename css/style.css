@@ -452,40 +452,33 @@ button:disabled:active { transform: none; }
   transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
 }
 
-/* A small turntable: a spinning vinyl-disc child element (see
-   #music-box .vinyl-disc, toggled by wireMusicBox) plus a couple of music
-   notes that float up and fade while it plays. A third free-roaming floor
-   item alongside the Bed and Ball (see GROUNDED_ITEMS) — click toggles the
-   song, drag moves it (wireMusicBox tells the two apart via
-   suppressNextPetClick).
-   Tilted like the Bed is an oval rather than a plain circle — a static
-   rotate() so it doesn't sit as a flat, perfectly axis-aligned box. The
-   disc is unaffected (a circle reads the same rotated or not); the ♪/♫
-   notes counter-rotate back upright in their own keyframes (see
-   note-float) so they still read as text and float straight up on screen
-   rather than drifting off at the box's own angle. */
+/* A small turntable: no box/frame anymore, just the spinning vinyl-disc
+   child element itself (see #music-box .vinyl-disc, toggled by
+   wireMusicBox) plus a couple of music notes that float up and fade while
+   it plays. #music-box is now purely an invisible positioning wrapper —
+   size/position/drag all still target it (see GROUNDED_ITEMS, wireMusicBox)
+   — with the disc filling it completely instead of sitting inset inside a
+   drawn rectangle. A third free-roaming floor item alongside the Bed and
+   Ball — click toggles the song, drag moves it (wireMusicBox tells the two
+   apart via suppressNextPetClick). */
 .music-box {
   position: absolute;
-  width: 22px;
-  height: 20px;
-  border-radius: 2px;
-  background: var(--track);
-  border: 1px solid var(--line);
+  width: 18px;
+  height: 18px;
   cursor: grab;
   touch-action: none;
-  transform: rotate(-8deg);
   transition: filter 0.8s ease;
 }
 .vinyl-disc {
   position: absolute;
-  inset: 3px;
+  inset: 0;
   border-radius: 50%;
   background: var(--fg);
 }
 .vinyl-disc::after {
   content: "";
   position: absolute;
-  inset: 42%;
+  inset: 35%;
   border-radius: 50%;
   background: var(--track);
 }
@@ -507,11 +500,11 @@ button:disabled:active { transform: none; }
   animation: note-float 2.4s ease-in infinite;
 }
 .music-box--playing::before { left: -3px; }
-.music-box--playing::after { content: "♫"; left: 16px; animation-delay: 1.1s; }
+.music-box--playing::after { content: "♫"; left: 13px; animation-delay: 1.1s; }
 @keyframes note-float {
-  0% { opacity: 0; transform: translateY(0) rotate(8deg); }
+  0% { opacity: 0; transform: translateY(0); }
   15% { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(-16px) rotate(8deg); }
+  100% { opacity: 0; transform: translateY(-16px); }
 }
 
 .pet-screen.pet--bounce { animation: bounce 0.4s ease; }
