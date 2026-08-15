@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=76";
-import * as db from "./supabase.js?v=76";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=76";
-import { VERSION } from "./version.js?v=76";
+} from "./pet-sprites.js?v=77";
+import * as db from "./supabase.js?v=77";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=77";
+import { VERSION } from "./version.js?v=77";
 
 const HOUR = 3600000;
 
@@ -1801,6 +1801,83 @@ function playDirectionRound(overlay) {
   });
 }
 
+const WHACK_TARGET_COUNT = 3;
+const WHACK_TIME_MS = 1500;
+
+// Several targets at once instead of Tap the Target's single one — hit is
+// clearing all of them before time runs out, not just one. Reuses the exact
+// .game-target look (see playTapRound) so it reads as the same "family" of
+// tap game. Placement retries a few times to avoid stacking targets right
+// on top of each other, same "give up after a few tries" spirit as
+// randomFreeFloorSpot elsewhere in this file.
+function playWhackRound(overlay) {
+  return new Promise((resolve) => {
+    const size = 22;
+    const maxX = Math.max(0, overlay.clientWidth - size);
+    const maxY = Math.max(0, overlay.clientHeight - size);
+    const placed = [];
+    let remaining = WHACK_TARGET_COUNT;
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    for (let i = 0; i < WHACK_TARGET_COUNT; i++) {
+      let x, y, tries = 0;
+      do {
+        x = Math.random() * maxX;
+        y = Math.random() * maxY;
+        tries++;
+      } while (tries < 8 && placed.some((p) => Math.hypot(p.x - x, p.y - y) < size));
+      placed.push({ x, y });
+
+      const target = document.createElement("button");
+      target.type = "button";
+      target.className = "game-target";
+      target.style.left = `${x}px`;
+      target.style.top = `${y}px`;
+      target.addEventListener("click", () => {
+        target.remove();
+        remaining--;
+        if (remaining <= 0) finish(true);
+      });
+      overlay.appendChild(target);
+    }
+    setTimeout(() => finish(false), WHACK_TIME_MS);
+  });
+}
+
+const POOP_DODGE_COUNT = 5;
+
+// Odd One Out's mirror image — tap anything EXCEPT the odd one instead of
+// tapping it. The odd one is styled exactly like the real poop prop (same
+// color/shape, see .poop) so it reads as "don't touch that" immediately.
+function playPoopDodgeRound(overlay) {
+  return new Promise((resolve) => {
+    overlay.innerHTML = '<div class="poopdodge-row"></div>';
+    const row = overlay.querySelector(".poopdodge-row");
+    const poopIndex = Math.floor(Math.random() * POOP_DODGE_COUNT);
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    for (let i = 0; i < POOP_DODGE_COUNT; i++) {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `poopdodge-dot${i === poopIndex ? " poopdodge-dot--poop" : ""}`;
+      dot.addEventListener("click", () => finish(i !== poopIndex));
+      row.appendChild(dot);
+    }
+    setTimeout(() => finish(false), 1300);
+  });
+}
+
 const MINI_GAMES = [
   { id: "tap", name: "Tap the Target", round: playTapRound },
   { id: "timing", name: "Stop the Marker", round: playTimingRound },
@@ -1808,6 +1885,8 @@ const MINI_GAMES = [
   { id: "count", name: "Count the Dots", round: playCountRound },
   { id: "moredots", name: "More Dots", round: playMoreDotsRound },
   { id: "direction", name: "Match the Direction", round: playDirectionRound },
+  { id: "whack", name: "Whack Sequence", round: playWhackRound },
+  { id: "poopdodge", name: "Poop Dodge", round: playPoopDodgeRound },
 ];
 
 function renderGamePickerScores() {

@@ -642,6 +642,21 @@ button:disabled:active { transform: none; }
   margin-left: 4px;
 }
 
+/* 8 games now — a 2-column grid keeps the picker scannable in one glance
+   instead of scrolling a tall single-column list. The [hidden] rule is
+   restated at the same #id+attribute specificity as the grid rule so
+   closeGameModal's hidden toggle still actually hides it (a plain .stack[hidden]
+   rule would otherwise lose to this ID selector). Cancel spans both columns
+   since it's the one non-game action. */
+#game-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#game-picker[hidden] { display: none; }
+.game-picker-btn { font-size: 10px; padding: 10px 6px; }
+#btn-game-cancel { grid-column: 1 / -1; }
+
 .game-overlay {
   position: relative;
   height: 180px;
@@ -1054,6 +1069,31 @@ button:disabled:active { transform: none; }
 .oddoneout-dot--odd-big { width: 25px; height: 25px; }
 .oddoneout-dot--odd-small { width: 16px; height: 16px; }
 
+/* Poop Dodge — same row layout as Odd One Out, but the one to avoid is
+   styled exactly like the real poop prop (same color/shape, see .poop)
+   instead of just a size difference, so "don't tap that one" reads
+   immediately rather than needing a beat to spot the odd shape. */
+.poopdodge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 100%;
+}
+.poopdodge-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #111;
+  border: none;
+  padding: 0;
+}
+.poopdodge-dot--poop {
+  border-radius: 3px 3px 6px 6px;
+  background: #6b4423;
+  border: 1px solid #3f2712;
+}
+
 .count-dots-area { position: relative; width: 100%; height: 100%; }
 .count-dot {
   position: absolute;
@@ -1258,6 +1298,12 @@ body {
 .preview-oddball:nth-child(3) { left: 56%; }
 .preview-oddball:nth-child(4) { left: 82%; }
 .preview-oddball--big { width: 22px; height: 22px; }
+/* Whack Sequence's preview: reuses the oddball row spacing but pulses like
+   the real .game-target instead of sitting still, since the game itself is
+   "hit several pulsing targets," not "spot the different one." */
+.preview-oddball--pulse { animation: preview-pulse 1s ease-in-out infinite; }
+/* Poop Dodge's preview: same brown/shape as the real .poop prop. */
+.preview-oddball--poop { border-radius: 3px 3px 6px 6px; background: #6b4423; }
 
 .preview-countdot {
   position: absolute;
@@ -1266,6 +1312,28 @@ body {
   border-radius: 50%;
   background: #111;
   transform: translate(-50%, -50%);
+}
+
+/* More Dots' preview: a vertical divider between two dot clusters of
+   different density, echoing the game's actual left/right comparison. */
+.preview-divider {
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  left: 50%;
+  border-left: 1px dashed var(--line);
+}
+
+/* Match the Direction's preview: just the arrow prompt itself, pulsing like
+   every other single-focal-point preview above. */
+.preview-arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  line-height: 1;
+  animation: preview-pulse 1s ease-in-out infinite;
 }
 
 /* A distinct card panel for the whole showcase, same visual language as the
