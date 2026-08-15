@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=70";
-import * as db from "./supabase.js?v=70";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=70";
-import { VERSION } from "./version.js?v=70";
+} from "./pet-sprites.js?v=71";
+import * as db from "./supabase.js?v=71";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=71";
+import { VERSION } from "./version.js?v=71";
 
 const HOUR = 3600000;
 
@@ -184,6 +184,7 @@ export function createInitialPet(name) {
     ball_color: DEFAULT_BALL_COLOR,
     poop_count: 0,
     last_poop_at: now,
+    music_box_playing: false,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -915,14 +916,23 @@ function renderGroundedItems(pet) {
 // Purely ambient — fixed in its own corner, never dragged, so it doesn't
 // need a saved position the way the floor items above do.
 // Music Box's hidden/position are handled generically now that it's part of
-// GROUNDED_ITEMS (see renderGroundedItems, called first in render() below)
-// — this only needs to stop a song left playing behind a now-hidden box.
-function stopMusicBoxIfHidden() {
+// GROUNDED_ITEMS (see renderGroundedItems, called first in render() below).
+//
+// The song itself is kept in sync with two things every render: the box's
+// visibility (el.hidden, from renderGroundedItems just above — you should
+// never hear a pet's box while a different pet is active) and the pet's own
+// persisted music_box_playing flag, so switching back to a pet whose box
+// was left on resumes it instead of staying silent until re-tapped.
+function syncMusicBoxAudio(pet) {
   const el = $("music-box");
-  if (el.hidden && isMelodyPlaying()) {
-    stopMelody();
+  const shouldPlay = !el.hidden && pet.music_box_playing;
+  if (!shouldPlay) {
+    if (isMelodyPlaying()) stopMelody();
     el.classList.remove("music-box--playing");
+    return;
   }
+  el.classList.add("music-box--playing");
+  if (!isMelodyPlaying()) playMelody(ODE_TO_JOY);
 }
 
 function renderPoop(pet) {
@@ -938,7 +948,7 @@ function render() {
   renderGroundedItems(currentPet);
   renderNightLight(currentPet);
   renderPoop(currentPet);
-  stopMusicBoxIfHidden();
+  syncMusicBoxAudio(currentPet);
   $("toy").style.setProperty("--ball-color", currentPet.ball_color || DEFAULT_BALL_COLOR);
   checkNotifications(currentPet);
 }
@@ -1535,10 +1545,12 @@ function wireDragNightLight() {
   el.addEventListener("pointercancel", endDrag);
 }
 
-// Click to toggle the song on/off — session-only (see playMelody/stopMelody
-// in sound.js), not saved to the pet, so it always starts silent on load
-// rather than trying to resume audio the browser's autoplay policy would
-// likely block anyway.
+// Click to toggle the song on/off — persisted via music_box_playing so it
+// keeps playing until explicitly turned off, including across a pet switch
+// (see syncMusicBoxAudio, called on every render). Direction is decided by
+// the actual isMelodyPlaying() state rather than the persisted flag, so a
+// tap always does the right thing even if a resume elsewhere got silently
+// blocked by the browser's autoplay policy.
 // The Music Box is now also draggable (see GROUNDED_ITEMS/wireGroundedItems)
 // on the same element, so a plain tap and a drag-release both end up
 // firing this click listener — suppressNextPetClick (set by
@@ -1556,10 +1568,13 @@ function wireMusicBox() {
     if (isMelodyPlaying()) {
       stopMelody();
       el.classList.remove("music-box--playing");
+      currentPet.music_box_playing = false;
     } else {
       playMelody(ODE_TO_JOY);
       el.classList.add("music-box--playing");
+      currentPet.music_box_playing = true;
     }
+    persist().catch((err) => showMessage(err.message, true));
   });
 }
 
@@ -1799,7 +1814,7 @@ function renderGamePickerScores() {
   document.querySelectorAll(".game-picker-btn[data-game]").forEach((btn) => {
     const best = currentScores[btn.dataset.game];
     const badge = btn.querySelector(".game-best");
-    if (badge) badge.textContent = best ? `Best ${best}/${GAME_ROUNDS}` : "";
+    if (badge) badge.textContent = best ? `Best ${best}` : "";
   });
 }
 
@@ -1826,12 +1841,26 @@ async function runPlayGame(game) {
   overlay.hidden = false;
   $("game-modal-title").textContent = game.name;
 
+  // The base GAME_ROUNDS always play out in full, same as before. A perfect
+  // run (all GAME_ROUNDS hit) instead of just stopping there keeps going one
+  // round at a time, sudden-death style, until the player finally misses —
+  // so a high score means something past just "5/5" every time.
   let hits = 0;
-  for (let i = 0; i < GAME_ROUNDS; i++) {
-    $("game-modal-round").textContent = `Round ${i + 1}/${GAME_ROUNDS}, ${hits} hit${hits === 1 ? "" : "s"}`;
+  let round = 0;
+  while (true) {
+    round++;
+    const label = round <= GAME_ROUNDS ? `Round ${round}/${GAME_ROUNDS}` : `Bonus round ${round - GAME_ROUNDS}`;
+    $("game-modal-round").textContent = `${label}, ${hits} hit${hits === 1 ? "" : "s"}`;
     overlay.innerHTML = "";
     await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
-    if (await game.round(overlay)) hits++;
+    const hit = await game.round(overlay);
+    if (hit) hits++;
+    if (round < GAME_ROUNDS) continue;
+    if (round === GAME_ROUNDS) {
+      if (hits === GAME_ROUNDS) continue; // perfect base run — keep going
+      break;
+    }
+    if (!hit) break; // bonus round miss ends it
   }
 
   closeGameModal();
@@ -1850,7 +1879,7 @@ async function runPlayGame(game) {
 
   render();
   if (!currentPet.is_sleeping) bouncePet();
-  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!${isNewBest ? " New best!" : ""}`, false, 3500);
+  showMessage(`${game.name}: ${hits} hit${hits === 1 ? "" : "s"}, +${coinsEarned} coins!${isNewBest ? " New best!" : ""}`, false, 3500);
   try {
     await persist();
   } catch (err) {

@@ -170,6 +170,7 @@ export async function savePet(pet) {
       music_box_active: pet.music_box_active,
       music_box_x: pet.music_box_x,
       music_box_y: pet.music_box_y,
+      music_box_playing: pet.music_box_playing,
       has_toy: pet.has_toy,
       toy_active: pet.toy_active,
       toy_x: pet.toy_x,
