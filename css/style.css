@@ -436,11 +436,8 @@ button:disabled:active { transform: none; }
   50% { opacity: 1; transform: scale(1.1); }
 }
 
-/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS).
-   Was a plain cross through a circle (a pattern that didn't appear anywhere
-   else); now reuses the exact concentric-inset-ring texture the Bed already
-   established (see .pet-bed::before below) so it reads as the same family
-   of prop instead of a one-off. left/top transition (disabled while
+/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS) —
+   a plain ball, no inner pattern. left/top transition (disabled while
    actually being manually dragged, see .grounded-item--dragging) is what
    makes kickToy()'s reposition read as rolling there instead of teleporting. */
 .toy {
@@ -453,14 +450,6 @@ button:disabled:active { transform: none; }
   cursor: grab;
   touch-action: none;
   transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
-}
-.toy::before {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  opacity: 0.3;
 }
 
 /* A small turntable: a spinning vinyl-disc child element (see
