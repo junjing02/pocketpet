@@ -436,10 +436,13 @@ button:disabled:active { transform: none; }
   50% { opacity: 1; transform: scale(1.1); }
 }
 
-/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS) —
-   a plain ball. left/top transition (disabled while actually being manually
-   dragged, see .grounded-item--dragging) is what makes kickToy()'s reposition
-   read as rolling there instead of teleporting. */
+/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS).
+   Was a plain cross through a circle (a pattern that didn't appear anywhere
+   else); now reuses the exact concentric-inset-ring texture the Bed already
+   established (see .pet-bed::before below) so it reads as the same family
+   of prop instead of a one-off. left/top transition (disabled while
+   actually being manually dragged, see .grounded-item--dragging) is what
+   makes kickToy()'s reposition read as rolling there instead of teleporting. */
 .toy {
   position: absolute;
   width: 14px;
@@ -451,15 +454,14 @@ button:disabled:active { transform: none; }
   touch-action: none;
   transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
 }
-.toy::before,
-.toy::after {
+.toy::before {
   content: "";
   position: absolute;
+  inset: 3px;
+  border-radius: 50%;
   border: 1px solid var(--line);
-  opacity: 0.4;
+  opacity: 0.3;
 }
-.toy::before { top: 50%; left: 1px; right: 1px; height: 0; }
-.toy::after { left: 50%; top: 1px; bottom: 1px; width: 0; }
 
 /* A small turntable: a spinning vinyl-disc child element (see
    #music-box .vinyl-disc, toggled by wireMusicBox) plus a couple of music
