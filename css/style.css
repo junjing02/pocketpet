@@ -306,6 +306,22 @@ button:disabled:active { transform: none; }
 }
 .pet-bowl--fade { opacity: 0; }
 
+/* Dropped poop (see MAX_POOP_COUNT in app.js) — up to 3 fixed ground slots,
+   shown/hidden by poop_count rather than positioned at a real drop location,
+   so there's no drag/collision math to carry for something this small.
+   Same flat-fill-plus-line treatment as every other prop; tapping one clears
+   it via clearPoop. */
+.poop {
+  position: absolute;
+  bottom: 6px;
+  width: 10px;
+  height: 8px;
+  background: var(--track);
+  border: 1px solid var(--line);
+  border-radius: 3px 3px 6px 6px;
+  cursor: pointer;
+}
+
 /* A draggable bed prop — stays on the playground permanently once bought
    (unlike the bowl's brief flash), wherever the user last dragged it. Flat
    fill + 1px lines only, same treatment as .pet-bowl and every button/panel
@@ -614,6 +630,14 @@ button:disabled:active { transform: none; }
   color: var(--muted);
   margin: 0 0 12px;
   text-transform: none;
+}
+
+.game-best {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  margin-top: 2px;
+  opacity: 0.7;
 }
 
 .game-overlay {
@@ -932,6 +956,39 @@ button:disabled:active { transform: none; }
   grid-template-columns: repeat(var(--grid-size), var(--dot-size));
   grid-auto-rows: var(--dot-size);
   gap: 0;
+}
+
+.collection-hint {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.collection-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--track);
+  font-size: 10px;
+  color: var(--muted);
+}
+.collection-row:last-child { border-bottom: none; }
+.collection-row--discovered { color: var(--fg); }
+
+.collection-thumb-placeholder {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 16px;
+  color: var(--muted);
 }
 
 .pet-picker-info {

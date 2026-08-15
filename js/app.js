@@ -3,14 +3,15 @@ import {
   trimBitmap,
   STAGE_ORDER,
   DOT_SIZE,
+  SPECIES,
   SPECIES_SHADE,
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=69";
-import * as db from "./supabase.js?v=69";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=69";
-import { VERSION } from "./version.js?v=69";
+} from "./pet-sprites.js?v=70";
+import * as db from "./supabase.js?v=70";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=70";
+import { VERSION } from "./version.js?v=70";
 
 const HOUR = 3600000;
 
@@ -63,6 +64,15 @@ const MUSIC_BOX_CHIME_MAX_MS = 90 * 1000;
 const TOY_VISIT_MIN_MS = 30 * 1000;
 const TOY_VISIT_MAX_MS = 75 * 1000;
 const TOY_HAPPY_GAIN = 8;
+
+// Poop spawns on the same simulated-elapsed-time schedule as everything else
+// (design doc §6) — every POOP_INTERVAL_HOURS of "awake" time, capped at
+// MAX_POOP_COUNT. Each uncleared poop bites into Hygiene on top of its usual
+// decay, so ignoring it feeds into the existing neglect/health pipeline in
+// applyDecay rather than needing a separate illness path of its own.
+const MAX_POOP_COUNT = 3;
+const POOP_INTERVAL_HOURS = 0.33; // ~20 min at 1x TIME_SCALE
+const POOP_HYGIENE_PENALTY_PER_HOUR = 2;
 
 // Beethoven's "Ode to Joy" opening phrase (public domain) — the Music Box's
 // toggleable song, played as a plain note sequence through the same
@@ -172,6 +182,8 @@ export function createInitialPet(name) {
     toy_x: DEFAULT_TOY_X,
     toy_y: DEFAULT_TOY_Y,
     ball_color: DEFAULT_BALL_COLOR,
+    poop_count: 0,
+    last_poop_at: now,
     birth_timestamp: now,
     last_updated: now,
   };
@@ -225,7 +237,18 @@ export function applyDecay(pet, nowMs = Date.now()) {
     const musicBoxMul = pet.has_music_box && pet.music_box_active ? MUSIC_BOX_HAPPINESS_MULTIPLIER : 1;
     pet.hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * elapsedHours * mul);
     pet.happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * elapsedHours * mul * musicBoxMul);
-    pet.hygiene = clamp(pet.hygiene - DECAY_PER_HOUR.hygiene * elapsedHours * mul);
+    const poopHygieneRate = DECAY_PER_HOUR.hygiene + POOP_HYGIENE_PENALTY_PER_HOUR * (pet.poop_count || 0);
+    pet.hygiene = clamp(pet.hygiene - poopHygieneRate * elapsedHours * mul);
+
+    if ((pet.poop_count || 0) < MAX_POOP_COUNT) {
+      const lastPoopMs = new Date(pet.last_poop_at || pet.last_updated).getTime();
+      const hoursSincePoop = ((nowMs - lastPoopMs) / HOUR) * TIME_SCALE * mul;
+      const newPoops = Math.floor(hoursSincePoop / POOP_INTERVAL_HOURS);
+      if (newPoops > 0) {
+        pet.poop_count = Math.min(MAX_POOP_COUNT, (pet.poop_count || 0) + newPoops);
+        pet.last_poop_at = new Date(lastPoopMs + newPoops * POOP_INTERVAL_HOURS * HOUR).toISOString();
+      }
+    }
     const sleepEnergyRate = SLEEP_ENERGY_GAIN_PER_HOUR * (pet.has_bed && pet.bed_active ? BED_SLEEP_ENERGY_MULTIPLIER : 1);
     pet.energy = pet.is_sleeping
       ? clamp(pet.energy + sleepEnergyRate * elapsedHours)
@@ -409,6 +432,15 @@ export function clean(pet) {
   return pet;
 }
 
+// Clears a single dropped poop (see MAX_POOP_COUNT in applyDecay) — a small
+// direct Hygiene bump, separate from the full-bath Clean button above.
+export function clearPoop(pet) {
+  if ((pet.poop_count || 0) <= 0) return pet;
+  pet.poop_count -= 1;
+  pet.hygiene = clamp(pet.hygiene + 5);
+  return pet;
+}
+
 export function toggleSleep(pet) {
   if (pet.life_stage === "egg") return pet;
   pet.is_sleeping = !pet.is_sleeping;
@@ -437,6 +469,8 @@ let gameActive = false;
 let draggingPet = false;
 let walkingToBed = false;
 let visitingToy = false; // walking to/playing with the Toy on its own — see walkToToyThenPlay
+let currentCollection = new Set(); // species discovered across this user's pet history — see Collection screen
+let currentScores = {}; // game id -> best hits, shown as a badge in the Play menu
 
 function screen(name) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.dataset.screen !== name;
@@ -670,6 +704,32 @@ function renderAchievements(pet) {
   }).join("");
 }
 
+// One row per known species (see SPECIES in pet-sprites.js) — undiscovered
+// ones show a "???" placeholder instead of the mini sprite, same secrecy as
+// an unhatched egg. Built from a stand-in adult pet object, not a real one,
+// since this tracks species discovered across a user's whole pet history
+// (survives Release/Reset), not anything about the currently active pet.
+function renderCollection() {
+  const list = $("collection-list");
+  list.innerHTML = SPECIES.map((sp) => {
+    const discovered = currentCollection.has(sp);
+    const label = sp[0].toUpperCase() + sp.slice(1);
+    const thumb = discovered
+      ? (() => {
+          const sprite = miniSpriteHtml({ life_stage: "adult", species: sp, has_bow: false, neglect_incidents: 0 });
+          return `<div class="pet-picker-thumb" style="--dot-color:${SPECIES_SHADE[sp]}">
+            <div class="pet-picker-thumb-grid" style="--grid-size:${sprite.width}">${sprite.html}</div>
+          </div>`;
+        })()
+      : `<div class="collection-thumb-placeholder">?</div>`;
+    return `
+      <div class="collection-row${discovered ? " collection-row--discovered" : ""}">
+        ${thumb}
+        <span>${discovered ? `<b>${label}</b>` : "???"}</span>
+      </div>`;
+  }).join("");
+}
+
 function petVariant(pet) {
   return pet.neglect_incidents <= PRISTINE_NEGLECT_MAX ? "pristine" : "normal";
 }
@@ -865,11 +925,19 @@ function stopMusicBoxIfHidden() {
   }
 }
 
+function renderPoop(pet) {
+  const isEgg = pet.life_stage === "egg";
+  for (let i = 0; i < MAX_POOP_COUNT; i++) {
+    $(`poop-${i}`).hidden = isEgg || i >= (pet.poop_count || 0);
+  }
+}
+
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderGroundedItems(currentPet);
   renderNightLight(currentPet);
+  renderPoop(currentPet);
   stopMusicBoxIfHidden();
   $("toy").style.setProperty("--ball-color", currentPet.ball_color || DEFAULT_BALL_COLOR);
   checkNotifications(currentPet);
@@ -1727,11 +1795,20 @@ const MINI_GAMES = [
   { id: "direction", name: "Match the Direction", round: playDirectionRound },
 ];
 
+function renderGamePickerScores() {
+  document.querySelectorAll(".game-picker-btn[data-game]").forEach((btn) => {
+    const best = currentScores[btn.dataset.game];
+    const badge = btn.querySelector(".game-best");
+    if (badge) badge.textContent = best ? `Best ${best}/${GAME_ROUNDS}` : "";
+  });
+}
+
 function openGamePicker() {
   $("btn-play").disabled = true;
   gameActive = true;
   $("game-modal-title").textContent = "Choose a Game";
   $("game-modal-round").textContent = "";
+  renderGamePickerScores();
   $("game-picker").hidden = false;
   $("game-overlay").hidden = true;
   $("game-modal").hidden = false;
@@ -1764,9 +1841,16 @@ async function runPlayGame(game) {
   currentPet.coins += coinsEarned;
   currentPet.total_coins_earned = (currentPet.total_coins_earned || 0) + coinsEarned;
   if (coinsEarned > 0) playSound("coin");
+
+  const isNewBest = hits > (currentScores[game.id] || 0);
+  if (isNewBest) {
+    currentScores[game.id] = hits;
+    if (currentUserId) db.recordScore(currentUserId, game.id, hits).catch(() => {});
+  }
+
   render();
   if (!currentPet.is_sleeping) bouncePet();
-  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!`, false, 3500);
+  showMessage(`${game.name}: ${hits}/${GAME_ROUNDS} hits, +${coinsEarned} coins!${isNewBest ? " New best!" : ""}`, false, 3500);
   try {
     await persist();
   } catch (err) {
@@ -1857,6 +1941,12 @@ function wireActions() {
     });
   });
   $("btn-clean").addEventListener("click", () => runAction(clean, { sound: "clean" }));
+  for (let i = 0; i < MAX_POOP_COUNT; i++) {
+    $(`poop-${i}`).addEventListener("click", (e) => {
+      e.stopPropagation(); // otherwise this bubbles to #pet-device and also walks the pet here
+      runAction(clearPoop, { bounce: false, sound: "clean" });
+    });
+  }
   $("btn-sleep").addEventListener("click", () => {
     if (walkingToBed) return;
     if (currentPet.is_sleeping) {
@@ -1951,6 +2041,12 @@ function wireActions() {
     screen("achievements");
   });
   $("btn-achievements-back").addEventListener("click", () => screen("settings"));
+
+  $("btn-collection").addEventListener("click", () => {
+    renderCollection();
+    screen("collection");
+  });
+  $("btn-collection-back").addEventListener("click", () => screen("settings"));
 
   $("btn-switch-pet-main").addEventListener("click", async () => {
     try {
@@ -2131,6 +2227,15 @@ async function activatePetAndRender(pet) {
     host.style.transition = "";
   }
   showRecap(recap, loginBonus);
+
+  // Record the species the moment it's revealed (egg -> hatchling), same
+  // trigger point as the "You got a ___!" recap line above — not on later
+  // stage-ups, and not re-fired for a species already in the collection.
+  const hatched = recap.find((r) => r.stat === "life_stage" && r.to === "hatchling");
+  if (hatched && currentUserId && !currentCollection.has(hatched.species)) {
+    currentCollection.add(hatched.species);
+    db.recordSpeciesDiscovered(currentUserId, hatched.species).catch(() => {});
+  }
 }
 
 async function loadPetsForUser(userId, email) {
@@ -2138,7 +2243,18 @@ async function loadPetsForUser(userId, email) {
   currentUserEmail = email;
   notifiedLow.clear();
   try {
-    const pets = await db.fetchPets(userId);
+    // Collection/scores are user-scoped, not pet-scoped, so they're fetched
+    // once here rather than on every activatePetAndRender pet switch. Each
+    // falls back to empty on failure (e.g. the table doesn't exist yet in
+    // Supabase because the migration hasn't been run) so a pending schema
+    // update can't take down login entirely.
+    const [pets, collection, scores] = await Promise.all([
+      db.fetchPets(userId),
+      db.fetchCollection(userId).catch(() => []),
+      db.fetchScores(userId).catch(() => ({})),
+    ]);
+    currentCollection = new Set(collection);
+    currentScores = scores;
     if (!pets.length) {
       screen("name-pet");
       return;

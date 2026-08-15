@@ -100,6 +100,38 @@ export async function setActivePet(userId, petId) {
   return data;
 }
 
+export async function fetchCollection(userId) {
+  const { data, error } = await requireClient().from("species_collection").select("species").eq("user_id", userId);
+  if (error) throw error;
+  return data.map((r) => r.species);
+}
+
+export async function recordSpeciesDiscovered(userId, species) {
+  const { error } = await requireClient()
+    .from("species_collection")
+    .upsert({ user_id: userId, species }, { onConflict: "user_id,species", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+export async function fetchScores(userId) {
+  const { data, error } = await requireClient().from("game_scores").select("game, best_hits").eq("user_id", userId);
+  if (error) throw error;
+  const scores = {};
+  for (const row of data) scores[row.game] = row.best_hits;
+  return scores;
+}
+
+// Upserts the raw value passed in — the caller is responsible for only
+// calling this once it already knows `hits` beats the cached best (see
+// runPlayGame), same "client computes, writes back" trust model as the rest
+// of the app (design doc §8).
+export async function recordScore(userId, game, hits) {
+  const { error } = await requireClient()
+    .from("game_scores")
+    .upsert({ user_id: userId, game, best_hits: hits, updated_at: new Date().toISOString() }, { onConflict: "user_id,game" });
+  if (error) throw error;
+}
+
 export async function savePet(pet) {
   const { data, error } = await requireClient()
     .from("pets")
@@ -143,6 +175,8 @@ export async function savePet(pet) {
       toy_x: pet.toy_x,
       toy_y: pet.toy_y,
       ball_color: pet.ball_color,
+      poop_count: pet.poop_count,
+      last_poop_at: pet.last_poop_at,
       birth_timestamp: pet.birth_timestamp,
       last_updated: pet.last_updated,
     })
