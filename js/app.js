@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=71";
-import * as db from "./supabase.js?v=71";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=71";
-import { VERSION } from "./version.js?v=71";
+} from "./pet-sprites.js?v=72";
+import * as db from "./supabase.js?v=72";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=72";
+import { VERSION } from "./version.js?v=72";
 
 const HOUR = 3600000;
 
@@ -1814,7 +1814,7 @@ function renderGamePickerScores() {
   document.querySelectorAll(".game-picker-btn[data-game]").forEach((btn) => {
     const best = currentScores[btn.dataset.game];
     const badge = btn.querySelector(".game-best");
-    if (badge) badge.textContent = best ? `Best ${best}` : "";
+    if (badge) badge.textContent = best ? `(${best})` : "";
   });
 }
 
