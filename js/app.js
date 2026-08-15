@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=72";
-import * as db from "./supabase.js?v=72";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=72";
-import { VERSION } from "./version.js?v=72";
+} from "./pet-sprites.js?v=73";
+import * as db from "./supabase.js?v=73";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=73";
+import { VERSION } from "./version.js?v=73";
 
 const HOUR = 3600000;
 
@@ -775,7 +775,7 @@ function renderPetPicker(pets) {
       </div>
       <div class="pet-picker-info">
         <b>${p.name}</b>
-        <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}`}</span>
+        <span>${p.life_stage === "egg" ? p.life_stage : `${speciesLabel(p)} · ${p.life_stage}${p.is_sleeping ? " · zzz" : ""}`}</span>
       </div>
       <button type="button" class="pet-picker-select" data-pet-id="${p.id}" ${p.is_active ? "disabled" : ""}>
         ${p.is_active ? "Active" : "Select"}
