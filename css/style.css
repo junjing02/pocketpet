@@ -248,7 +248,8 @@ button:disabled:active { transform: none; }
 .device:has(.pet-screen.pet--sleeping) #pet-screen,
 .device:has(.pet-screen.pet--sleeping) .pet-bed,
 .device:has(.pet-screen.pet--sleeping) .toy,
-.device:has(.pet-screen.pet--sleeping) .music-box {
+.device:has(.pet-screen.pet--sleeping) .music-box,
+.device:has(.pet-screen.pet--sleeping) .poop {
   filter: brightness(0.55);
 }
 
@@ -264,6 +265,10 @@ button:disabled:active { transform: none; }
   gap: 0;
   cursor: grab;
   touch-action: none;
+  /* Above every prop and the poop (see .poop's own z-index) so the pet
+     always reads as walking in front, never getting buried underneath one
+     it's standing near. */
+  z-index: 2;
   /* --move-duration is set per life stage in JS (younger = faster) */
   transition: left var(--move-duration, 1.6s) ease-in-out, top var(--move-duration, 1.6s) ease-in-out, width 0.8s ease, height 0.8s ease, filter 0.8s ease;
 }
@@ -309,17 +314,24 @@ button:disabled:active { transform: none; }
 /* Dropped poop (see MAX_POOP_COUNT in app.js) — up to 3 fixed ground slots,
    shown/hidden by poop_count rather than positioned at a real drop location,
    so there's no drag/collision math to carry for something this small.
-   Same flat-fill-plus-line treatment as every other prop; tapping one clears
-   it via clearPoop. */
+   Real brown instead of the flat-monochrome treatment every other prop
+   uses — the one other deliberate color exception besides mood tinting
+   (see LOW_STAT_MOODS in app.js), because it needs to read as "mess, spot
+   and clear me" at a glance rather than blend in as another gray shape.
+   z-index above every other prop (all z-index:auto) so it's never hidden
+   underneath one it happens to overlap, but still below #pet-screen
+   (z-index: 2) so the pet itself always stays on top. Tapping one clears it
+   via clearPoop. */
 .poop {
   position: absolute;
   bottom: 6px;
   width: 10px;
   height: 8px;
-  background: var(--track);
-  border: 1px solid var(--line);
+  background: #6b4423;
+  border: 1px solid #3f2712;
   border-radius: 3px 3px 6px 6px;
   cursor: pointer;
+  z-index: 1;
 }
 
 /* A draggable bed prop — stays on the playground permanently once bought
