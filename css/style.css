@@ -323,20 +323,23 @@ button:disabled:active { transform: none; }
    underneath one it happens to overlap, but still below #pet-screen
    (z-index: 2) so the pet itself always stays on top. Tapping one clears it
    via clearPoop.
-   An upright triangle via the classic zero-size-box-plus-borders trick
-   (taller than its base is wide, apex up) instead of the earlier rounded
-   blob — no separate outline layer here (unlike every other prop) since
-   faking a clean 1px stroke on a border-triangle needs a second, carefully
-   inset nested triangle and isn't worth the fragility for something this
-   small; el.offsetWidth/offsetHeight in renderPoop still correctly report
-   the 10x14 bounding box since borders count even at width/height: 0. */
+   An upright triangle via the classic zero-size-box-plus-borders trick,
+   apex up. Wide base + border-radius (rounds off the tip and the two base
+   corners, a trick that works even on a border-triangle) for a softer,
+   cuter cone instead of a sharp spike. No separate outline layer here
+   (unlike every other prop) since faking a clean 1px stroke on a
+   border-triangle needs a second, carefully inset nested triangle and
+   isn't worth the fragility for something this small;
+   el.offsetWidth/offsetHeight in renderPoop still correctly report the
+   14x12 bounding box since borders count even at width/height: 0. */
 .poop {
   position: absolute;
   width: 0;
   height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 14px solid #6b4423;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid #6b4423;
+  border-radius: 3px;
   cursor: pointer;
   z-index: 1;
 }
