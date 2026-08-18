@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=90";
-import { propSpriteHtml } from "./prop-sprites.js?v=90";
-import * as db from "./supabase.js?v=90";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=90";
-import { VERSION } from "./version.js?v=90";
+} from "./pet-sprites.js?v=91";
+import { propSpriteHtml } from "./prop-sprites.js?v=91";
+import * as db from "./supabase.js?v=91";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=91";
+import { VERSION } from "./version.js?v=91";
 
 const HOUR = 3600000;
 
@@ -436,10 +436,18 @@ export function clean(pet) {
 
 // Clears a single dropped poop (see MAX_POOP_COUNT in applyDecay) — a small
 // direct Hygiene bump, separate from the full-bath Clean button above.
-export function clearPoop(pet) {
+export function clearPoop(pet, nowMs = Date.now()) {
   if ((pet.poop_count || 0) <= 0) return pet;
   pet.poop_count -= 1;
   pet.hygiene = clamp(pet.hygiene + 5);
+  // Without this, last_poop_at stays wherever it was from the last natural
+  // spawn — applyDecay's poop-spawn math (see below) only looks at elapsed
+  // time since that timestamp, with no idea any poop was ever manually
+  // cleared. The next time applyDecay ran (every refresh/pet-switch, via
+  // activatePetAndRender), it saw a huge stale gap and immediately
+  // refilled poop_count back toward MAX_POOP_COUNT — the actual bug behind
+  // "the poop reappears after I refresh."
+  pet.last_poop_at = new Date(nowMs).toISOString();
   return pet;
 }
 
@@ -924,7 +932,6 @@ function renderPropSprites() {
   const specs = [
     { id: "pet-bed", sprite: "bed" },
     { id: "toy", sprite: "ball" },
-    { id: "music-box", sprite: "musicBoxDisc" },
     { id: "night-light", sprite: "nightLightBulb" },
   ];
   for (const { id, sprite } of specs) {
@@ -933,6 +940,16 @@ function renderPropSprites() {
     el.style.setProperty("--grid-size", width);
     el.innerHTML = html;
   }
+  // The disc lives in its own inner element, not #music-box itself, so the
+  // spin-while-playing animation (.music-box--playing, in style.css) only
+  // rotates the disc — the ♪/♫ note pseudo-elements are on #music-box's own
+  // outer box and need to stay upright and float straight up regardless of
+  // the disc spinning underneath them.
+  const disc = propSpriteHtml("musicBoxDisc");
+  const discEl = document.querySelector("#music-box .music-box-disc");
+  discEl.style.setProperty("--grid-size", disc.width);
+  discEl.innerHTML = disc.html;
+
   const poop = propSpriteHtml("poop");
   for (let i = 0; i < MAX_POOP_COUNT; i++) {
     const el = $(`poop-${i}`);
@@ -957,26 +974,13 @@ const GROUNDED_ITEMS = [
   { id: "music-box", xField: "music_box_x", yField: "music_box_y", defaultX: DEFAULT_MUSIC_BOX_X, defaultY: DEFAULT_MUSIC_BOX_Y, owned: (p) => p.has_music_box && p.music_box_active },
 ];
 
-// Tracks which items were already visible last render, keyed by id and
-// reset whenever the active pet changes (same pattern as
-// poopPositions/poopPositionsPetId) — so switching to a different pet's
-// Bed doesn't get skipped as "already checked" just because some other
-// pet's Bed happened to occupy that key before.
-let groundedItemWasVisible = {};
-let groundedItemVisiblePetId = null;
-
 function renderGroundedItems(pet) {
   const device = $("pet-device");
-  if (pet.id !== groundedItemVisiblePetId) {
-    groundedItemWasVisible = {};
-    groundedItemVisiblePetId = pet.id;
-  }
 
   for (const item of GROUNDED_ITEMS) {
     const el = $(item.id);
     if (pet.life_stage === "egg" || !item.owned(pet)) {
       el.hidden = true;
-      groundedItemWasVisible[item.id] = false;
       continue;
     }
     el.hidden = false;
@@ -986,14 +990,18 @@ function renderGroundedItems(pet) {
     let x = minX + fx * (maxX - minX);
     let y = minY + fy * (maxY - minY);
 
-    // Items got noticeably bigger under the pixel-dot redesign (see
-    // prop-sprites.js) — a DEFAULT_*_X/Y fraction (or a position saved back
-    // when items were smaller) can now overlap another item at that same
-    // fraction. Only checked the first time an item becomes visible, not
-    // every render — dragging already has its own overlap prevention (see
-    // wireDragGroundedItem), this just covers the initial placement it
-    // never ran on.
-    if (!groundedItemWasVisible[item.id] && overlapsFloorObstacles(item.id, x, y, el.offsetWidth, el.offsetHeight)) {
+    // Checked on every render, not just once — items got noticeably bigger
+    // under the pixel-dot redesign (see prop-sprites.js), so a
+    // DEFAULT_*_X/Y fraction (or a position saved back when items were
+    // smaller) can overlap another item at that same fraction, and an
+    // earlier "only check the first time it becomes visible" version of
+    // this couldn't catch or re-heal an overlap that showed up later (e.g.
+    // from two saves racing each other and one clobbering the other's
+    // correction — see persist() elsewhere). Checking fresh every render is
+    // cheap (a no-op once nothing overlaps) and self-heals regardless of
+    // how the overlap got there. Dragging still has its own separate, harder
+    // block (see wireDragGroundedItem) so this never fights an active drag.
+    if (overlapsFloorObstacles(item.id, x, y, el.offsetWidth, el.offsetHeight)) {
       const spot = randomFreeFloorSpot(el, device, item.id);
       x = spot.x;
       y = spot.y;
@@ -1001,7 +1009,6 @@ function renderGroundedItems(pet) {
       pet[item.yField] = maxY > minY ? (y - minY) / (maxY - minY) : 0.5;
       persist().catch(() => {});
     }
-    groundedItemWasVisible[item.id] = true;
 
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
@@ -2166,6 +2173,19 @@ function wireActions() {
   for (let i = 0; i < MAX_POOP_COUNT; i++) {
     $(`poop-${i}`).addEventListener("click", (e) => {
       e.stopPropagation(); // otherwise this bubbles to #pet-device and also walks the pet here
+      // A drag-release's synthetic click targets whatever's topmost at the
+      // pointer's coordinates, not necessarily the element that was
+      // dragged (pointer capture covers pointer events, not the click that
+      // follows) — since poop sits above every other prop in z-index, a
+      // Bed/Ball/Night Light drag ending near a poop could fire its click
+      // here instead of on #pet-device, which is the one place that
+      // normally checks and clears this flag. Without also doing it here,
+      // it stayed stuck true and silently swallowed the *next* real click
+      // on something else entirely (e.g. the Music Box not responding).
+      if (suppressNextPetClick) {
+        suppressNextPetClick = false;
+        return;
+      }
       if (!currentPet || (currentPet.poop_count || 0) <= 0) return;
       // clearPoop itself just decrements the shared poop_count counter — it
       // has no idea which of the 3 DOM slots was actually clicked, and

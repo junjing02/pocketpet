@@ -457,22 +457,28 @@ button:disabled:active { transform: none; }
 }
 
 /* A small turntable — no box/frame, just the disc itself (see the
-   "musicBoxDisc" profile in prop-sprites.js), dark like real vinyl, plus a
-   couple of music notes that float up and fade while it plays. #music-box
-   is the disc's own dot-grid now, not a wrapper around a separate child
-   element — spinning it while playing rotates the whole thing, which looks
-   identical to spinning just the disc since there's no frame around it to
-   stay still. A third free-roaming floor item alongside the Bed and Ball —
-   click toggles the song, drag moves it (wireMusicBox tells the two apart
-   via suppressNextPetClick). */
+   "musicBoxDisc" profile in prop-sprites.js), dark like real vinyl with a
+   small white center dot (the label hole), plus a couple of music notes
+   that float up and fade while it plays.
+   #music-box is a plain shrink-wrapping positioning box (size/drag/click
+   all still target it, same as every other prop) around an INNER
+   .music-box-disc element that holds the actual dot-grid — spinning only
+   the inner disc while playing (see .music-box--playing below) instead of
+   the whole outer box means the ♪/♫ notes, which live on the outer box's
+   own ::before/::after, stay upright and keep floating straight up instead
+   of spinning along with the disc underneath them. A third free-roaming
+   floor item alongside the Bed and Ball — click toggles the song, drag
+   moves it (wireMusicBox tells the two apart via suppressNextPetClick). */
 .music-box {
   position: absolute;
-  --dot-color: var(--fg);
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;
 }
-.music-box--playing {
+.music-box-disc {
+  --dot-color: var(--fg);
+}
+.music-box--playing .music-box-disc {
   animation: vinyl-spin 1.8s linear infinite;
 }
 @keyframes vinyl-spin {
