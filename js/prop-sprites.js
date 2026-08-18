@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=87";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=88";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -28,7 +28,7 @@ function setDot(grid, row, col, val) {
 const PROP_PROFILES = {
   ball: {
     startRow: 9,
-    halfWidths: [1, 2, 3, 3, 3, 2, 1],
+    halfWidths: [1, 2, 2, 2, 1],
   },
   poop: {
     startRow: 8,
