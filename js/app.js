@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=88";
-import { propSpriteHtml } from "./prop-sprites.js?v=88";
-import * as db from "./supabase.js?v=88";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=88";
-import { VERSION } from "./version.js?v=88";
+} from "./pet-sprites.js?v=89";
+import { propSpriteHtml } from "./prop-sprites.js?v=89";
+import * as db from "./supabase.js?v=89";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=89";
+import { VERSION } from "./version.js?v=89";
 
 const HOUR = 3600000;
 
@@ -913,6 +913,10 @@ function renderPropSprites() {
   }
   POOP_WIDTH = poop.width * DOT_SIZE;
   POOP_HEIGHT = poop.height * DOT_SIZE;
+  // The full diagonal, not just the width, so two poop can't overlap corner
+  // to corner either — with a bit of margin on top so they read as clearly
+  // separate rather than just barely not touching.
+  POOP_MIN_GAP_PX = Math.hypot(POOP_WIDTH, POOP_HEIGHT) * 1.15;
 }
 
 // Floor items are dragged and persisted as a saved fraction (0..1) of the
@@ -925,20 +929,54 @@ const GROUNDED_ITEMS = [
   { id: "music-box", xField: "music_box_x", yField: "music_box_y", defaultX: DEFAULT_MUSIC_BOX_X, defaultY: DEFAULT_MUSIC_BOX_Y, owned: (p) => p.has_music_box && p.music_box_active },
 ];
 
+// Tracks which items were already visible last render, keyed by id and
+// reset whenever the active pet changes (same pattern as
+// poopPositions/poopPositionsPetId) — so switching to a different pet's
+// Bed doesn't get skipped as "already checked" just because some other
+// pet's Bed happened to occupy that key before.
+let groundedItemWasVisible = {};
+let groundedItemVisiblePetId = null;
+
 function renderGroundedItems(pet) {
   const device = $("pet-device");
+  if (pet.id !== groundedItemVisiblePetId) {
+    groundedItemWasVisible = {};
+    groundedItemVisiblePetId = pet.id;
+  }
+
   for (const item of GROUNDED_ITEMS) {
     const el = $(item.id);
     if (pet.life_stage === "egg" || !item.owned(pet)) {
       el.hidden = true;
+      groundedItemWasVisible[item.id] = false;
       continue;
     }
     el.hidden = false;
     const { minX, minY, maxX, maxY } = groundedBounds(el, device);
     const fx = pet[item.xField] ?? item.defaultX;
     const fy = pet[item.yField] ?? item.defaultY;
-    el.style.left = `${minX + fx * (maxX - minX)}px`;
-    el.style.top = `${minY + fy * (maxY - minY)}px`;
+    let x = minX + fx * (maxX - minX);
+    let y = minY + fy * (maxY - minY);
+
+    // Items got noticeably bigger under the pixel-dot redesign (see
+    // prop-sprites.js) — a DEFAULT_*_X/Y fraction (or a position saved back
+    // when items were smaller) can now overlap another item at that same
+    // fraction. Only checked the first time an item becomes visible, not
+    // every render — dragging already has its own overlap prevention (see
+    // wireDragGroundedItem), this just covers the initial placement it
+    // never ran on.
+    if (!groundedItemWasVisible[item.id] && overlapsFloorObstacles(item.id, x, y, el.offsetWidth, el.offsetHeight)) {
+      const spot = randomFreeFloorSpot(el, device, item.id);
+      x = spot.x;
+      y = spot.y;
+      pet[item.xField] = maxX > minX ? (x - minX) / (maxX - minX) : 0.5;
+      pet[item.yField] = maxY > minY ? (y - minY) / (maxY - minY) : 0.5;
+      persist().catch(() => {});
+    }
+    groundedItemWasVisible[item.id] = true;
+
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   }
 }
 
@@ -993,9 +1031,16 @@ let poopPositions = {};
 let poopPositionsPetId = null;
 let POOP_WIDTH = 14;
 let POOP_HEIGHT = 12;
+// Set alongside POOP_WIDTH/HEIGHT in renderPropSprites, from the real
+// sprite size — has to be at least the poop's own footprint (with some
+// margin), not a flat guess, or two placed in the same batch can end up
+// with overlapping bounding boxes. When that happens the topmost one (later
+// in the DOM) eats every click in the overlap, including ones aimed at the
+// poop underneath it — that was the actual bug behind "only the first poop
+// I click can ever be cleared."
+let POOP_MIN_GAP_PX = 30;
 const POOP_SCATTER_FRACTION_X = 0.7; // of the playground's width
 const POOP_SCATTER_FRACTION_Y = 0.6; // of the playground's height
-const POOP_MIN_GAP_PX = 20; // minimum distance between two poop placed in the same batch
 
 function renderPoop(pet) {
   const isEgg = pet.life_stage === "egg";

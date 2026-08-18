@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=88";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=89";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -31,8 +31,8 @@ const PROP_PROFILES = {
     halfWidths: [1, 2, 2, 2, 1],
   },
   poop: {
-    startRow: 8,
-    halfWidths: [0, 1, 2, 1, 2, 3, 3, 3],
+    startRow: 9,
+    halfWidths: [0, 1, 2, 2, 2],
   },
   bed: {
     startRow: 7,
