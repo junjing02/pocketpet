@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=84";
-import * as db from "./supabase.js?v=84";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=84";
-import { VERSION } from "./version.js?v=84";
+} from "./pet-sprites.js?v=85";
+import * as db from "./supabase.js?v=85";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=85";
+import { VERSION } from "./version.js?v=85";
 
 const HOUR = 3600000;
 
@@ -987,14 +987,19 @@ function renderPoop(pet) {
     if (!poopPositions[i]) {
       const maxLeft = Math.max(0, device.clientWidth - POOP_WIDTH);
       const maxTop = Math.max(0, device.clientHeight - POOP_HEIGHT);
+      // Same floor line the Bed/Toy/Music Box are confined to (see
+      // groundedBounds) — without this, a wide vertical scatter can place
+      // poop above it, reading as floating rather than dropped on the
+      // ground.
+      const minTop = Math.min(maxTop, device.clientHeight * GROUND_MIN_Y_FRACTION);
       const anchorX = host.offsetLeft + host.offsetWidth / 2 - POOP_WIDTH / 2;
       const anchorY = host.offsetTop + host.offsetHeight - POOP_HEIGHT;
-      let left = anchorX, top = anchorY;
+      let left = anchorX, top = Math.max(minTop, anchorY);
       for (let tries = 0; tries < 8; tries++) {
         const jitterX = (Math.random() - 0.5) * device.clientWidth * POOP_SCATTER_FRACTION_X;
         const jitterY = (Math.random() - 0.5) * device.clientHeight * POOP_SCATTER_FRACTION_Y;
         left = Math.min(maxLeft, Math.max(0, anchorX + jitterX));
-        top = Math.min(maxTop, Math.max(0, anchorY + jitterY));
+        top = Math.min(maxTop, Math.max(minTop, anchorY + jitterY));
         const tooClose = Object.values(poopPositions).some((p) => Math.hypot(p.left - left, p.top - top) < POOP_MIN_GAP_PX);
         if (!tooClose) break;
       }
