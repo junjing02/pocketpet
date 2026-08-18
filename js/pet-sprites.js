@@ -603,7 +603,7 @@ export function trimBitmap(grid) {
 // Dilates the silhouette by one dot in every direction (including diagonals,
 // so corners stay solid) and marks that ring as outline — the thick black
 // border that reads as a single bold line around an otherwise flat sprite.
-function outlineSilhouette(grid) {
+export function outlineSilhouette(grid) {
   const toOutline = [];
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {

@@ -8,10 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=86";
-import * as db from "./supabase.js?v=86";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=86";
-import { VERSION } from "./version.js?v=86";
+} from "./pet-sprites.js?v=87";
+import { propSpriteHtml } from "./prop-sprites.js?v=87";
+import * as db from "./supabase.js?v=87";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=87";
+import { VERSION } from "./version.js?v=87";
 
 const HOUR = 3600000;
 
@@ -886,6 +887,34 @@ function showFoodBowl() {
   }, BOWL_SHOW_MS);
 }
 
+// Every prop's dot-grid shape is static (unlike the pet, nothing about a
+// Bed or Ball changes across renders), so this builds each one exactly
+// once — called from init(), before the first render() — rather than
+// rebuilding the same HTML on every render() call. Sets --grid-size and
+// injects the .dot cells, same pattern as the pet's own miniSpriteHtml.
+function renderPropSprites() {
+  const specs = [
+    { id: "pet-bed", sprite: "bed" },
+    { id: "toy", sprite: "ball" },
+    { id: "music-box", sprite: "musicBoxDisc" },
+    { id: "night-light", sprite: "nightLightBulb" },
+  ];
+  for (const { id, sprite } of specs) {
+    const { html, width } = propSpriteHtml(sprite);
+    const el = $(id);
+    el.style.setProperty("--grid-size", width);
+    el.innerHTML = html;
+  }
+  const poop = propSpriteHtml("poop");
+  for (let i = 0; i < MAX_POOP_COUNT; i++) {
+    const el = $(`poop-${i}`);
+    el.style.setProperty("--grid-size", poop.width);
+    el.innerHTML = poop.html;
+  }
+  POOP_WIDTH = poop.width * DOT_SIZE;
+  POOP_HEIGHT = poop.height * DOT_SIZE;
+}
+
 // Floor items are dragged and persisted as a saved fraction (0..1) of the
 // playground's usable area, not raw pixels, since the device's own width is
 // responsive (see .pet-visual's breakpoint). Recomputed on every render,
@@ -954,14 +983,16 @@ function syncMusicBoxAudio(pet) {
 // multiple simultaneous poops actually separating from each other instead
 // of stacking.
 //
-// POOP_WIDTH/HEIGHT are hardcoded to match .poop's CSS footprint rather than
-// read from el.offsetWidth/Height, since a newly-appearing poop is still
-// `hidden` (display:none, so offsetWidth/Height read 0) at the point this
-// position is computed, before the `el.hidden = false` below.
+// POOP_WIDTH/HEIGHT are computed once from the actual poop sprite (see
+// renderPropSprites, called from init()) rather than read from
+// el.offsetWidth/Height, since a newly-appearing poop is still `hidden`
+// (display:none, so offsetWidth/Height read 0) at the point this position
+// is computed, before the `el.hidden = false` below. The `let` fallback
+// values here only matter for the brief window before init() runs.
 let poopPositions = {};
 let poopPositionsPetId = null;
-const POOP_WIDTH = 14;
-const POOP_HEIGHT = 12;
+let POOP_WIDTH = 14;
+let POOP_HEIGHT = 12;
 const POOP_SCATTER_FRACTION_X = 0.7; // of the playground's width
 const POOP_SCATTER_FRACTION_Y = 0.6; // of the playground's height
 const POOP_MIN_GAP_PX = 20; // minimum distance between two poop placed in the same batch
@@ -2529,6 +2560,7 @@ function wireAuth() {
 
 async function init() {
   $("app-version").textContent = `v${VERSION}`;
+  renderPropSprites();
   wireAuth();
   wireActions();
   wireTooltipTouch();

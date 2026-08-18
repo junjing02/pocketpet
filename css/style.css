@@ -311,6 +311,30 @@ button:disabled:active { transform: none; }
 }
 .pet-bowl--fade { opacity: 0; }
 
+/* Every playground prop below (Bed, Ball, Music Box disc, Night Light bulb,
+   poop) is now a hand-tuned pixel-dot bitmap built by prop-sprites.js —
+   same rendering language as the pet itself (flat fill + 1-dot outline
+   dilated around the silhouette, see .dot/.dot--body/.dot--eye/.dot--outline
+   under "Puppy" below), instead of the smooth CSS circles/ovals/gradients
+   these used to be. That mismatch (a blocky pixel-art creature standing
+   next to perfectly smooth vector furniture) was the actual problem being
+   fixed here, not just a style refresh.
+   .prop-grid is the shared CSS-grid scaffold every prop uses — --grid-size
+   is set per element in JS (renderPropSprites) from the sprite's own
+   trimmed width, same pattern #pet-screen/.pet-picker-thumb-grid already
+   use. 3.5px must match pet-sprites.js's DOT_SIZE exactly; there's no build
+   step to inject the JS constant into CSS, so if DOT_SIZE ever changes,
+   this needs a matching manual update. --dot-color sets each prop's own
+   fill tint (.dot--body reads it); .dot--eye/.dot--outline both read the
+   inherited --fg, so a prop can also override --fg locally (see poop) to
+   recolor its own outline without touching the rest of the page. */
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-size), 3.5px);
+  grid-auto-rows: 3.5px;
+  gap: 0;
+}
+
 /* Dropped poop (see MAX_POOP_COUNT in app.js) — up to 3 slots, positioned in
    JS (see renderPoop) wherever the pet currently is the moment each one
    first appears, not a fixed spot, so it reads as the pet actually having
@@ -319,63 +343,35 @@ button:disabled:active { transform: none; }
    uses — the one other deliberate color exception besides mood tinting
    (see LOW_STAT_MOODS in app.js), because it needs to read as "mess, spot
    and clear me" at a glance rather than blend in as another gray shape.
+   The outline also gets its own darker brown (via a locally-overridden
+   --fg) instead of the site's usual near-black, for the same reason.
    z-index above every other prop (all z-index:auto) so it's never hidden
    underneath one it happens to overlap, but still below #pet-screen
    (z-index: 2) so the pet itself always stays on top. Tapping one clears it
-   via clearPoop.
-   An upright triangle via the classic zero-size-box-plus-borders trick,
-   apex up. Wide base + border-radius (rounds off the tip and the two base
-   corners, a trick that works even on a border-triangle) for a softer,
-   cuter cone instead of a sharp spike. No separate outline layer here
-   (unlike every other prop) since faking a clean 1px stroke on a
-   border-triangle needs a second, carefully inset nested triangle and
-   isn't worth the fragility for something this small;
-   el.offsetWidth/offsetHeight in renderPoop still correctly report the
-   14x12 bounding box since borders count even at width/height: 0. */
+   via clearPoop. */
 .poop {
   position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 12px solid #6b4423;
-  border-radius: 3px;
+  --dot-color: #6b4423;
+  --fg: #3f2712;
   cursor: pointer;
   z-index: 1;
 }
 
 /* A draggable bed prop — stays on the playground permanently once bought
-   (unlike the bowl's brief flash), wherever the user last dragged it. Flat
-   fill + 1px lines only, same treatment as .pet-bowl and every button/panel
-   in the app — no gradient or shadow, unlike the earlier "cushion" version.
-   2 concentric inset rings read as a woven rug/mat texture without adding
-   any new color or fill — still just thin lines, matching every other
-   line-based detail in the app. Oval (wider than tall) so it reads as a
-   mat rather than a plain circle. Sized bigger than even the adult stage's
-   own silhouette (~66-80px) so the mat still shows all the way around the
-   pet once it's lying on it. Sits behind #pet-screen in paint order so the
-   pet reads as lying on top of it once it walks over and sleeps there. */
+   (unlike the bowl's brief flash), wherever the user last dragged it. A
+   wide, flat silhouette (see the "bed" profile in prop-sprites.js) reads as
+   a mat/rug rather than a plain circle, with a couple of accent dots
+   (dot--eye, reusing the pet's own "dark detail" color) suggesting woven
+   texture — the pixel-grid equivalent of the concentric rings this used to
+   have. Sits behind #pet-screen in paint order so the pet reads as lying on
+   top of it once it walks over and sleeps there. */
 .pet-bed {
   position: absolute;
-  width: 92px;
-  height: 52px;
-  background: var(--track);
-  border: 1px solid var(--line);
-  border-radius: 50%;
+  --dot-color: var(--track);
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;
 }
-.pet-bed::before,
-.pet-bed::after {
-  content: "";
-  position: absolute;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  opacity: 0.3;
-}
-.pet-bed::before { inset: 7px; }
-.pet-bed::after { inset: 15px; }
 
 /* One dragging-state class shared by the Bed, Ball, Music Box, and Night
    Light (see wireDragGroundedItem / wireDragNightLight) instead of a
@@ -392,11 +388,7 @@ button:disabled:active { transform: none; }
 .night-light {
   position: absolute;
   top: 10px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--track);
-  border: 1px solid var(--line);
+  --dot-color: var(--track);
   cursor: grab;
   touch-action: none;
 }
@@ -413,14 +405,15 @@ button:disabled:active { transform: none; }
 /* A slow, gentle glow while the pet actually sleeps (the playground itself
    already goes dark then, see .device:has(...)) — reads as the light being
    "on" for a calm night rather than just a static prop. Plain white, so it
-   still reads as a light source without introducing a new hue. */
+   still reads as a light source without introducing a new hue. The bulb's
+   outline stays solid black regardless (dot--outline isn't touched here),
+   same "outline never tints" rule the pet itself follows for mood colors. */
 @keyframes night-light-glow {
   0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.4); }
   50% { box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.7); }
 }
 .device:has(.pet-screen.pet--sleeping) .night-light {
-  background: #ffffff;
-  border-color: #e6e6e6;
+  --dot-color: #ffffff;
   animation: night-light-glow 3s ease-in-out infinite;
 }
 .device:has(.pet-screen.pet--sleeping) .night-light::before {
@@ -428,9 +421,12 @@ button:disabled:active { transform: none; }
 }
 /* A soft halo of light spreading out from the bulb — a smooth radial
    gradient, not distinct rays/wedges (an earlier version used sharp conic
-   spokes and read as a cartoon sun instead of a light source). Blurred and
-   slowly breathing in size/opacity for a calm glow. Reuses ::after since
-   ::before is already the cord. */
+   spokes and read as a cartoon sun instead of a light source). This is the
+   one deliberately non-pixel exception among the props: diffuse light
+   doesn't have a clean dot-grid equivalent, same spirit as mood-color
+   tinting being the pet's own one exception to strict monochrome. Blurred
+   and slowly breathing in size/opacity for a calm glow. Reuses ::after
+   since ::before is already the cord. */
 .device:has(.pet-screen.pet--sleeping) .night-light::after {
   content: "";
   position: absolute;
@@ -446,53 +442,37 @@ button:disabled:active { transform: none; }
   50% { opacity: 1; transform: scale(1.1); }
 }
 
-/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS) —
-   a plain ball, no inner pattern. left/top transition (disabled while
-   actually being manually dragged, see .grounded-item--dragging) is what
-   makes kickToy()'s reposition read as rolling there instead of teleporting. */
+/* A second free-roaming floor item alongside the Bed (see GROUNDED_ITEMS).
+   left/top transition (disabled while actually being manually dragged, see
+   .grounded-item--dragging) is what makes kickToy()'s reposition read as
+   rolling there instead of teleporting. --ball-color is still set directly
+   by app.js (setBallColor/render) exactly as before — --dot-color here just
+   reads through to it, so the color-picker plumbing needed no changes. */
 .toy {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--ball-color, var(--track));
-  border: 1px solid var(--line);
+  --dot-color: var(--ball-color, var(--track));
   cursor: grab;
   touch-action: none;
   transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
 }
 
-/* A small turntable: no box/frame anymore, just the spinning vinyl-disc
-   child element itself (see #music-box .vinyl-disc, toggled by
-   wireMusicBox) plus a couple of music notes that float up and fade while
-   it plays. #music-box is now purely an invisible positioning wrapper —
-   size/position/drag all still target it (see GROUNDED_ITEMS, wireMusicBox)
-   — with the disc filling it completely instead of sitting inset inside a
-   drawn rectangle. A third free-roaming floor item alongside the Bed and
-   Ball — click toggles the song, drag moves it (wireMusicBox tells the two
-   apart via suppressNextPetClick). */
+/* A small turntable — no box/frame, just the disc itself (see the
+   "musicBoxDisc" profile in prop-sprites.js), dark like real vinyl, plus a
+   couple of music notes that float up and fade while it plays. #music-box
+   is the disc's own dot-grid now, not a wrapper around a separate child
+   element — spinning it while playing rotates the whole thing, which looks
+   identical to spinning just the disc since there's no frame around it to
+   stay still. A third free-roaming floor item alongside the Bed and Ball —
+   click toggles the song, drag moves it (wireMusicBox tells the two apart
+   via suppressNextPetClick). */
 .music-box {
   position: absolute;
-  width: 18px;
-  height: 18px;
+  --dot-color: var(--fg);
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;
 }
-.vinyl-disc {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--fg);
-}
-.vinyl-disc::after {
-  content: "";
-  position: absolute;
-  inset: 35%;
-  border-radius: 50%;
-  background: var(--track);
-}
-.music-box--playing .vinyl-disc {
+.music-box--playing {
   animation: vinyl-spin 1.8s linear infinite;
 }
 @keyframes vinyl-spin {
@@ -510,7 +490,7 @@ button:disabled:active { transform: none; }
   animation: note-float 2.4s ease-in infinite;
 }
 .music-box--playing::before { left: -3px; }
-.music-box--playing::after { content: "♫"; left: 13px; animation-delay: 1.1s; }
+.music-box--playing::after { content: "♫"; left: 22px; animation-delay: 1.1s; }
 @keyframes note-float {
   0% { opacity: 0; transform: translateY(0); }
   15% { opacity: 0.8; }
