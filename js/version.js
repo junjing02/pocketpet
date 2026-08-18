@@ -4,4 +4,4 @@
 // a breaking data-model or full redesign — not on every commit, and not the
 // same thing as the ?v=N cache-bust query string elsewhere in this file,
 // which just forces a fresh fetch and has no semantic meaning.
-export const VERSION = "1.9.8";
+export const VERSION = "1.9.9";

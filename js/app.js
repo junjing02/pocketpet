@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=85";
-import * as db from "./supabase.js?v=85";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=85";
-import { VERSION } from "./version.js?v=85";
+} from "./pet-sprites.js?v=86";
+import * as db from "./supabase.js?v=86";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=86";
+import { VERSION } from "./version.js?v=86";
 
 const HOUR = 3600000;
 
@@ -2042,6 +2042,19 @@ function wireActions() {
   for (let i = 0; i < MAX_POOP_COUNT; i++) {
     $(`poop-${i}`).addEventListener("click", (e) => {
       e.stopPropagation(); // otherwise this bubbles to #pet-device and also walks the pet here
+      if (!currentPet || (currentPet.poop_count || 0) <= 0) return;
+      // clearPoop itself just decrements the shared poop_count counter — it
+      // has no idea which of the 3 DOM slots was actually clicked, and
+      // renderPoop always shows slots 0..poop_count-1, so without this the
+      // highest-index slot would disappear regardless of which one you
+      // tapped. Shift the higher slots' cached positions down over this one
+      // first so the clicked slot visually vanishes and the others hold
+      // their own spot, then let clearPoop do the actual state change.
+      for (let j = i; j < MAX_POOP_COUNT - 1; j++) {
+        if (poopPositions[j + 1]) poopPositions[j] = poopPositions[j + 1];
+        else delete poopPositions[j];
+      }
+      delete poopPositions[MAX_POOP_COUNT - 1];
       runAction(clearPoop, { bounce: false, sound: "clean" });
     });
   }
