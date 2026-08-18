@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=89";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=90";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -31,8 +31,8 @@ const PROP_PROFILES = {
     halfWidths: [1, 2, 2, 2, 1],
   },
   poop: {
-    startRow: 9,
-    halfWidths: [0, 1, 2, 2, 2],
+    startRow: 10,
+    halfWidths: [0, 1, 2, 2],
   },
   bed: {
     startRow: 7,
@@ -42,6 +42,11 @@ const PROP_PROFILES = {
   musicBoxDisc: {
     startRow: 8,
     halfWidths: [1, 3, 4, 4, 4, 3, 1],
+    // A single light dot at the center — the record's label hole — so the
+    // disc isn't just a plain filled circle. value: 4 (dot--light) instead
+    // of the dark dot--eye accent the Bed uses, since this needs to read as
+    // lighter than the disc, not another dark detail.
+    accents: { rowOffset: 3, colOffsets: [0], value: 4 },
   },
   nightLightBulb: {
     startRow: 10,
@@ -58,7 +63,8 @@ function buildPropBitmap(name) {
   });
   if (profile.accents) {
     const row = profile.startRow + profile.accents.rowOffset;
-    for (const off of profile.accents.colOffsets) setDot(grid, row, CX + off, 2);
+    const value = profile.accents.value ?? 2;
+    for (const off of profile.accents.colOffsets) setDot(grid, row, CX + off, value);
   }
   outlineSilhouette(grid);
   return grid;
@@ -66,13 +72,15 @@ function buildPropBitmap(name) {
 
 // Returns the same { html, width } shape pet-sprites.js's own sprite
 // rendering produces, so call sites set --grid-size and inject .innerHTML
-// exactly like every other dot-grid render in this app.
+// exactly like every other dot-grid render in this app. Value 4 (dot--light)
+// is prop-only — the pet's own sprites never use it, that slot is dot--bow
+// there — so reusing the number doesn't collide with anything.
 export function propSpriteHtml(name) {
   const { rows, width } = trimBitmap(buildPropBitmap(name));
   let html = "";
   for (const row of rows) {
     for (const v of row) {
-      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}"></i>`;
+      html += `<i class="dot${v === 1 ? " dot--body" : ""}${v === 2 ? " dot--eye" : ""}${v === 3 ? " dot--outline" : ""}${v === 4 ? " dot--light" : ""}"></i>`;
     }
   }
   return { html, width, height: rows.length };

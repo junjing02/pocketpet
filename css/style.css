@@ -482,15 +482,15 @@ button:disabled:active { transform: none; }
 .music-box--playing::after {
   content: "♪";
   position: absolute;
-  top: -2px;
-  font-size: 8px;
+  top: -6px;
+  font-size: 14px;
   line-height: 1;
   color: var(--line);
   opacity: 0;
   animation: note-float 2.4s ease-in infinite;
 }
-.music-box--playing::before { left: -3px; }
-.music-box--playing::after { content: "♫"; left: 22px; animation-delay: 1.1s; }
+.music-box--playing::before { left: -6px; }
+.music-box--playing::after { content: "♫"; left: 26px; animation-delay: 1.1s; }
 @keyframes note-float {
   0% { opacity: 0; transform: translateY(0); }
   15% { opacity: 0.8; }
@@ -663,6 +663,7 @@ button:disabled:active { transform: none; }
 .dot--eye { background: var(--fg); }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
+.dot--light { background: #ffffff; }
 
 .pet-status {
   text-align: center;

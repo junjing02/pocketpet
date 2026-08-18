@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=89";
-import { propSpriteHtml } from "./prop-sprites.js?v=89";
-import * as db from "./supabase.js?v=89";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=89";
-import { VERSION } from "./version.js?v=89";
+} from "./pet-sprites.js?v=90";
+import { propSpriteHtml } from "./prop-sprites.js?v=90";
+import * as db from "./supabase.js?v=90";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=90";
+import { VERSION } from "./version.js?v=90";
 
 const HOUR = 3600000;
 
@@ -527,6 +527,16 @@ function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad = 4) {
   return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
 }
 
+// Actual overlapping area between two rects (0 if they don't touch at all)
+// — used by randomFreeFloorSpot to rank candidate spots instead of just
+// pass/fail, so a crowded playground degrades to "least-bad overlap"
+// instead of "whatever the last random guess happened to be."
+function rectOverlapArea(ax, ay, aw, ah, bx, by, bw, bh) {
+  const ox = Math.max(0, Math.min(ax + aw, bx + bw) - Math.max(ax, bx));
+  const oy = Math.max(0, Math.min(ay + ah, by + bh) - Math.max(ay, by));
+  return ox * oy;
+}
+
 // Every floor item that must never overlap another — the Bed and Toy are
 // draggable (see GROUNDED_ITEMS), the Music Box is fixed but still occupies
 // floor space, so it's still a live obstacle for the other two.
@@ -542,19 +552,37 @@ function overlapsFloorObstacles(excludeId, x, y, w, h) {
   return false;
 }
 
+function totalFloorOverlapArea(excludeId, x, y, w, h) {
+  let total = 0;
+  for (const id of FLOOR_OBSTACLE_IDS) {
+    if (id === excludeId) continue;
+    const el = $(id);
+    if (el.hidden) continue;
+    total += rectOverlapArea(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight);
+  }
+  return total;
+}
+
 // Random spot within `el`'s own grounded bounds that doesn't overlap any
-// other floor item — used for the Toy's "kick" (see kickToy). Gives up
-// after a handful of tries and just returns the last spot rolled rather
-// than looping forever on a crowded playground.
+// other floor item — used for the Toy's "kick" (see kickToy) and for
+// correcting an overlapping default/saved position (see
+// renderGroundedItems). Tracks the least-bad candidate across every try
+// instead of just accepting whatever the *last* random guess happened to
+// be — with items now sized for the pixel-dot redesign (see
+// prop-sprites.js), a crowded playground could otherwise reliably fail to
+// find a clean spot in only a handful of tries and lock in an overlapping
+// one every time.
 function randomFreeFloorSpot(el, device, excludeId) {
   const { minX, minY, maxX, maxY } = groundedBounds(el, device);
-  let x = minX, y = minY;
-  for (let i = 0; i < 12; i++) {
-    x = minX + Math.random() * (maxX - minX);
-    y = minY + Math.random() * (maxY - minY);
-    if (!overlapsFloorObstacles(excludeId, x, y, el.offsetWidth, el.offsetHeight)) break;
+  let best = { x: minX, y: minY, overlap: Infinity };
+  for (let i = 0; i < 40; i++) {
+    const x = minX + Math.random() * (maxX - minX);
+    const y = minY + Math.random() * (maxY - minY);
+    const overlap = totalFloorOverlapArea(excludeId, x, y, el.offsetWidth, el.offsetHeight);
+    if (overlap === 0) return { x, y };
+    if (overlap < best.overlap) best = { x, y, overlap };
   }
-  return { x, y };
+  return best;
 }
 
 function wanderPet() {
@@ -1070,14 +1098,34 @@ function renderPoop(pet) {
       const minTop = Math.min(maxTop, device.clientHeight * GROUND_MIN_Y_FRACTION);
       const anchorX = host.offsetLeft + host.offsetWidth / 2 - POOP_WIDTH / 2;
       const anchorY = host.offsetTop + host.offsetHeight - POOP_HEIGHT;
+      // Tracks the closest-any-other-poop distance for each try instead of
+      // just accepting whatever the *last* random guess happened to be —
+      // same reasoning as randomFreeFloorSpot below: with a small
+      // playground and a real minimum gap now enforced (see
+      // POOP_MIN_GAP_PX), a handful of tries could reliably fail to find
+      // one that clears every existing poop.
       let left = anchorX, top = Math.max(minTop, anchorY);
-      for (let tries = 0; tries < 8; tries++) {
+      let bestGap = -Infinity;
+      for (let tries = 0; tries < 40; tries++) {
         const jitterX = (Math.random() - 0.5) * device.clientWidth * POOP_SCATTER_FRACTION_X;
         const jitterY = (Math.random() - 0.5) * device.clientHeight * POOP_SCATTER_FRACTION_Y;
-        left = Math.min(maxLeft, Math.max(0, anchorX + jitterX));
-        top = Math.min(maxTop, Math.max(minTop, anchorY + jitterY));
-        const tooClose = Object.values(poopPositions).some((p) => Math.hypot(p.left - left, p.top - top) < POOP_MIN_GAP_PX);
-        if (!tooClose) break;
+        const candLeft = Math.min(maxLeft, Math.max(0, anchorX + jitterX));
+        const candTop = Math.min(maxTop, Math.max(minTop, anchorY + jitterY));
+        const closestGap = Object.values(poopPositions).reduce(
+          (min, p) => Math.min(min, Math.hypot(p.left - candLeft, p.top - candTop)),
+          Infinity
+        );
+        if (closestGap >= POOP_MIN_GAP_PX) {
+          left = candLeft;
+          top = candTop;
+          bestGap = closestGap;
+          break;
+        }
+        if (closestGap > bestGap) {
+          bestGap = closestGap;
+          left = candLeft;
+          top = candTop;
+        }
       }
       poopPositions[i] = { left, top };
     }
