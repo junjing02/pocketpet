@@ -8,10 +8,10 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=83";
-import * as db from "./supabase.js?v=83";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=83";
-import { VERSION } from "./version.js?v=83";
+} from "./pet-sprites.js?v=84";
+import * as db from "./supabase.js?v=84";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=84";
+import { VERSION } from "./version.js?v=84";
 
 const HOUR = 3600000;
 
@@ -935,18 +935,36 @@ function syncMusicBoxAudio(pet) {
   if (!isMelodyPlaying()) playMelody(ODE_TO_JOY);
 }
 
-// Positions are computed here, not persisted — each poop drops wherever the
-// pet currently is the moment it's first shown (a little scatter added so
-// several appearing at once, e.g. after time away, don't land in an exact
-// stack), then stays put across re-renders until cleared. poopPositions is
-// keyed by slot index and only valid for poopPositionsPetId — switching to
-// a different pet resets it so poop repositions to *that* pet's own spot
-// instead of showing leftover positions from whichever pet was active
-// before.
+// Positions are computed here, not persisted — each poop drops near wherever
+// the pet currently is the moment it's first shown, then stays put across
+// re-renders until cleared. poopPositions is keyed by slot index and only
+// valid for poopPositionsPetId — switching to a different pet resets it so
+// poop repositions to *that* pet's own spot instead of showing leftover
+// positions from whichever pet was active before.
+//
+// The scatter has to be generous (a good fraction of the whole playground,
+// not a few px) for two reasons: render() runs before the pet's very first
+// wander tick (that's on a delayed timer), so right after login #pet-screen
+// is still sitting at its CSS default top-left starting spot — with a small
+// scatter, poop that accumulated while away (often several at once, from a
+// single catch-up decay calculation) would land in a tight cluster in that
+// same corner on every login. A wide scatter plus the retry-until-spaced-out
+// loop below (same "give up after a few tries" spirit as
+// randomFreeFloorSpot) fixes both: real variety session to session, and
+// multiple simultaneous poops actually separating from each other instead
+// of stacking.
+//
+// POOP_WIDTH/HEIGHT are hardcoded to match .poop's CSS footprint rather than
+// read from el.offsetWidth/Height, since a newly-appearing poop is still
+// `hidden` (display:none, so offsetWidth/Height read 0) at the point this
+// position is computed, before the `el.hidden = false` below.
 let poopPositions = {};
 let poopPositionsPetId = null;
-const POOP_SCATTER_X = 16;
-const POOP_SCATTER_Y = 10;
+const POOP_WIDTH = 14;
+const POOP_HEIGHT = 12;
+const POOP_SCATTER_FRACTION_X = 0.7; // of the playground's width
+const POOP_SCATTER_FRACTION_Y = 0.6; // of the playground's height
+const POOP_MIN_GAP_PX = 20; // minimum distance between two poop placed in the same batch
 
 function renderPoop(pet) {
   const isEgg = pet.life_stage === "egg";
@@ -967,12 +985,19 @@ function renderPoop(pet) {
       continue;
     }
     if (!poopPositions[i]) {
-      const jitterX = (Math.random() - 0.5) * POOP_SCATTER_X;
-      const jitterY = (Math.random() - 0.5) * POOP_SCATTER_Y;
-      const maxLeft = Math.max(0, device.clientWidth - el.offsetWidth);
-      const maxTop = Math.max(0, device.clientHeight - el.offsetHeight);
-      const left = Math.min(maxLeft, Math.max(0, host.offsetLeft + host.offsetWidth / 2 - el.offsetWidth / 2 + jitterX));
-      const top = Math.min(maxTop, Math.max(0, host.offsetTop + host.offsetHeight - el.offsetHeight + jitterY));
+      const maxLeft = Math.max(0, device.clientWidth - POOP_WIDTH);
+      const maxTop = Math.max(0, device.clientHeight - POOP_HEIGHT);
+      const anchorX = host.offsetLeft + host.offsetWidth / 2 - POOP_WIDTH / 2;
+      const anchorY = host.offsetTop + host.offsetHeight - POOP_HEIGHT;
+      let left = anchorX, top = anchorY;
+      for (let tries = 0; tries < 8; tries++) {
+        const jitterX = (Math.random() - 0.5) * device.clientWidth * POOP_SCATTER_FRACTION_X;
+        const jitterY = (Math.random() - 0.5) * device.clientHeight * POOP_SCATTER_FRACTION_Y;
+        left = Math.min(maxLeft, Math.max(0, anchorX + jitterX));
+        top = Math.min(maxTop, Math.max(0, anchorY + jitterY));
+        const tooClose = Object.values(poopPositions).some((p) => Math.hypot(p.left - left, p.top - top) < POOP_MIN_GAP_PX);
+        if (!tooClose) break;
+      }
       poopPositions[i] = { left, top };
     }
     el.style.left = `${poopPositions[i].left}px`;
