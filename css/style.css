@@ -334,6 +334,17 @@ button:disabled:active { transform: none; }
   grid-auto-rows: 3.5px;
   gap: 0;
 }
+/* [hidden] and .prop-grid both have (0,1,0) specificity, and an author rule
+   of equal specificity always beats the browser's own UA stylesheet rule
+   ([hidden] { display: none }) regardless of source order — so every prop
+   (poop included) kept rendering, in its last-known position, even after
+   JS set el.hidden = true. This is what actually caused "cleared poop /
+   un-owned items are still showing, sometimes stuck in an old corner spot"
+   across every prop, not a positioning or ownership bug in app.js at all.
+   .prop-grid[hidden] has (0,2,0) specificity, which wins. */
+.prop-grid[hidden] {
+  display: none;
+}
 
 /* Dropped poop (see MAX_POOP_COUNT in app.js) — up to 3 slots, positioned in
    JS (see renderPoop) wherever the pet currently is the moment each one
