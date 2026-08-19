@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=103";
-import { propSpriteHtml } from "./prop-sprites.js?v=103";
-import * as db from "./supabase.js?v=103";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=103";
-import { VERSION } from "./version.js?v=103";
+} from "./pet-sprites.js?v=104";
+import { propSpriteHtml } from "./prop-sprites.js?v=104";
+import * as db from "./supabase.js?v=104";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=104";
+import { VERSION } from "./version.js?v=104";
 
 const HOUR = 3600000;
 
@@ -580,10 +580,10 @@ function rectOverlapArea(ax, ay, aw, ah, bx, by, bw, bh) {
 }
 
 // Every floor item that must never overlap another — the Bed, Toy, and
-// Toilet Bowl are draggable (see GROUNDED_ITEMS), the Music Box is fixed
-// but still occupies floor space, so it's still a live obstacle for the
-// others.
-const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "music-box", "toilet-bowl"];
+// Toilet Bowl are draggable (see GROUNDED_ITEMS). The Music Box moved to
+// the wall (see renderMusicBoxPosition/wireDragMusicBoxPosition) so it no
+// longer occupies floor space and isn't a floor obstacle anymore.
+const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "toilet-bowl"];
 
 // The Ball is small and soft enough to realistically sit on top of the Bed
 // (like a toy resting on a rug), so it's the one pairing that's allowed to
@@ -1033,7 +1033,6 @@ function renderPropSprites() {
 const GROUNDED_ITEMS = [
   { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
   { id: "toy", xField: "toy_x", yField: "toy_y", defaultX: DEFAULT_TOY_X, defaultY: DEFAULT_TOY_Y, owned: (p) => p.has_toy && p.toy_active },
-  { id: "music-box", xField: "music_box_x", yField: "music_box_y", defaultX: DEFAULT_MUSIC_BOX_X, defaultY: DEFAULT_MUSIC_BOX_Y, owned: (p) => p.has_music_box && p.music_box_active },
   { id: "toilet-bowl", xField: "toilet_bowl_x", yField: "toilet_bowl_y", defaultX: DEFAULT_TOILET_BOWL_X, defaultY: DEFAULT_TOILET_BOWL_Y, owned: (p) => p.has_toilet_bowl && p.toilet_bowl_active },
 ];
 
@@ -1302,6 +1301,7 @@ function render() {
   renderGroundedItems(currentPet);
   ensureHostPositioned(currentPet);
   renderNightLight(currentPet);
+  renderMusicBoxPosition(currentPet);
   renderPoop(currentPet);
   syncMusicBoxAudio(currentPet);
   $("toy").style.setProperty("--ball-color", currentPet.ball_color || DEFAULT_BALL_COLOR);
@@ -1911,16 +1911,78 @@ function wireDragNightLight() {
   el.addEventListener("pointercancel", endDrag);
 }
 
+// The Music Box mounts on the wall, not the floor — its own render/drag
+// pair instead of joining GROUNDED_ITEMS, the same pattern the Night Light
+// above already uses: top stays fixed in CSS, only left (a saved 0..1
+// fraction of the horizontal range) moves, and it never enters the floor
+// region or competes with Bed/Toy/Toilet Bowl for floor space.
+function renderMusicBoxPosition(pet) {
+  const el = $("music-box");
+  if (pet.life_stage === "egg" || !pet.has_music_box || !pet.music_box_active) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const device = $("pet-device");
+  const { minX, maxX } = wanderBounds(el, device);
+  const fx = pet.music_box_x ?? DEFAULT_MUSIC_BOX_X;
+  el.style.left = `${minX + fx * (maxX - minX)}px`;
+}
+
+function wireDragMusicBoxPosition() {
+  const el = $("music-box");
+  const device = $("pet-device");
+  let dragging = false;
+  let moved = false;
+  let downX = 0;
+
+  el.addEventListener("pointerdown", (e) => {
+    if (!currentPet || !currentPet.has_music_box || !currentPet.music_box_active) return;
+    dragging = true;
+    moved = false;
+    downX = e.clientX;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("grounded-item--dragging");
+  });
+
+  el.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - downX) < DRAG_MOVE_TOLERANCE_PX) return;
+    moved = true;
+    const rect = device.getBoundingClientRect();
+    const { minX, maxX } = wanderBounds(el, device);
+    el.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2))}px`;
+  });
+
+  async function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove("grounded-item--dragging");
+    if (moved) suppressNextPetClick = true;
+    if (!moved) return; // plain tap, nothing moved — leave its saved position untouched, and let wireMusicBox's click handler treat it as a play/pause toggle
+    const { minX, maxX } = wanderBounds(el, device);
+    currentPet.music_box_x = maxX > minX ? (el.offsetLeft - minX) / (maxX - minX) : 0.5;
+    try {
+      await persist();
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  }
+
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
+}
+
 // Click to toggle the song on/off — persisted via music_box_playing so it
 // keeps playing until explicitly turned off, including across a pet switch
 // (see syncMusicBoxAudio, called on every render). Direction is decided by
 // the actual isMelodyPlaying() state rather than the persisted flag, so a
 // tap always does the right thing even if a resume elsewhere got silently
 // blocked by the browser's autoplay policy.
-// The Music Box is now also draggable (see GROUNDED_ITEMS/wireGroundedItems)
+// The Music Box is also draggable now (see wireDragMusicBoxPosition above)
 // on the same element, so a plain tap and a drag-release both end up
 // firing this click listener — suppressNextPetClick (set by
-// wireDragGroundedItem's endDrag on a real drag) is how it tells them
+// wireDragMusicBoxPosition's endDrag on a real drag) is how it tells them
 // apart, same signal #pet-device's own click handler uses.
 function wireMusicBox() {
   $("music-box").addEventListener("click", (e) => {
@@ -2029,7 +2091,7 @@ function playOddOneOutRound(overlay) {
   return new Promise((resolve) => {
     overlay.innerHTML = '<div class="oddoneout-grid"></div>';
     const row = overlay.querySelector(".oddoneout-grid");
-    const count = 9; // fills a 3x3 grid exactly
+    const count = 25; // fills a 5x5 grid exactly
     const oddIndex = Math.floor(Math.random() * count);
     const oddClass = Math.random() < 0.5 ? "oddoneout-dot--odd-big" : "oddoneout-dot--odd-small";
 
@@ -2047,7 +2109,7 @@ function playOddOneOutRound(overlay) {
       dot.addEventListener("click", () => finish(i === oddIndex));
       row.appendChild(dot);
     }
-    setTimeout(() => finish(false), 1300);
+    setTimeout(() => finish(false), 2200); // more dots to scan now that it's 5x5, not 3x3
   });
 }
 
@@ -2412,6 +2474,7 @@ function wireActions() {
   wireDragPet();
   wireGroundedItems();
   wireDragNightLight();
+  wireDragMusicBoxPosition();
   wireMusicBox();
   wireShop();
   $("pet-device").addEventListener("click", (e) => {

@@ -485,11 +485,13 @@ button:disabled:active { transform: none; }
    the inner disc while playing (see .music-box--playing below) instead of
    the whole outer box means the ♪/♫ notes, which live on the outer box's
    own ::before/::after, stay upright and keep floating straight up instead
-   of spinning along with the disc underneath them. A third free-roaming
-   floor item alongside the Bed and Ball — click toggles the song, drag
-   moves it (wireMusicBox tells the two apart via suppressNextPetClick). */
+   of spinning along with the disc underneath them. Mounted on the wall, not
+   the floor, like the Night Light — top stays fixed, only left (drag)
+   moves — click toggles the song, drag moves it (wireMusicBox tells the two
+   apart via suppressNextPetClick). */
 .music-box {
   position: absolute;
+  top: 10px;
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;
@@ -1054,24 +1056,24 @@ button:disabled:active { transform: none; }
 
 .oddoneout-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   align-items: center;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   height: 100%;
-  width: 160px;
+  width: 190px;
   margin: 0 auto;
 }
 .oddoneout-dot {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #111;
   border: none;
   padding: 0;
 }
-.oddoneout-dot--odd-big { width: 33px; height: 33px; }
-.oddoneout-dot--odd-small { width: 20px; height: 20px; }
+.oddoneout-dot--odd-big { width: 28px; height: 28px; }
+.oddoneout-dot--odd-small { width: 16px; height: 16px; }
 
 /* Spot the Shade: its own 5x5 grid (denser than Odd One Out's 3x3), with
    smaller dots to fit 5 rows inside the fixed-height .game-overlay. */

@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=103";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=104";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -40,13 +40,13 @@ const PROP_PROFILES = {
     accents: { rowOffset: 4, colOffsets: [-6, -2, 2, 6] },
   },
   musicBoxDisc: {
-    startRow: 8,
-    halfWidths: [1, 3, 4, 4, 4, 3, 1],
+    startRow: 9,
+    halfWidths: [1, 2, 3, 2, 1],
     // A single light dot at the center — the record's label hole — so the
     // disc isn't just a plain filled circle. value: 4 (dot--light) instead
     // of the dark dot--eye accent the Bed uses, since this needs to read as
     // lighter than the disc, not another dark detail.
-    accents: { rowOffset: 3, colOffsets: [0], value: 4 },
+    accents: { rowOffset: 2, colOffsets: [0], value: 4 },
   },
   nightLightBulb: {
     startRow: 10,
