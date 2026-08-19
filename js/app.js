@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=92";
-import { propSpriteHtml } from "./prop-sprites.js?v=92";
-import * as db from "./supabase.js?v=92";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=92";
-import { VERSION } from "./version.js?v=92";
+} from "./pet-sprites.js?v=93";
+import { propSpriteHtml } from "./prop-sprites.js?v=93";
+import * as db from "./supabase.js?v=93";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=93";
+import { VERSION } from "./version.js?v=93";
 
 const HOUR = 3600000;
 
@@ -550,9 +550,17 @@ function rectOverlapArea(ax, ay, aw, ah, bx, by, bw, bh) {
 // floor space, so it's still a live obstacle for the other two.
 const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "music-box"];
 
+// The Ball is small and soft enough to realistically sit on top of the Bed
+// (like a toy resting on a rug), so it's the one pairing that's allowed to
+// overlap instead of being pushed apart — the Ball still paints above the
+// Bed with no extra z-index needed since it's later in app.html's DOM order.
+// Every other pairing (Bed/Music Box, Ball/Music Box) still avoids overlap.
+const OVERLAP_EXEMPT = { toy: ["pet-bed"], "pet-bed": ["toy"] };
+
 function overlapsFloorObstacles(excludeId, x, y, w, h) {
+  const exempt = OVERLAP_EXEMPT[excludeId] ?? [];
   for (const id of FLOOR_OBSTACLE_IDS) {
-    if (id === excludeId) continue;
+    if (id === excludeId || exempt.includes(id)) continue;
     const el = $(id);
     if (el.hidden) continue;
     if (rectsOverlap(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight)) return true;
@@ -561,9 +569,10 @@ function overlapsFloorObstacles(excludeId, x, y, w, h) {
 }
 
 function totalFloorOverlapArea(excludeId, x, y, w, h) {
+  const exempt = OVERLAP_EXEMPT[excludeId] ?? [];
   let total = 0;
   for (const id of FLOOR_OBSTACLE_IDS) {
-    if (id === excludeId) continue;
+    if (id === excludeId || exempt.includes(id)) continue;
     const el = $(id);
     if (el.hidden) continue;
     total += rectOverlapArea(x, y, w, h, el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight);
