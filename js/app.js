@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=95";
-import { propSpriteHtml } from "./prop-sprites.js?v=95";
-import * as db from "./supabase.js?v=95";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=95";
-import { VERSION } from "./version.js?v=95";
+} from "./pet-sprites.js?v=96";
+import { propSpriteHtml } from "./prop-sprites.js?v=96";
+import * as db from "./supabase.js?v=96";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=96";
+import { VERSION } from "./version.js?v=96";
 
 const HOUR = 3600000;
 
@@ -1108,6 +1108,16 @@ let POOP_HEIGHT = 12;
 let POOP_MIN_GAP_PX = 30;
 const POOP_SCATTER_FRACTION_X = 0.7; // of the playground's width
 const POOP_SCATTER_FRACTION_Y = 0.6; // of the playground's height
+// A poop position is anchored to wherever the pet currently sits (see
+// ensureHostPositioned) — but that anchor has repeatedly ended up wrong for
+// reasons that were hard to pin down from code reading alone (a fresh
+// page's pet not yet having a real position is the one confirmed cause,
+// fixed by ensureHostPositioned itself, but evidently not the only one).
+// Rather than keep chasing anchor bugs, defend the visible symptom
+// directly: never accept a candidate spot within this distance of the
+// device's own (0,0) corner, regardless of why the anchor was bad. Belt and
+// suspenders alongside POOP_MIN_GAP_PX below.
+const POOP_MIN_CORNER_DIST_PX = 60;
 
 function renderPoop(pet) {
   const isEgg = pet.life_stage === "egg";
@@ -1144,7 +1154,7 @@ function renderPoop(pet) {
       // POOP_MIN_GAP_PX), a handful of tries could reliably fail to find
       // one that clears every existing poop.
       let left = anchorX, top = Math.max(minTop, anchorY);
-      let bestGap = -Infinity;
+      let bestBadness = Infinity;
       for (let tries = 0; tries < 40; tries++) {
         const jitterX = (Math.random() - 0.5) * device.clientWidth * POOP_SCATTER_FRACTION_X;
         const jitterY = (Math.random() - 0.5) * device.clientHeight * POOP_SCATTER_FRACTION_Y;
@@ -1154,16 +1164,21 @@ function renderPoop(pet) {
           (min, p) => Math.min(min, Math.hypot(p.left - candLeft, p.top - candTop)),
           Infinity
         );
-        if (closestGap >= POOP_MIN_GAP_PX) {
+        // Horizontal distance from the left edge specifically, not Euclidean
+        // distance from the (0,0) point — candTop is already floor-clamped
+        // to minTop (well below the corner) on every candidate, so a
+        // Euclidean corner distance would already read as "far enough"
+        // regardless of candLeft and never actually screen out left-edge
+        // clustering, which was the one axis still reachable from a bad
+        // anchor. badness combines both requirements into one score (0 =
+        // fully satisfies both) so a single 40-try search optimizes for
+        // "well spaced AND clear of the left edge" together.
+        const badness = Math.max(0, POOP_MIN_GAP_PX - closestGap) + Math.max(0, POOP_MIN_CORNER_DIST_PX - candLeft);
+        if (badness < bestBadness) {
+          bestBadness = badness;
           left = candLeft;
           top = candTop;
-          bestGap = closestGap;
-          break;
-        }
-        if (closestGap > bestGap) {
-          bestGap = closestGap;
-          left = candLeft;
-          top = candTop;
+          if (badness === 0) break;
         }
       }
       poopPositions[i] = { left, top };
@@ -2764,7 +2779,7 @@ function wireAuth() {
     const name = $("pet-name-input").value.trim() || "Mochi";
     try {
       const seq = nextPetWriteSeq();
-      const created = await db.createPet(currentUserId, name, pickRandomSpecies());
+      const created = await db.createPet(currentUserId, createInitialPet(name));
       if (seq !== currentPetWriteSeq) return;
       currentPet = created;
       screen("pet");

@@ -66,14 +66,70 @@ export async function fetchPets(userId) {
 
 // Clears is_active on the user's other pets before inserting so a new pet
 // (whether it's the first or an additional one) is always the sole active row.
-export async function createPet(userId, name, species) {
+// Takes a full pet object (built by createInitialPet in app.js) and inserts
+// every field explicitly, the same way savePet's update payload does below —
+// rather than relying on each column's own DB default. Those defaults have
+// drifted from createInitialPet's intent before (this table's grown by
+// incremental `alter table add column` migrations, see CLAUDE.md), so a
+// fresh pet could end up owning items/positions left over from whatever a
+// column's default happened to be, not the clean slate createInitialPet
+// actually specifies. createInitialPet is the single source of truth for
+// "what a fresh pet looks like" — this just makes sure Supabase agrees.
+export async function createPet(userId, pet) {
   const client = requireClient();
   const { error: clearError } = await client.from("pets").update({ is_active: false }).eq("user_id", userId);
   if (clearError) throw clearError;
 
   const { data, error } = await client
     .from("pets")
-    .insert({ user_id: userId, name, species, is_active: true })
+    .insert({
+      user_id: userId,
+      is_active: true,
+      name: pet.name,
+      species: pet.species,
+      life_stage: pet.life_stage,
+      hunger: pet.hunger,
+      happiness: pet.happiness,
+      energy: pet.energy,
+      health: pet.health,
+      hygiene: pet.hygiene,
+      is_sick: pet.is_sick,
+      is_sleeping: pet.is_sleeping,
+      coins: pet.coins,
+      food_count: pet.food_count,
+      meal_count: pet.meal_count,
+      total_coins_earned: pet.total_coins_earned,
+      ever_sick: pet.ever_sick,
+      neglect_incidents: pet.neglect_incidents,
+      last_login_date: pet.last_login_date,
+      login_streak: pet.login_streak,
+      has_bow: pet.has_bow,
+      bow_worn: pet.bow_worn,
+      bow_color: pet.bow_color,
+      has_bed: pet.has_bed,
+      bed_active: pet.bed_active,
+      bed_x: pet.bed_x,
+      bed_y: pet.bed_y,
+      vitamin_count: pet.vitamin_count,
+      vitamins_until: pet.vitamins_until,
+      has_night_light: pet.has_night_light,
+      night_light_active: pet.night_light_active,
+      night_light_x: pet.night_light_x,
+      has_music_box: pet.has_music_box,
+      music_box_active: pet.music_box_active,
+      music_box_x: pet.music_box_x,
+      music_box_y: pet.music_box_y,
+      music_box_playing: pet.music_box_playing,
+      has_toy: pet.has_toy,
+      toy_active: pet.toy_active,
+      toy_x: pet.toy_x,
+      toy_y: pet.toy_y,
+      ball_color: pet.ball_color,
+      poop_count: pet.poop_count,
+      last_poop_at: pet.last_poop_at,
+      birth_timestamp: pet.birth_timestamp,
+      last_updated: pet.last_updated,
+    })
     .select()
     .single();
   if (error) throw error;
