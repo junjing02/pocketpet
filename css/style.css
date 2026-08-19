@@ -503,6 +503,16 @@ button:disabled:active { transform: none; }
   touch-action: none;
   transition: filter 0.8s ease;
 }
+/* Same specificity trap as .prop-grid[hidden] elsewhere in this file:
+   .music-box's own `display: grid` (needed to stack the frame+disc, see
+   above) has the same (0,1,0) specificity as the browser's built-in
+   [hidden] { display: none }, and an author rule always wins over the
+   user-agent one at equal specificity — so renderMusicBoxPosition setting
+   el.hidden = true stopped actually hiding it, leaving a previous pet's
+   (or an unpurchased) Music Box visible and clickable. */
+.music-box[hidden] {
+  display: none;
+}
 .music-box-frame {
   grid-area: 1 / 1;
   --dot-color: var(--track);

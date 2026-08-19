@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=107";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=109";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -46,16 +46,16 @@ const PROP_PROFILES = {
   // (see #music-box), not merged into one shape, specifically so the frame
   // can stay still while only the disc spins.
   musicBoxDisc: {
-    startRow: 9,
-    halfWidths: [1, 2, 3, 2, 1],
-    accents: { rowOffset: 2, colOffsets: [0], value: 4 },
+    startRow: 10,
+    halfWidths: [1, 2, 1],
+    accents: { rowOffset: 1, colOffsets: [0], value: 4 },
   },
   // A squared-off box/cabinet the disc sits inside — straight sides (uniform
   // halfWidth), unlike every other prop's rounded profile, sized a bit
   // wider/taller than the disc above so it reads as a frame around it.
   musicBoxFrame: {
-    startRow: 8,
-    halfWidths: [4, 4, 4, 4, 4, 4, 4],
+    startRow: 9,
+    halfWidths: [3, 3, 3, 3, 3],
   },
   nightLightBulb: {
     startRow: 10,
