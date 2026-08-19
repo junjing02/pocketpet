@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=94";
-import { propSpriteHtml } from "./prop-sprites.js?v=94";
-import * as db from "./supabase.js?v=94";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=94";
-import { VERSION } from "./version.js?v=94";
+} from "./pet-sprites.js?v=95";
+import { propSpriteHtml } from "./prop-sprites.js?v=95";
+import * as db from "./supabase.js?v=95";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=95";
+import { VERSION } from "./version.js?v=95";
 
 const HOUR = 3600000;
 
@@ -242,9 +242,15 @@ export function applyDecay(pet, nowMs = Date.now()) {
     const poopHygieneRate = DECAY_PER_HOUR.hygiene + POOP_HYGIENE_PENALTY_PER_HOUR * (pet.poop_count || 0);
     pet.hygiene = clamp(pet.hygiene - poopHygieneRate * elapsedHours * mul);
 
-    if ((pet.poop_count || 0) < MAX_POOP_COUNT) {
+    // Sleeping pets don't poop at all (not even at a reduced rate) — but
+    // last_poop_at still needs to advance to "now" while asleep, or the
+    // entire sleeping stretch counts as backlog the instant it wakes up and
+    // decay resumes, dumping a pile of poop on waking instead of none.
+    if (pet.is_sleeping) {
+      pet.last_poop_at = new Date(nowMs).toISOString();
+    } else if ((pet.poop_count || 0) < MAX_POOP_COUNT) {
       const lastPoopMs = new Date(pet.last_poop_at || pet.last_updated).getTime();
-      const hoursSincePoop = ((nowMs - lastPoopMs) / HOUR) * TIME_SCALE * mul;
+      const hoursSincePoop = ((nowMs - lastPoopMs) / HOUR) * TIME_SCALE;
       const newPoops = Math.floor(hoursSincePoop / POOP_INTERVAL_HOURS);
       if (newPoops > 0) {
         pet.poop_count = Math.min(MAX_POOP_COUNT, (pet.poop_count || 0) + newPoops);
@@ -1203,6 +1209,45 @@ function ensureHostPositioned(pet) {
   host.style.top = `${targetY}px`;
   void host.offsetHeight; // force a reflow so transition:none actually applies before re-enabling it
   host.style.transition = "";
+}
+
+// Shared by poop's own click listeners and the #pet-device fallback below
+// (see poopIndexAtPoint) — clearPoop itself just decrements the shared
+// poop_count counter, with no idea which of the 3 DOM slots was actually
+// clicked, and renderPoop always shows slots 0..poop_count-1, so without
+// this the highest-index slot would disappear regardless of which one was
+// tapped. Shift the higher slots' cached positions down over this one first
+// so the clicked slot visually vanishes and the others hold their own spot,
+// then let clearPoop do the actual state change.
+function clearPoopAtSlot(i) {
+  if (!currentPet || (currentPet.poop_count || 0) <= 0) return;
+  for (let j = i; j < MAX_POOP_COUNT - 1; j++) {
+    if (poopPositions[j + 1]) poopPositions[j] = poopPositions[j + 1];
+    else delete poopPositions[j];
+  }
+  delete poopPositions[MAX_POOP_COUNT - 1];
+  runAction(clearPoop, { bounce: false, sound: "clean" });
+}
+
+// The pet's own dot-grid always paints above every prop, poop included (see
+// #pet-screen's z-index) so it visually "walks in front" of poop it's
+// standing near or spawned next to — poop spawns anchored close to the
+// pet's own position by design. But #pet-screen's grid cells fill its whole
+// rectangular bounding box, including the "empty" transparent ones, so any
+// click landing inside that box (even where nothing is visibly drawn) hits
+// the pet and never reaches a poop underneath at all — that was the actual
+// bug behind "some poop just can't be clicked/removed." Checked from
+// #pet-device's own click handler, coordinates relative to it (same frame
+// poop's own left/top are stored in).
+function poopIndexAtPoint(x, y) {
+  for (let i = 0; i < MAX_POOP_COUNT; i++) {
+    const el = $(`poop-${i}`);
+    if (el.hidden) continue;
+    if (x >= el.offsetLeft && x <= el.offsetLeft + el.offsetWidth && y >= el.offsetTop && y <= el.offsetTop + el.offsetHeight) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 function render() {
@@ -2250,20 +2295,7 @@ function wireActions() {
         suppressNextPetClick = false;
         return;
       }
-      if (!currentPet || (currentPet.poop_count || 0) <= 0) return;
-      // clearPoop itself just decrements the shared poop_count counter — it
-      // has no idea which of the 3 DOM slots was actually clicked, and
-      // renderPoop always shows slots 0..poop_count-1, so without this the
-      // highest-index slot would disappear regardless of which one you
-      // tapped. Shift the higher slots' cached positions down over this one
-      // first so the clicked slot visually vanishes and the others hold
-      // their own spot, then let clearPoop do the actual state change.
-      for (let j = i; j < MAX_POOP_COUNT - 1; j++) {
-        if (poopPositions[j + 1]) poopPositions[j] = poopPositions[j + 1];
-        else delete poopPositions[j];
-      }
-      delete poopPositions[MAX_POOP_COUNT - 1];
-      runAction(clearPoop, { bounce: false, sound: "clean" });
+      clearPoopAtSlot(i);
     });
   }
   $("btn-sleep").addEventListener("click", () => {
@@ -2288,12 +2320,24 @@ function wireActions() {
       suppressNextPetClick = false;
       return;
     }
+    const rect = $("pet-device").getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    // Check for poop under the pet's own bounding box first — see
+    // poopIndexAtPoint. Without this, a poop the pet is standing on (or
+    // spawned right next to) silently ate every click aimed at it, since
+    // the pet's dot-grid is what the browser's hit-test actually resolves
+    // to there.
+    const poopIdx = poopIndexAtPoint(px, py);
+    if (poopIdx !== -1) {
+      clearPoopAtSlot(poopIdx);
+      return;
+    }
     if (e.target.closest("#pet-screen")) {
       pokePet();
       return;
     }
-    const rect = $("pet-device").getBoundingClientRect();
-    movePetTowards(e.clientX - rect.left, e.clientY - rect.top);
+    movePetTowards(px, py);
   });
 
   $("btn-signout").addEventListener("click", async () => {
