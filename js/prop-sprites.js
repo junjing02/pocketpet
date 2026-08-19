@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=101";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=102";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -51,6 +51,14 @@ const PROP_PROFILES = {
   nightLightBulb: {
     startRow: 10,
     halfWidths: [1, 2, 2, 1],
+  },
+  // A shallow wide basin — rounder and shorter than the Bed's mat, with a
+  // light center dot (reusing the same dot--light accent as the Music Box's
+  // record label) reading as water inside the bowl.
+  toiletBowl: {
+    startRow: 9,
+    halfWidths: [2, 4, 5, 5, 4],
+    accents: { rowOffset: 2, colOffsets: [0], value: 4 },
   },
 };
 

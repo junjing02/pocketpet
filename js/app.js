@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=101";
-import { propSpriteHtml } from "./prop-sprites.js?v=101";
-import * as db from "./supabase.js?v=101";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=101";
-import { VERSION } from "./version.js?v=101";
+} from "./pet-sprites.js?v=102";
+import { propSpriteHtml } from "./prop-sprites.js?v=102";
+import * as db from "./supabase.js?v=102";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=102";
+import { VERSION } from "./version.js?v=102";
 
 const HOUR = 3600000;
 
@@ -55,6 +55,9 @@ const TOY_PRICE = 20;
 const DEFAULT_TOY_X = 0.3;
 const DEFAULT_TOY_Y = 0.3;
 const DEFAULT_BALL_COLOR = "#5b9bd5";
+const TOILET_BOWL_PRICE = 35;
+const DEFAULT_TOILET_BOWL_X = 0.9;
+const DEFAULT_TOILET_BOWL_Y = 0.35;
 
 const VITAMINS_HEALTH_REGEN_MULTIPLIER = 1.5; // health regenerates 50% faster while a dose is active
 const VITAMIN_BUFF_DURATION_MS = 15 * 60 * 1000;
@@ -183,6 +186,10 @@ export function createInitialPet(name, discoveredSpecies = new Set()) {
     toy_x: DEFAULT_TOY_X,
     toy_y: DEFAULT_TOY_Y,
     ball_color: DEFAULT_BALL_COLOR,
+    has_toilet_bowl: false,
+    toilet_bowl_active: true,
+    toilet_bowl_x: DEFAULT_TOILET_BOWL_X,
+    toilet_bowl_y: DEFAULT_TOILET_BOWL_Y,
     poop_count: 0,
     last_poop_at: now,
     music_box_playing: false,
@@ -242,11 +249,12 @@ export function applyDecay(pet, nowMs = Date.now()) {
     const poopHygieneRate = DECAY_PER_HOUR.hygiene + POOP_HYGIENE_PENALTY_PER_HOUR * (pet.poop_count || 0);
     pet.hygiene = clamp(pet.hygiene - poopHygieneRate * elapsedHours * mul);
 
-    // Sleeping pets don't poop at all (not even at a reduced rate) — but
-    // last_poop_at still needs to advance to "now" while asleep, or the
-    // entire sleeping stretch counts as backlog the instant it wakes up and
-    // decay resumes, dumping a pile of poop on waking instead of none.
-    if (pet.is_sleeping) {
+    // Sleeping pets don't poop at all (not even at a reduced rate), and
+    // neither does a pet with an active Toilet Bowl — but last_poop_at
+    // still needs to advance to "now" in both cases, or the untracked
+    // stretch counts as backlog the instant sleep ends or the bowl gets
+    // put away, dumping a pile of poop at that moment instead of none.
+    if (pet.is_sleeping || (pet.has_toilet_bowl && pet.toilet_bowl_active)) {
       pet.last_poop_at = new Date(nowMs).toISOString();
     } else if ((pet.poop_count || 0) < MAX_POOP_COUNT) {
       const lastPoopMs = new Date(pet.last_poop_at || pet.last_updated).getTime();
@@ -358,6 +366,26 @@ export function buyBed(pet) {
 export function toggleBedActive(pet) {
   if (!pet.has_bed) return pet;
   pet.bed_active = !pet.bed_active;
+  return pet;
+}
+
+// Toilet Bowl: while owned and active, the pet uses it instead of leaving
+// poop around — applyDecay's poop-spawn block skips entirely (see there),
+// so this isn't a faster way to clean, it's a way to stop the mess (and the
+// Hygiene penalty it causes) from happening at all.
+export function buyToiletBowl(pet) {
+  if (pet.has_toilet_bowl || pet.coins < TOILET_BOWL_PRICE) return pet;
+  pet.coins -= TOILET_BOWL_PRICE;
+  pet.has_toilet_bowl = true;
+  pet.toilet_bowl_active = true;
+  if (pet.toilet_bowl_x == null) pet.toilet_bowl_x = DEFAULT_TOILET_BOWL_X;
+  if (pet.toilet_bowl_y == null) pet.toilet_bowl_y = DEFAULT_TOILET_BOWL_Y;
+  return pet;
+}
+
+export function toggleToiletBowlActive(pet) {
+  if (!pet.has_toilet_bowl) return pet;
+  pet.toilet_bowl_active = !pet.toilet_bowl_active;
   return pet;
 }
 
@@ -551,10 +579,11 @@ function rectOverlapArea(ax, ay, aw, ah, bx, by, bw, bh) {
   return ox * oy;
 }
 
-// Every floor item that must never overlap another — the Bed and Toy are
-// draggable (see GROUNDED_ITEMS), the Music Box is fixed but still occupies
-// floor space, so it's still a live obstacle for the other two.
-const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "music-box"];
+// Every floor item that must never overlap another — the Bed, Toy, and
+// Toilet Bowl are draggable (see GROUNDED_ITEMS), the Music Box is fixed
+// but still occupies floor space, so it's still a live obstacle for the
+// others.
+const FLOOR_OBSTACLE_IDS = ["pet-bed", "toy", "music-box", "toilet-bowl"];
 
 // The Ball is small and soft enough to realistically sit on top of the Bed
 // (like a toy resting on a rug), so it's the one pairing that's allowed to
@@ -965,6 +994,7 @@ function renderPropSprites() {
     { id: "pet-bed", sprite: "bed" },
     { id: "toy", sprite: "ball" },
     { id: "night-light", sprite: "nightLightBulb" },
+    { id: "toilet-bowl", sprite: "toiletBowl" },
   ];
   for (const { id, sprite } of specs) {
     const { html, width } = propSpriteHtml(sprite);
@@ -1004,6 +1034,7 @@ const GROUNDED_ITEMS = [
   { id: "pet-bed", xField: "bed_x", yField: "bed_y", defaultX: DEFAULT_BED_X, defaultY: DEFAULT_BED_Y, owned: (p) => p.has_bed && p.bed_active },
   { id: "toy", xField: "toy_x", yField: "toy_y", defaultX: DEFAULT_TOY_X, defaultY: DEFAULT_TOY_Y, owned: (p) => p.has_toy && p.toy_active },
   { id: "music-box", xField: "music_box_x", yField: "music_box_y", defaultX: DEFAULT_MUSIC_BOX_X, defaultY: DEFAULT_MUSIC_BOX_Y, owned: (p) => p.has_music_box && p.music_box_active },
+  { id: "toilet-bowl", xField: "toilet_bowl_x", yField: "toilet_bowl_y", defaultX: DEFAULT_TOILET_BOWL_X, defaultY: DEFAULT_TOILET_BOWL_Y, owned: (p) => p.has_toilet_bowl && p.toilet_bowl_active },
 ];
 
 function renderGroundedItems(pet) {
@@ -1334,6 +1365,17 @@ const SHOP_ITEMS = [
     owned: (p) => p.has_toy,
     active: (p) => p.toy_active,
     toggle: toggleToyActive,
+  },
+  {
+    id: "toiletbowl",
+    name: "Toilet Bowl",
+    desc: "Pet uses it instead of leaving poop around",
+    price: TOILET_BOWL_PRICE,
+    buy: buyToiletBowl,
+    kind: "placeable",
+    owned: (p) => p.has_toilet_bowl,
+    active: (p) => p.toilet_bowl_active,
+    toggle: toggleToiletBowlActive,
   },
 ];
 
@@ -2009,6 +2051,47 @@ function playOddOneOutRound(overlay) {
   });
 }
 
+// The odd dot differs only in lightness, never hue or saturation — a pure
+// lightness shift stays visible regardless of color-blindness (hue-based
+// differences don't), and "same color, subtly lighter/darker" reads as the
+// intended "very slightly different shade" rather than a distinct color.
+// Longer time limit than the shape-based Odd One Out above (1300ms) since
+// scanning for a shade difference takes longer than spotting a size one.
+const ODD_COLOR_LIGHTNESS_DELTA = 12;
+const ODD_COLOR_ROUND_MS = 2000;
+
+function playOddColorRound(overlay) {
+  return new Promise((resolve) => {
+    overlay.innerHTML = '<div class="oddoneout-grid"></div>';
+    const grid = overlay.querySelector(".oddoneout-grid");
+    const count = 9;
+    const oddIndex = Math.floor(Math.random() * count);
+    const hue = Math.floor(Math.random() * 360);
+    const sat = 55 + Math.random() * 20;
+    const baseLight = 45 + Math.random() * 15;
+    const sign = Math.random() < 0.5 ? 1 : -1;
+    const oddLight = Math.min(85, Math.max(15, baseLight + sign * ODD_COLOR_LIGHTNESS_DELTA));
+
+    let settled = false;
+    const finish = (hit) => {
+      if (settled) return;
+      settled = true;
+      overlay.innerHTML = "";
+      resolve(hit);
+    };
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "oddcolor-dot";
+      const light = i === oddIndex ? oddLight : baseLight;
+      dot.style.background = `hsl(${hue}, ${sat}%, ${light}%)`;
+      dot.addEventListener("click", () => finish(i === oddIndex));
+      grid.appendChild(dot);
+    }
+    setTimeout(() => finish(false), ODD_COLOR_ROUND_MS);
+  });
+}
+
 // Shared by Count the Dots and More Dots — scatters `count` small dots at
 // random non-overlapping-by-construction (just random, collisions are fine
 // visually) positions inside `container`.
@@ -2132,6 +2215,7 @@ const MINI_GAMES = [
   { id: "count", name: "Count the Dots", round: playCountRound },
   { id: "moredots", name: "More Dots", round: playMoreDotsRound },
   { id: "direction", name: "Match the Direction", round: playDirectionRound },
+  { id: "oddcolor", name: "Spot the Shade", round: playOddColorRound },
 ];
 
 function renderGamePickerScores() {

@@ -384,6 +384,14 @@ button:disabled:active { transform: none; }
   transition: filter 0.8s ease;
 }
 
+.toilet-bowl {
+  position: absolute;
+  --dot-color: var(--track);
+  cursor: grab;
+  touch-action: none;
+  transition: filter 0.8s ease;
+}
+
 /* One dragging-state class shared by the Bed, Ball, Music Box, and Night
    Light (see wireDragGroundedItem / wireDragNightLight) instead of a
    per-item copy. transition:none while actually dragging — the Ball's own
@@ -1049,21 +1057,32 @@ button:disabled:active { transform: none; }
   grid-template-columns: repeat(3, 1fr);
   align-items: center;
   justify-items: center;
-  gap: 9px;
+  gap: 10px;
   height: 100%;
-  width: 130px;
+  width: 160px;
   margin: 0 auto;
 }
 .oddoneout-dot {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #111;
   border: none;
   padding: 0;
 }
-.oddoneout-dot--odd-big { width: 25px; height: 25px; }
-.oddoneout-dot--odd-small { width: 16px; height: 16px; }
+.oddoneout-dot--odd-big { width: 33px; height: 33px; }
+.oddoneout-dot--odd-small { width: 20px; height: 20px; }
+
+/* Spot the Shade reuses .oddoneout-grid's layout — same 3x3 arrangement,
+   just uniformly-sized dots with a per-round inline background color (see
+   playOddColorRound) instead of a fixed black fill. */
+.oddcolor-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+}
 
 .count-dots-area { position: relative; width: 100%; height: 100%; }
 .count-dot {
@@ -1269,6 +1288,24 @@ body {
 .preview-oddball:nth-child(3) { left: 56%; }
 .preview-oddball:nth-child(4) { left: 82%; }
 .preview-oddball--big { width: 22px; height: 22px; }
+
+/* Spot the Shade's preview: same four-dot layout as Odd One Out's, but
+   uniform size with one slightly lighter instead of one bigger — echoes the
+   actual game's "same shape, subtly different shade" premise. */
+.preview-shade {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #999;
+  transform: translateY(-50%);
+}
+.preview-shade:nth-child(1) { left: 10%; }
+.preview-shade:nth-child(2) { left: 34%; }
+.preview-shade:nth-child(3) { left: 56%; }
+.preview-shade:nth-child(4) { left: 82%; }
+.preview-shade--odd { background: #ccc; }
 
 .preview-countdot {
   position: absolute;
