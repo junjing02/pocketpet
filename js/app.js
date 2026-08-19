@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=97";
-import { propSpriteHtml } from "./prop-sprites.js?v=97";
-import * as db from "./supabase.js?v=97";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=97";
-import { VERSION } from "./version.js?v=97";
+} from "./pet-sprites.js?v=98";
+import { propSpriteHtml } from "./prop-sprites.js?v=98";
+import * as db from "./supabase.js?v=98";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=98";
+import { VERSION } from "./version.js?v=98";
 
 const HOUR = 3600000;
 
@@ -1265,26 +1265,7 @@ function poopIndexAtPoint(x, y) {
   return -1;
 }
 
-// Every prop/pet position on the playground (renderGroundedItems,
-// ensureHostPositioned, renderPoop) is computed from #pet-device's
-// clientWidth/clientHeight. All of them independently collapsing to the
-// same top-left corner — not just poop, every owned item too — pointed at
-// one shared cause rather than several unrelated ones: on the very first
-// render right after a `.screen[hidden]` toggle reveals #pet-device (e.g.
-// stepping from the "name your egg" screen straight into the pet screen,
-// which — unlike a page reload — never had it laid out even once before in
-// this session), reading clientWidth/Height can still catch it mid-layout
-// and return 0, and every bounds calculation built on a 0-sized box
-// degenerates to its own minimum (8px margin), i.e. the literal corner.
-// Refusing to render against a 0-sized device and retrying next frame
-// (layout is always settled by then) fixes it at the source instead of
-// patching around it separately in every function that reads device size.
 function render() {
-  const device = $("pet-device");
-  if (device.clientWidth === 0 || device.clientHeight === 0) {
-    requestAnimationFrame(render);
-    return;
-  }
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderGroundedItems(currentPet);

@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=97";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=98";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
