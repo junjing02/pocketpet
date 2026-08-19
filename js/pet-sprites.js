@@ -64,8 +64,20 @@ export const SPECIES_SHADE = {
   hedgehog: "#dcd4c8",
 };
 
-export function pickRandomSpecies() {
-  return SPECIES[Math.floor(Math.random() * SPECIES.length)];
+// discovered (optional): species the user has already hatched at least once
+// (see currentCollection in app.js, backed by the species_collection table
+// — already tracked for the Collection screen, reused here). With only 5
+// species and a hard MAX_PETS cap of 3, a fully memoryless pick could land
+// on the same species repeatedly (1-in-125 for 3 in a row, rare but real,
+// and it reads as broken/boring rather than "bad luck" to a player capped
+// at 3 pets). Biasing toward whatever's still undiscovered removes needless
+// repeats while a species is new to the account, without ever fully
+// removing the surprise: once every species has been seen at least once,
+// this degrades to the same uniform random pick as before.
+export function pickRandomSpecies(discovered = new Set()) {
+  const undiscovered = SPECIES.filter((s) => !discovered.has(s));
+  const pool = undiscovered.length > 0 ? undiscovered : SPECIES;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 const EGG_PROFILE = {

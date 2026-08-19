@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=99";
-import { propSpriteHtml } from "./prop-sprites.js?v=99";
-import * as db from "./supabase.js?v=99";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=99";
-import { VERSION } from "./version.js?v=99";
+} from "./pet-sprites.js?v=100";
+import { propSpriteHtml } from "./prop-sprites.js?v=100";
+import * as db from "./supabase.js?v=100";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=100";
+import { VERSION } from "./version.js?v=100";
 
 const HOUR = 3600000;
 
@@ -141,11 +141,11 @@ const ACHIEVEMENTS = [
 
 const clamp = (v) => Math.round(Math.max(0, Math.min(100, v)));
 
-export function createInitialPet(name) {
+export function createInitialPet(name, discoveredSpecies = new Set()) {
   const now = new Date().toISOString();
   return {
     name,
-    species: pickRandomSpecies(),
+    species: pickRandomSpecies(discoveredSpecies),
     life_stage: "egg",
     hunger: 100,
     happiness: 100,
@@ -2533,7 +2533,7 @@ function wireActions() {
 
   $("btn-reset-pet").addEventListener("click", async () => {
     if (!confirm("Reset your active pet back to a fresh egg? This cannot be undone.")) return;
-    const fresh = createInitialPet(currentPet.name);
+    const fresh = createInitialPet(currentPet.name, currentCollection);
     fresh.id = currentPet.id;
     try {
       const seq = nextPetWriteSeq();
@@ -2779,7 +2779,7 @@ function wireAuth() {
     const name = $("pet-name-input").value.trim() || "Mochi";
     try {
       const seq = nextPetWriteSeq();
-      const created = await db.createPet(currentUserId, createInitialPet(name));
+      const created = await db.createPet(currentUserId, createInitialPet(name, currentCollection));
       if (seq !== currentPetWriteSeq) return;
       currentPet = created;
       screen("pet");
