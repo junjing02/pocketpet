@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=102";
-import { propSpriteHtml } from "./prop-sprites.js?v=102";
-import * as db from "./supabase.js?v=102";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=102";
-import { VERSION } from "./version.js?v=102";
+} from "./pet-sprites.js?v=103";
+import { propSpriteHtml } from "./prop-sprites.js?v=103";
+import * as db from "./supabase.js?v=103";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=103";
+import { VERSION } from "./version.js?v=103";
 
 const HOUR = 3600000;
 
@@ -2058,13 +2058,13 @@ function playOddOneOutRound(overlay) {
 // Longer time limit than the shape-based Odd One Out above (1300ms) since
 // scanning for a shade difference takes longer than spotting a size one.
 const ODD_COLOR_LIGHTNESS_DELTA = 12;
-const ODD_COLOR_ROUND_MS = 2000;
+const ODD_COLOR_ROUND_MS = 3000; // more dots to scan than the 3x3 grid below, so more time
 
 function playOddColorRound(overlay) {
   return new Promise((resolve) => {
-    overlay.innerHTML = '<div class="oddoneout-grid"></div>';
-    const grid = overlay.querySelector(".oddoneout-grid");
-    const count = 9;
+    overlay.innerHTML = '<div class="oddcolor-grid"></div>';
+    const grid = overlay.querySelector(".oddcolor-grid");
+    const count = 25; // fills a 5x5 grid exactly
     const oddIndex = Math.floor(Math.random() * count);
     const hue = Math.floor(Math.random() * 360);
     const sat = 55 + Math.random() * 20;

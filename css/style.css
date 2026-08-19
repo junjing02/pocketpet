@@ -1073,12 +1073,21 @@ button:disabled:active { transform: none; }
 .oddoneout-dot--odd-big { width: 33px; height: 33px; }
 .oddoneout-dot--odd-small { width: 20px; height: 20px; }
 
-/* Spot the Shade reuses .oddoneout-grid's layout — same 3x3 arrangement,
-   just uniformly-sized dots with a per-round inline background color (see
-   playOddColorRound) instead of a fixed black fill. */
+/* Spot the Shade: its own 5x5 grid (denser than Odd One Out's 3x3), with
+   smaller dots to fit 5 rows inside the fixed-height .game-overlay. */
+.oddcolor-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 7px;
+  height: 100%;
+  width: 150px;
+  margin: 0 auto;
+}
 .oddcolor-dot {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: none;
   padding: 0;
