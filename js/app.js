@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=106";
-import { propSpriteHtml } from "./prop-sprites.js?v=106";
-import * as db from "./supabase.js?v=106";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=106";
-import { VERSION } from "./version.js?v=106";
+} from "./pet-sprites.js?v=107";
+import { propSpriteHtml } from "./prop-sprites.js?v=107";
+import * as db from "./supabase.js?v=107";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=107";
+import { VERSION } from "./version.js?v=107";
 
 const HOUR = 3600000;
 
@@ -1010,11 +1010,16 @@ function renderPropSprites() {
     el.style.setProperty("--grid-size", width);
     el.innerHTML = html;
   }
-  // The disc lives in its own inner element, not #music-box itself, so the
-  // spin-while-playing animation (.music-box--playing, in style.css) only
-  // rotates the disc — the ♪/♫ note pseudo-elements are on #music-box's own
-  // outer box and need to stay upright and float straight up regardless of
-  // the disc spinning underneath them.
+  // The disc and its box frame are separate sibling elements (not #music-box
+  // itself), stacked on top of each other via CSS grid (see #music-box in
+  // style.css) — so the spin-while-playing animation only rotates the disc,
+  // while the frame and the ♪/♫ note pseudo-elements on #music-box's own
+  // outer box stay still/upright regardless of the disc spinning inside.
+  const frame = propSpriteHtml("musicBoxFrame");
+  const frameEl = document.querySelector("#music-box .music-box-frame");
+  frameEl.style.setProperty("--grid-size", frame.width);
+  frameEl.innerHTML = frame.html;
+
   const disc = propSpriteHtml("musicBoxDisc");
   const discEl = document.querySelector("#music-box .music-box-disc");
   discEl.style.setProperty("--grid-size", disc.width);

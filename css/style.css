@@ -475,31 +475,40 @@ button:disabled:active { transform: none; }
   transition: left 0.5s ease-out, top 0.5s ease-out, filter 0.8s ease;
 }
 
-/* A small turntable — no box/frame, just the disc itself (see the
+/* A small turntable inside a boxed cabinet — the vinyl disc (see the
    "musicBoxDisc" profile in prop-sprites.js), dark like real vinyl with a
-   small white center dot (the label hole), plus a couple of music notes
-   that float up and fade while it plays.
+   small white center dot (the label hole) and a couple of music notes that
+   float up and fade while it plays, sitting inside a squared-off frame (the
+   "musicBoxFrame" profile) that stays still while the disc spins.
    #music-box is a plain shrink-wrapping positioning box (size/drag/click
-   all still target it, same as every other prop) around an INNER
-   .music-box-disc element that holds the actual dot-grid — spinning only
-   the inner disc while playing (see .music-box--playing below) instead of
-   the whole outer box means the ♪/♫ notes, which live on the outer box's
-   own ::before/::after, stay upright and keep floating straight up instead
-   of spinning along with the disc underneath them. Mounted on the wall like
-   the Night Light — top stays fixed, only left (drag) moves — click toggles
-   the song, drag moves it (wireMusicBox tells the two apart via
-   suppressNextPetClick). Sits right at the ground line
+   all still target it, same as every other prop) that grid-stacks two
+   INNER children on top of each other (both grid-area 1/1, centered via
+   place-items) instead of one merged shape: .music-box-frame (static) and
+   .music-box-disc (spins while playing, see .music-box--playing below) —
+   spinning only the disc, not the frame or the whole outer box, is also why
+   the ♪/♫ notes (which live on the outer box's own ::before/::after) stay
+   upright and float straight up instead of spinning along with the disc.
+   Mounted on the wall like the Night Light — top stays fixed, only left
+   (drag) moves — click toggles the song, drag moves it (wireMusicBox tells
+   the two apart via suppressNextPetClick). Sits right at the ground line
    (GROUND_MIN_Y_FRACTION * 250px device height ≈ 105px, minus the box's own
    height) rather than partway up the wall — reads as a floor speaker
    standing against the wall instead of a shelf-mounted item. */
 .music-box {
   position: absolute;
   top: 84px;
+  display: grid;
+  place-items: center;
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;
 }
+.music-box-frame {
+  grid-area: 1 / 1;
+  --dot-color: var(--track);
+}
 .music-box-disc {
+  grid-area: 1 / 1;
   --dot-color: var(--fg);
 }
 .music-box--playing .music-box-disc {
@@ -512,15 +521,15 @@ button:disabled:active { transform: none; }
 .music-box--playing::after {
   content: "♪";
   position: absolute;
-  top: -6px;
+  top: -8px;
   font-size: 14px;
   line-height: 1;
   color: var(--line);
   opacity: 0;
   animation: note-float 2.4s ease-in infinite;
 }
-.music-box--playing::before { left: -6px; }
-.music-box--playing::after { content: "♫"; left: 26px; animation-delay: 1.1s; }
+.music-box--playing::before { left: -8px; }
+.music-box--playing::after { content: "♫"; left: 32px; animation-delay: 1.1s; }
 @keyframes note-float {
   0% { opacity: 0; transform: translateY(0); }
   15% { opacity: 0.8; }

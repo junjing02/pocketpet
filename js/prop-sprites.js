@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=106";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=107";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -39,19 +39,23 @@ const PROP_PROFILES = {
     halfWidths: [3, 6, 9, 10, 10, 10, 10, 9, 6, 3],
     accents: { rowOffset: 4, colOffsets: [-6, -2, 2, 6] },
   },
-  // A small boxed speaker/stereo instead of a bare turntable — a squared-off
-  // cabinet (uniform halfWidth, straight sides, unlike every other prop's
-  // rounded profile) with a small light circle inset in the middle
-  // suggesting the vinyl sitting inside the box rather than exposed on top
-  // of it. Two accent rows (a narrow row over a wider one) approximate a
-  // small circle within the box instead of a single dot.
+  // The actual spinning vinyl — a small round disc with a light center label
+  // dot, unchanged in shape from before the box redesign (still gets its
+  // spin animation, see .music-box-disc in style.css). Rendered separately
+  // from musicBoxFrame below and layered on top of it via CSS grid stacking
+  // (see #music-box), not merged into one shape, specifically so the frame
+  // can stay still while only the disc spins.
   musicBoxDisc: {
-    startRow: 10,
-    halfWidths: [2, 2, 2, 2],
-    accents: [
-      { rowOffset: 1, colOffsets: [0], value: 4 },
-      { rowOffset: 2, colOffsets: [-1, 0, 1], value: 4 },
-    ],
+    startRow: 9,
+    halfWidths: [1, 2, 3, 2, 1],
+    accents: { rowOffset: 2, colOffsets: [0], value: 4 },
+  },
+  // A squared-off box/cabinet the disc sits inside — straight sides (uniform
+  // halfWidth), unlike every other prop's rounded profile, sized a bit
+  // wider/taller than the disc above so it reads as a frame around it.
+  musicBoxFrame: {
+    startRow: 8,
+    halfWidths: [4, 4, 4, 4, 4, 4, 4],
   },
   nightLightBulb: {
     startRow: 10,
