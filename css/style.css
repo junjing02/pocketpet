@@ -249,7 +249,8 @@ button:disabled:active { transform: none; }
 .device:has(.pet-screen.pet--sleeping) .pet-bed,
 .device:has(.pet-screen.pet--sleeping) .toy,
 .device:has(.pet-screen.pet--sleeping) .music-box,
-.device:has(.pet-screen.pet--sleeping) .poop {
+.device:has(.pet-screen.pet--sleeping) .poop,
+.device:has(.pet-screen.pet--sleeping) .toilet-bowl {
   filter: brightness(0.55);
 }
 
@@ -713,6 +714,19 @@ button:disabled:active { transform: none; }
 .dot--outline { background: var(--fg); }
 .dot--bow { background: var(--bow-color, #d1477a); }
 .dot--light { background: #ffffff; }
+
+/* Props (everything sharing .prop-grid — Bed, Ball, Music Box, Night Light,
+   Toilet Bowl, poop) reused the pet's own outline dot 1:1, at the same
+   thickness — with every prop drawn at the same bold stroke as the pet
+   itself, the pet didn't read as any more prominent than the furniture
+   around it. Scaling just the outline dots down (not the fill dots) reads
+   as a visibly thinner border on props specifically, leaving the pet's own
+   outline (rendered directly under #pet-screen, which isn't a .prop-grid
+   element, so this selector doesn't reach it) at full strength — it's the
+   one thing on the playground with a bold, unmistakable outline now. */
+.prop-grid .dot--outline {
+  transform: scale(0.7);
+}
 
 .pet-status {
   text-align: center;
