@@ -488,10 +488,14 @@ button:disabled:active { transform: none; }
    of spinning along with the disc underneath them. Mounted on the wall, not
    the floor, like the Night Light — top stays fixed, only left (drag)
    moves — click toggles the song, drag moves it (wireMusicBox tells the two
-   apart via suppressNextPetClick). */
+   apart via suppressNextPetClick). Sits lower than the Night Light
+   (top:10px) — the same height read as overlapping/redundant with it —
+   roughly midway between the ceiling and the floor line
+   (GROUND_MIN_Y_FRACTION * 250px device height ≈ 105px), like a shelf
+   partway down the wall instead of another ceiling fixture. */
 .music-box {
   position: absolute;
-  top: 10px;
+  top: 55px;
   cursor: grab;
   touch-action: none;
   transition: filter 0.8s ease;

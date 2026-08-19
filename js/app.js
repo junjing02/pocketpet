@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=104";
-import { propSpriteHtml } from "./prop-sprites.js?v=104";
-import * as db from "./supabase.js?v=104";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=104";
-import { VERSION } from "./version.js?v=104";
+} from "./pet-sprites.js?v=105";
+import { propSpriteHtml } from "./prop-sprites.js?v=105";
+import * as db from "./supabase.js?v=105";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=105";
+import { VERSION } from "./version.js?v=105";
 
 const HOUR = 3600000;
 
@@ -88,6 +88,14 @@ const ODE_TO_JOY = [
   392.0, 349.23, 329.63, 293.66, // G F E D
   261.63, 261.63, 293.66, 329.63, // C C D E
   329.63, 293.66, 293.66, // E D D
+  // Second phrase (bars 5-8) — continues the same melody instead of
+  // immediately looping the first one, so a full listen (playMelody loops
+  // this whole array indefinitely, see sound.js) takes twice as long
+  // before it repeats.
+  293.66, 293.66, 329.63, 261.63, // D D E C
+  293.66, 329.63, 349.23, 329.63, // D E F E
+  261.63, 261.63, 293.66, 329.63, // C C D E
+  293.66, 261.63, 261.63, // D C C
 ];
 
 const STARTING_COINS = 20;
@@ -2680,9 +2688,10 @@ function wireActions() {
 
   $("btn-reset-pet").addEventListener("click", async () => {
     if (!confirm("Reset your active pet back to a fresh egg? This cannot be undone.")) return;
-    const fresh = createInitialPet(currentPet.name, currentCollection);
-    fresh.id = currentPet.id;
     try {
+      const avoid = await speciesToAvoid(currentPet.id);
+      const fresh = createInitialPet(currentPet.name, avoid);
+      fresh.id = currentPet.id;
       const seq = nextPetWriteSeq();
       const saved = await db.savePet(fresh);
       if (seq !== currentPetWriteSeq) return;
@@ -2728,6 +2737,21 @@ function wireActions() {
   scheduleBlink();
   scheduleToyVisit();
   scheduleMusicBoxChime();
+}
+
+// Avoid handing out a species that's already sitting in one of the user's
+// OTHER current pets/eggs too, not just ones that have already hatched
+// (currentCollection alone). An egg's species is picked at creation but
+// only added to currentCollection once it actually hatches (see the recap
+// handling in activatePetAndRender below), so hatching two or three eggs
+// back to back without waiting for any of them to hatch could otherwise
+// still repeat — currentCollection alone has no idea those still-unhatched
+// eggs exist yet, defeating the whole point of pickRandomSpecies's
+// undiscovered-first bias.
+async function speciesToAvoid(excludePetId) {
+  const existing = await db.fetchPets(currentUserId).catch(() => []);
+  const otherSpecies = existing.filter((p) => p.id !== excludePetId).map((p) => p.species);
+  return new Set([...currentCollection, ...otherSpecies]);
 }
 
 // Runs decay/login-bonus for whichever pet just became the active one
@@ -2925,8 +2949,9 @@ function wireAuth() {
     e.preventDefault();
     const name = $("pet-name-input").value.trim() || "Mochi";
     try {
+      const avoid = await speciesToAvoid(null);
       const seq = nextPetWriteSeq();
-      const created = await db.createPet(currentUserId, createInitialPet(name, currentCollection));
+      const created = await db.createPet(currentUserId, createInitialPet(name, avoid));
       if (seq !== currentPetWriteSeq) return;
       currentPet = created;
       screen("pet");
