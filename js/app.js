@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=91";
-import { propSpriteHtml } from "./prop-sprites.js?v=91";
-import * as db from "./supabase.js?v=91";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=91";
-import { VERSION } from "./version.js?v=91";
+} from "./pet-sprites.js?v=92";
+import { propSpriteHtml } from "./prop-sprites.js?v=92";
+import * as db from "./supabase.js?v=92";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=92";
+import { VERSION } from "./version.js?v=92";
 
 const HOUR = 3600000;
 
@@ -894,8 +894,25 @@ function showRecap(recap, loginBonus) {
   el.hidden = false;
 }
 
+// Multiple call sites (persist(), reset, activatePetAndRender, create-pet)
+// each independently do `currentPet = await db.savePet(...)`. db.savePet's
+// payload is captured synchronously at call time but the network response
+// can resolve out of order, so an older save's response could silently
+// overwrite currentPet with stale data after a newer save already applied
+// its result (no re-render to reveal the revert). Every writer stamps its
+// call with the sequence counter at call time and only applies its result
+// if that number is still the latest when the response comes back —
+// otherwise a newer write has already superseded it and the stale result
+// is discarded.
+let currentPetWriteSeq = 0;
+function nextPetWriteSeq() {
+  return ++currentPetWriteSeq;
+}
+
 async function persist() {
-  currentPet = await db.savePet(currentPet);
+  const seq = nextPetWriteSeq();
+  const saved = await db.savePet(currentPet);
+  if (seq === currentPetWriteSeq) currentPet = saved;
 }
 
 const BOWL_SHOW_MS = 1800;
@@ -2413,7 +2430,10 @@ function wireActions() {
     const fresh = createInitialPet(currentPet.name);
     fresh.id = currentPet.id;
     try {
-      currentPet = await db.savePet(fresh);
+      const seq = nextPetWriteSeq();
+      const saved = await db.savePet(fresh);
+      if (seq !== currentPetWriteSeq) return;
+      currentPet = saved;
       screen("pet");
       render();
     } catch (err) {
@@ -2462,7 +2482,13 @@ function wireActions() {
 async function activatePetAndRender(pet) {
   const { pet: decayed, recap } = applyDecay(pet, Date.now());
   const loginBonus = applyDailyLogin(decayed);
-  currentPet = await db.savePet(decayed);
+  // A deliberate pet-context switch (login, switching pets) should still
+  // bail out if an even newer switch has already superseded it, but must
+  // never apply a stale result on top of whatever's already showing.
+  const seq = nextPetWriteSeq();
+  const saved = await db.savePet(decayed);
+  if (seq !== currentPetWriteSeq) return;
+  currentPet = saved;
   screen("pet");
   render();
   // A pet that was already asleep on its bed before a reload should render
@@ -2662,7 +2688,10 @@ function wireAuth() {
     e.preventDefault();
     const name = $("pet-name-input").value.trim() || "Mochi";
     try {
-      currentPet = await db.createPet(currentUserId, name, pickRandomSpecies());
+      const seq = nextPetWriteSeq();
+      const created = await db.createPet(currentUserId, name, pickRandomSpecies());
+      if (seq !== currentPetWriteSeq) return;
+      currentPet = created;
       screen("pet");
       render();
     } catch (err) {
