@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=93";
-import { propSpriteHtml } from "./prop-sprites.js?v=93";
-import * as db from "./supabase.js?v=93";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=93";
-import { VERSION } from "./version.js?v=93";
+} from "./pet-sprites.js?v=94";
+import { propSpriteHtml } from "./prop-sprites.js?v=94";
+import * as db from "./supabase.js?v=94";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=94";
+import { VERSION } from "./version.js?v=94";
 
 const HOUR = 3600000;
 
@@ -1168,10 +1168,48 @@ function renderPoop(pet) {
   }
 }
 
+let hostPositionedPetId = null;
+
+// The host (#pet-screen) has no real position until either its first wander
+// tick fires or (if sleeping on a bed) the sleeping branch below runs — on a
+// fresh page load that's several seconds away, so it just sits at its CSS
+// default (left:12px, top:12px — the literal top-left corner of the
+// playground). renderPoop, called right after this in render(), anchors any
+// newly-computed poop position to wherever the pet currently sits — and
+// every poop gets newly computed on that very first render (poopPositions
+// is cleared whenever the active pet id changes, which includes every page
+// reload), so all of them landed clustered in that same top-left corner.
+// Giving the host a real position immediately, once per pet per page load,
+// fixes the anchor before renderPoop ever reads it. transition disabled +
+// forced reflow so it appears there instantly instead of visibly sliding
+// in from the corner on load.
+function ensureHostPositioned(pet) {
+  if (pet.id === hostPositionedPetId) return;
+  if (pet.life_stage === "egg") return; // centers itself in renderPuppy instead
+  hostPositionedPetId = pet.id;
+  const host = $("pet-screen");
+  const device = host.parentElement;
+  let targetX, targetY;
+  if (pet.is_sleeping && pet.has_bed && pet.bed_active) {
+    const bed = $("pet-bed");
+    ({ targetX, targetY } = bedRestTarget(host, bed));
+  } else {
+    const { minX, minY, maxX, maxY } = wanderBounds(host, device);
+    targetX = minX + Math.random() * (maxX - minX);
+    targetY = minY + Math.random() * (maxY - minY);
+  }
+  host.style.transition = "none";
+  host.style.left = `${targetX}px`;
+  host.style.top = `${targetY}px`;
+  void host.offsetHeight; // force a reflow so transition:none actually applies before re-enabling it
+  host.style.transition = "";
+}
+
 function render() {
   renderPuppy(currentPet, eyesOpen && !currentPet.is_sleeping);
   renderStats(currentPet);
   renderGroundedItems(currentPet);
+  ensureHostPositioned(currentPet);
   renderNightLight(currentPet);
   renderPoop(currentPet);
   syncMusicBoxAudio(currentPet);
@@ -2499,23 +2537,7 @@ async function activatePetAndRender(pet) {
   if (seq !== currentPetWriteSeq) return;
   currentPet = saved;
   screen("pet");
-  render();
-  // A pet that was already asleep on its bed before a reload should render
-  // sitting there right away, not at the pet-screen's default top-left
-  // starting spot — render() positions the bed itself, but never touches
-  // the pet's own left/top, so without this it'd sit in the wrong place
-  // until it next moves. transition disabled + a forced reflow so it
-  // appears there instantly instead of visibly sliding in on load.
-  if (currentPet.is_sleeping && currentPet.has_bed && currentPet.bed_active && currentPet.life_stage !== "egg") {
-    const host = $("pet-screen");
-    const bed = $("pet-bed");
-    const { targetX, targetY } = bedRestTarget(host, bed);
-    host.style.transition = "none";
-    host.style.left = `${targetX}px`;
-    host.style.top = `${targetY}px`;
-    void host.offsetHeight; // force a reflow so transition:none actually applies before re-enabling it
-    host.style.transition = "";
-  }
+  render(); // positions the host itself, sleeping-on-bed included — see ensureHostPositioned
   showRecap(recap, loginBonus);
 
   // Record the species the moment it's revealed (egg -> hatchling), same
