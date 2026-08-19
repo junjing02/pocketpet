@@ -1044,12 +1044,15 @@ button:disabled:active { transform: none; }
   transform: translate(-50%, -50%);
 }
 
-.oddoneout-row {
-  display: flex;
+.oddoneout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   align-items: center;
-  justify-content: center;
+  justify-items: center;
   gap: 9px;
   height: 100%;
+  width: 130px;
+  margin: 0 auto;
 }
 .oddoneout-dot {
   width: 20px;

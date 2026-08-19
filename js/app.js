@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=100";
-import { propSpriteHtml } from "./prop-sprites.js?v=100";
-import * as db from "./supabase.js?v=100";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=100";
-import { VERSION } from "./version.js?v=100";
+} from "./pet-sprites.js?v=101";
+import { propSpriteHtml } from "./prop-sprites.js?v=101";
+import * as db from "./supabase.js?v=101";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=101";
+import { VERSION } from "./version.js?v=101";
 
 const HOUR = 3600000;
 
@@ -1985,9 +1985,9 @@ function playTimingRound(overlay) {
 
 function playOddOneOutRound(overlay) {
   return new Promise((resolve) => {
-    overlay.innerHTML = '<div class="oddoneout-row"></div>';
-    const row = overlay.querySelector(".oddoneout-row");
-    const count = 7;
+    overlay.innerHTML = '<div class="oddoneout-grid"></div>';
+    const row = overlay.querySelector(".oddoneout-grid");
+    const count = 9; // fills a 3x3 grid exactly
     const oddIndex = Math.floor(Math.random() * count);
     const oddClass = Math.random() < 0.5 ? "oddoneout-dot--odd-big" : "oddoneout-dot--odd-small";
 
