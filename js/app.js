@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=105";
-import { propSpriteHtml } from "./prop-sprites.js?v=105";
-import * as db from "./supabase.js?v=105";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=105";
-import { VERSION } from "./version.js?v=105";
+} from "./pet-sprites.js?v=106";
+import { propSpriteHtml } from "./prop-sprites.js?v=106";
+import * as db from "./supabase.js?v=106";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=106";
+import { VERSION } from "./version.js?v=106";
 
 const HOUR = 3600000;
 

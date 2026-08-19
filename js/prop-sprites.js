@@ -8,7 +8,7 @@
 // the whole point of this module existing (props used to be plain CSS
 // circles/ovals/gradients, which read as a completely different, smoother
 // visual language than the blocky pixel-art pet standing next to them).
-import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=105";
+import { GRID_SIZE, outlineSilhouette, trimBitmap } from "./pet-sprites.js?v=106";
 
 const CX = Math.floor(GRID_SIZE / 2);
 
@@ -39,14 +39,19 @@ const PROP_PROFILES = {
     halfWidths: [3, 6, 9, 10, 10, 10, 10, 9, 6, 3],
     accents: { rowOffset: 4, colOffsets: [-6, -2, 2, 6] },
   },
+  // A small boxed speaker/stereo instead of a bare turntable — a squared-off
+  // cabinet (uniform halfWidth, straight sides, unlike every other prop's
+  // rounded profile) with a small light circle inset in the middle
+  // suggesting the vinyl sitting inside the box rather than exposed on top
+  // of it. Two accent rows (a narrow row over a wider one) approximate a
+  // small circle within the box instead of a single dot.
   musicBoxDisc: {
-    startRow: 9,
-    halfWidths: [1, 2, 3, 2, 1],
-    // A single light dot at the center — the record's label hole — so the
-    // disc isn't just a plain filled circle. value: 4 (dot--light) instead
-    // of the dark dot--eye accent the Bed uses, since this needs to read as
-    // lighter than the disc, not another dark detail.
-    accents: { rowOffset: 2, colOffsets: [0], value: 4 },
+    startRow: 10,
+    halfWidths: [2, 2, 2, 2],
+    accents: [
+      { rowOffset: 1, colOffsets: [0], value: 4 },
+      { rowOffset: 2, colOffsets: [-1, 0, 1], value: 4 },
+    ],
   },
   nightLightBulb: {
     startRow: 10,
@@ -69,10 +74,16 @@ function buildPropBitmap(name) {
     const row = profile.startRow + i;
     for (let c = CX - w; c <= CX + w; c++) setDot(grid, row, c, 1);
   });
+  // accents can be a single group or an array of groups (e.g. the Music
+  // Box's boxed-in disc needs several rows to read as a small circle inside
+  // the box, not just one row of dots).
   if (profile.accents) {
-    const row = profile.startRow + profile.accents.rowOffset;
-    const value = profile.accents.value ?? 2;
-    for (const off of profile.accents.colOffsets) setDot(grid, row, CX + off, value);
+    const groups = Array.isArray(profile.accents) ? profile.accents : [profile.accents];
+    for (const group of groups) {
+      const row = profile.startRow + group.rowOffset;
+      const value = group.value ?? 2;
+      for (const off of group.colOffsets) setDot(grid, row, CX + off, value);
+    }
   }
   outlineSilhouette(grid);
   return grid;
