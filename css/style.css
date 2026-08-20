@@ -524,10 +524,17 @@ button:disabled:active { transform: none; }
      contrast — the actual fix for "hard to see the spinning thing" — while
      staying grayscale, not the wood-brown tried before that. */
   --dot-color: #d6d6d6;
+  z-index: 1;
 }
 .music-box-disc {
   grid-area: 1 / 1;
   --dot-color: var(--fg);
+  /* Explicit stacking, not just relying on DOM order (frame comes first in
+     app.html, disc second — grid items normally paint in that order without
+     help, but grid/flex items respect z-index even at position:static
+     unlike normal block elements, so this pins it unambiguously instead of
+     leaving it to implicit ordering that a future change could disrupt). */
+  z-index: 2;
 }
 .music-box--playing .music-box-disc {
   animation: vinyl-spin 1.8s linear infinite;
