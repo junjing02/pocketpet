@@ -516,12 +516,12 @@ button:disabled:active { transform: none; }
 }
 .music-box-frame {
   grid-area: 1 / 1;
-  /* A warm wood-cabinet brown instead of the pale --track gray every other
-     structural prop uses — at --track's usual near-white shade the box read
-     as empty/see-through rather than an actual solid speaker cabinet. Same
-     "a deliberate color exception earns its place" reasoning poop already
-     uses (see poop's own CSS comment) — a real speaker box isn't gray. */
-  --dot-color: #8b5e3c;
+  /* Grayscale (not the wood-brown tried briefly before) to stay consistent
+     with the rest of the playground's monochrome props — a solid mid-gray
+     instead of the pale --track (#e4e4e4) every other structural prop uses,
+     since --track's near-white shade is what read as empty/see-through in
+     the first place; this is dark enough to read as an actual solid box. */
+  --dot-color: #8a8a8a;
 }
 .music-box-disc {
   grid-area: 1 / 1;
@@ -745,6 +745,16 @@ button:disabled:active { transform: none; }
 }
 .prop-grid .dot--outline {
   z-index: 1;
+}
+/* Grayer, not near-black like the pet's own outline (--fg: #111) — on top
+   of the geometric thinning above, a flatter tone widens the gap between
+   "the pet" and "the furniture" further still. :not(.poop) carves poop back
+   out — it locally overrides --fg to a dark brown specifically so it reads
+   as "mess, spot and clear me" rather than blending in as another gray
+   shape (see poop's own CSS comment), which a blanket gray override here
+   would silently defeat. */
+.prop-grid:not(.poop) .dot--outline {
+  background: #999;
 }
 .prop-grid .dot--body {
   z-index: 2;
