@@ -489,15 +489,14 @@ button:disabled:active { transform: none; }
    spinning only the disc, not the frame or the whole outer box, is also why
    the ♪/♫ notes (which live on the outer box's own ::before/::after) stay
    upright and float straight up instead of spinning along with the disc.
-   Mounted on the wall like the Night Light — top stays fixed, only left
-   (drag) moves — click toggles the song, drag moves it (wireMusicBox tells
-   the two apart via suppressNextPetClick). Sits right at the ground line
-   (GROUND_MIN_Y_FRACTION * 250px device height ≈ 137.5px, minus the box's
-   own ~24.5px height) rather than partway up the wall — reads as a floor
-   speaker standing against the wall instead of a shelf-mounted item. */
+   Mounted on the wall, confined to that region above the floor line
+   (wallBounds) rather than a fixed height — draggable both left/right and
+   up/down within it (renderMusicBoxPosition/wireDragMusicBoxPosition sets
+   left/top directly, so no fixed CSS top like the Night Light uses) — click
+   toggles the song, drag moves it (wireMusicBox tells the two apart via
+   suppressNextPetClick). */
 .music-box {
   position: absolute;
-  top: 113px;
   display: grid;
   place-items: center;
   cursor: grab;

@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=116";
-import { propSpriteHtml } from "./prop-sprites.js?v=116";
-import * as db from "./supabase.js?v=116";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=116";
-import { VERSION } from "./version.js?v=116";
+} from "./pet-sprites.js?v=117";
+import { propSpriteHtml } from "./prop-sprites.js?v=117";
+import * as db from "./supabase.js?v=117";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=117";
+import { VERSION } from "./version.js?v=117";
 
 const HOUR = 3600000;
 
@@ -571,6 +571,15 @@ function groundedBounds(el, device) {
   const base = wanderBounds(el, device);
   const floorMinY = device.clientHeight * GROUND_MIN_Y_FRACTION;
   return { ...base, minY: Math.max(base.minY, floorMinY) };
+}
+
+// Mirror of groundedBounds for the wall region instead of the floor — caps
+// how far DOWN a wall-mounted prop (Music Box) can go instead of how far up,
+// so its bottom edge never crosses into the floor's own territory.
+function wallBounds(el, device) {
+  const base = wanderBounds(el, device);
+  const wallMaxY = device.clientHeight * GROUND_MIN_Y_FRACTION - el.offsetHeight;
+  return { ...base, maxY: Math.max(base.minY, Math.min(base.maxY, wallMaxY)) };
 }
 
 // Small AABB overlap test (with a little padding so items don't end up
@@ -1927,10 +1936,11 @@ function wireDragNightLight() {
 }
 
 // The Music Box mounts on the wall, not the floor — its own render/drag
-// pair instead of joining GROUNDED_ITEMS, the same pattern the Night Light
-// above already uses: top stays fixed in CSS, only left (a saved 0..1
-// fraction of the horizontal range) moves, and it never enters the floor
-// region or competes with Bed/Toy/Toilet Bowl for floor space.
+// pair instead of joining GROUNDED_ITEMS, using wallBounds (a mirror of
+// groundedBounds) instead of wanderBounds so it can move both left/right
+// AND up/down, but stays confined to the wall region above the floor line
+// rather than roaming the whole playground or competing with Bed/Toy/Toilet
+// Bowl for floor space.
 function renderMusicBoxPosition(pet) {
   const el = $("music-box");
   if (pet.life_stage === "egg" || !pet.has_music_box || !pet.music_box_active) {
@@ -1939,9 +1949,11 @@ function renderMusicBoxPosition(pet) {
   }
   el.hidden = false;
   const device = $("pet-device");
-  const { minX, maxX } = wanderBounds(el, device);
+  const { minX, minY, maxX, maxY } = wallBounds(el, device);
   const fx = pet.music_box_x ?? DEFAULT_MUSIC_BOX_X;
+  const fy = pet.music_box_y ?? DEFAULT_MUSIC_BOX_Y;
   el.style.left = `${minX + fx * (maxX - minX)}px`;
+  el.style.top = `${minY + fy * (maxY - minY)}px`;
 }
 
 function wireDragMusicBoxPosition() {
@@ -1950,23 +1962,26 @@ function wireDragMusicBoxPosition() {
   let dragging = false;
   let moved = false;
   let downX = 0;
+  let downY = 0;
 
   el.addEventListener("pointerdown", (e) => {
     if (!currentPet || !currentPet.has_music_box || !currentPet.music_box_active) return;
     dragging = true;
     moved = false;
     downX = e.clientX;
+    downY = e.clientY;
     el.setPointerCapture(e.pointerId);
     el.classList.add("grounded-item--dragging");
   });
 
   el.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    if (!moved && Math.abs(e.clientX - downX) < DRAG_MOVE_TOLERANCE_PX) return;
+    if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) < DRAG_MOVE_TOLERANCE_PX) return;
     moved = true;
     const rect = device.getBoundingClientRect();
-    const { minX, maxX } = wanderBounds(el, device);
+    const { minX, minY, maxX, maxY } = wallBounds(el, device);
     el.style.left = `${Math.min(maxX, Math.max(minX, e.clientX - rect.left - el.offsetWidth / 2))}px`;
+    el.style.top = `${Math.min(maxY, Math.max(minY, e.clientY - rect.top - el.offsetHeight / 2))}px`;
   });
 
   async function endDrag() {
@@ -1975,8 +1990,9 @@ function wireDragMusicBoxPosition() {
     el.classList.remove("grounded-item--dragging");
     if (moved) suppressNextPetClick = true;
     if (!moved) return; // plain tap, nothing moved — leave its saved position untouched, and let wireMusicBox's click handler treat it as a play/pause toggle
-    const { minX, maxX } = wanderBounds(el, device);
+    const { minX, minY, maxX, maxY } = wallBounds(el, device);
     currentPet.music_box_x = maxX > minX ? (el.offsetLeft - minX) / (maxX - minX) : 0.5;
+    currentPet.music_box_y = maxY > minY ? (el.offsetTop - minY) / (maxY - minY) : 0.5;
     try {
       await persist();
     } catch (err) {
