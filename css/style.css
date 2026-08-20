@@ -516,12 +516,14 @@ button:disabled:active { transform: none; }
 }
 .music-box-frame {
   grid-area: 1 / 1;
-  /* Grayscale (not the wood-brown tried briefly before) to stay consistent
-     with the rest of the playground's monochrome props — a solid mid-gray
-     instead of the pale --track (#e4e4e4) every other structural prop uses,
-     since --track's near-white shade is what read as empty/see-through in
-     the first place; this is dark enough to read as an actual solid box. */
-  --dot-color: #8a8a8a;
+  /* Light gray, not the mid-gray tried briefly before — mid-gray put the
+     box's own fill too close in tone to the disc's own (now grayed, see
+     .prop-grid:not(.poop) .dot--outline above) outline, so the disc read as
+     blending into the box instead of standing out inside it. A light box
+     behind the disc's dark fill (--fg, near-black) gives a clean light/dark
+     contrast — the actual fix for "hard to see the spinning thing" — while
+     staying grayscale, not the wood-brown tried before that. */
+  --dot-color: #d6d6d6;
 }
 .music-box-disc {
   grid-area: 1 / 1;
