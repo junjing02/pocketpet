@@ -717,15 +717,29 @@ button:disabled:active { transform: none; }
 
 /* Props (everything sharing .prop-grid — Bed, Ball, Music Box, Night Light,
    Toilet Bowl, poop) reused the pet's own outline dot 1:1, at the same
-   thickness — with every prop drawn at the same bold stroke as the pet
-   itself, the pet didn't read as any more prominent than the furniture
-   around it. Scaling just the outline dots down (not the fill dots) reads
-   as a visibly thinner border on props specifically, leaving the pet's own
-   outline (rendered directly under #pet-screen, which isn't a .prop-grid
-   element, so this selector doesn't reach it) at full strength — it's the
-   one thing on the playground with a bold, unmistakable outline now. */
+   thickness, so the pet didn't read as any more prominent than the
+   furniture around it.
+   A geometrically thinner line isn't achievable here without leaving gaps:
+   .dot--outline cells sit edge-to-edge (gap: 0) forming a contiguous ring
+   around each silhouette, and every cell is the same fixed size with no
+   awareness of its neighbors — shrinking a cell toward its own center (via
+   transform/clip-path/anything that reduces its visible area) pulls it away
+   from the adjacent outline cells on both sides, breaking the ring into a
+   dotted/perforated line instead of a continuous thinner one. A true smooth
+   thin line would need each cell to know which of its edges border another
+   outline cell (to keep those touching) versus open space (to inset only
+   those), which the current per-cell dot data has no way to express.
+   Softening the *color* instead achieves the same goal (pet reads as more
+   prominent than the furniture) without any gap risk, since every cell
+   still fully fills its space — just a fainter version of whatever --fg the
+   prop already uses, so the contrast difference alone makes the pet's
+   outline the one bold, unmistakable line on the playground. opacity, not a
+   hardcoded gray — poop locally overrides --fg to a dark brown (see .poop)
+   specifically so it doesn't blend in as just another gray shape; a flat
+   gray override here would have silently defeated that. Fading its actual
+   color instead preserves the hue and just lightens it, on every prop. */
 .prop-grid .dot--outline {
-  transform: scale(0.7);
+  opacity: 0.5;
 }
 
 .pet-status {
