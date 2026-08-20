@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=117";
-import { propSpriteHtml } from "./prop-sprites.js?v=117";
-import * as db from "./supabase.js?v=117";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=117";
-import { VERSION } from "./version.js?v=117";
+} from "./pet-sprites.js?v=118";
+import { propSpriteHtml } from "./prop-sprites.js?v=118";
+import * as db from "./supabase.js?v=118";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=118";
+import { VERSION } from "./version.js?v=118";
 
 const HOUR = 3600000;
 
@@ -575,11 +575,18 @@ function groundedBounds(el, device) {
 
 // Mirror of groundedBounds for the wall region instead of the floor — caps
 // how far DOWN a wall-mounted prop (Music Box) can go instead of how far up,
-// so its bottom edge never crosses into the floor's own territory.
+// so its bottom edge never crosses into the floor's own territory. Also
+// keeps its top clear of the Night Light's own fixed spot (top:10px, never
+// draggable vertically itself) — without this, Music Box's new up/down drag
+// range could pull it right through where the Night Light already sits.
 function wallBounds(el, device) {
   const base = wanderBounds(el, device);
+  const nightLight = $("night-light");
+  const wallMinY = nightLight.hidden
+    ? base.minY
+    : Math.max(base.minY, nightLight.offsetTop + nightLight.offsetHeight + PLAYGROUND_MARGIN_PX);
   const wallMaxY = device.clientHeight * GROUND_MIN_Y_FRACTION - el.offsetHeight;
-  return { ...base, maxY: Math.max(base.minY, Math.min(base.maxY, wallMaxY)) };
+  return { ...base, minY: wallMinY, maxY: Math.max(wallMinY, Math.min(base.maxY, wallMaxY)) };
 }
 
 // Small AABB overlap test (with a little padding so items don't end up
