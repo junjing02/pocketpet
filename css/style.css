@@ -516,7 +516,12 @@ button:disabled:active { transform: none; }
 }
 .music-box-frame {
   grid-area: 1 / 1;
-  --dot-color: var(--track);
+  /* A warm wood-cabinet brown instead of the pale --track gray every other
+     structural prop uses — at --track's usual near-white shade the box read
+     as empty/see-through rather than an actual solid speaker cabinet. Same
+     "a deliberate color exception earns its place" reasoning poop already
+     uses (see poop's own CSS comment) — a real speaker box isn't gray. */
+  --dot-color: #8b5e3c;
 }
 .music-box-disc {
   grid-area: 1 / 1;
@@ -718,28 +723,32 @@ button:disabled:active { transform: none; }
 /* Props (everything sharing .prop-grid — Bed, Ball, Music Box, Night Light,
    Toilet Bowl, poop) reused the pet's own outline dot 1:1, at the same
    thickness, so the pet didn't read as any more prominent than the
-   furniture around it.
-   A geometrically thinner line isn't achievable here without leaving gaps:
-   .dot--outline cells sit edge-to-edge (gap: 0) forming a contiguous ring
-   around each silhouette, and every cell is the same fixed size with no
-   awareness of its neighbors — shrinking a cell toward its own center (via
-   transform/clip-path/anything that reduces its visible area) pulls it away
-   from the adjacent outline cells on both sides, breaking the ring into a
-   dotted/perforated line instead of a continuous thinner one. A true smooth
-   thin line would need each cell to know which of its edges border another
-   outline cell (to keep those touching) versus open space (to inset only
-   those), which the current per-cell dot data has no way to express.
-   Softening the *color* instead achieves the same goal (pet reads as more
-   prominent than the furniture) without any gap risk, since every cell
-   still fully fills its space — just a fainter version of whatever --fg the
-   prop already uses, so the contrast difference alone makes the pet's
-   outline the one bold, unmistakable line on the playground. opacity, not a
-   hardcoded gray — poop locally overrides --fg to a dark brown (see .poop)
-   specifically so it doesn't blend in as just another gray shape; a flat
-   gray override here would have silently defeated that. Fading its actual
-   color instead preserves the hue and just lightens it, on every prop. */
+   furniture around it. An opacity-based fade (tried first) missed the ask —
+   still visibly the same thickness, just lighter — and shrinking the
+   outline cells themselves (tried before that) left gaps, since
+   .dot--outline cells sit edge-to-edge (gap: 0) with zero awareness of
+   their neighbors: shrinking one toward its own center pulls it away from
+   the adjacent outline cells on both sides, breaking the ring into a
+   dotted line instead of a continuous thinner one.
+   This gets genuine thinness without that gap problem by scaling the FILL
+   layer up instead of the outline layer down — enlarged .dot--body cells
+   (already contiguous with each other, so overlapping more there is
+   invisible, same color) bleed slightly into the neighboring outline ring
+   from the inside, eating into it and shrinking how much of that 1-dot
+   ring stays visible, on every prop uniformly. z-index (via position:
+   relative, needed for z-index to apply to grid items at all) makes fill
+   consistently paint over outline wherever they overlap, regardless of
+   which one happens to come later in the generated dot markup. */
+.prop-grid .dot--outline,
+.prop-grid .dot--body {
+  position: relative;
+}
 .prop-grid .dot--outline {
-  opacity: 0.5;
+  z-index: 1;
+}
+.prop-grid .dot--body {
+  z-index: 2;
+  transform: scale(1.22);
 }
 
 .pet-status {
