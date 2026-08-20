@@ -8,11 +8,11 @@ import {
   pickRandomSpecies,
   STAGE_MOVE_DURATION_S,
   STAGE_WANDER_INTERVAL_MS,
-} from "./pet-sprites.js?v=115";
-import { propSpriteHtml } from "./prop-sprites.js?v=115";
-import * as db from "./supabase.js?v=115";
-import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=115";
-import { VERSION } from "./version.js?v=115";
+} from "./pet-sprites.js?v=116";
+import { propSpriteHtml } from "./prop-sprites.js?v=116";
+import * as db from "./supabase.js?v=116";
+import { playSound, soundEnabled, setSoundEnabled, playMelody, stopMelody, isMelodyPlaying } from "./sound.js?v=116";
+import { VERSION } from "./version.js?v=116";
 
 const HOUR = 3600000;
 
@@ -562,8 +562,10 @@ function wanderBounds(host, device) {
 // The bed can't be dragged above this fraction of the playground's height —
 // keeps it in the lower portion instead of floating up near the top, which
 // read oddly for a "floor" prop. No visible marker for the limit — it just
-// silently stops there.
-const GROUND_MIN_Y_FRACTION = 0.42;
+// silently stops there. Also doubles as the wall/ceiling area's height for
+// wall-mounted props (Night Light, Music Box — see wanderBounds/CSS top
+// values there): raised from 0.42 to 0.55 to give that area more headroom.
+const GROUND_MIN_Y_FRACTION = 0.55;
 
 function groundedBounds(el, device) {
   const base = wanderBounds(el, device);

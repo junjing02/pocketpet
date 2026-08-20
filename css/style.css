@@ -492,12 +492,12 @@ button:disabled:active { transform: none; }
    Mounted on the wall like the Night Light — top stays fixed, only left
    (drag) moves — click toggles the song, drag moves it (wireMusicBox tells
    the two apart via suppressNextPetClick). Sits right at the ground line
-   (GROUND_MIN_Y_FRACTION * 250px device height ≈ 105px, minus the box's own
-   height) rather than partway up the wall — reads as a floor speaker
-   standing against the wall instead of a shelf-mounted item. */
+   (GROUND_MIN_Y_FRACTION * 250px device height ≈ 137.5px, minus the box's
+   own ~24.5px height) rather than partway up the wall — reads as a floor
+   speaker standing against the wall instead of a shelf-mounted item. */
 .music-box {
   position: absolute;
-  top: 84px;
+  top: 113px;
   display: grid;
   place-items: center;
   cursor: grab;
